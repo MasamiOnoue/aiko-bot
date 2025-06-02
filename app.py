@@ -74,6 +74,30 @@ def handle_follow(event):
         event.reply_token,
         TextSendMessage(text=welcome_message)
     )
+@handler.add(MessageEvent, message=TextMessage)
+def handle_message(event):
+    # UID をログに出力
+    user_id = event.source.user_id
+    print("UID:", user_id)
+
+    user_message = event.message.text
+
+    # ChatGPTへ問い合わせ（新API形式）
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "system", "content": "あなたは親しみやすく頼れるAI秘書『愛子』です。LINEでは簡潔に、30文字以内で答えてください。"},
+            {"role": "user", "content": user_message}
+        ]
+    )
+
+    reply_text = response.choices[0].message.content.strip()
+
+    # LINEへ返信
+    line_bot_api.reply_message(
+        event.reply_token,
+        TextSendMessage(text=reply_text)
+    )
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
