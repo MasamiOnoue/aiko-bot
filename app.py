@@ -6,25 +6,29 @@ from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
 from dotenv import load_dotenv
 
+# 環境変数読み込み（ローカル開発用）
 load_dotenv()
 
-# デバッグ出力（Renderログで確認用）
-print("==DEBUG== Loading environment variables...")
-print(f"LINE_CHANNEL_SECRET: {os.getenv('LINE_CHANNEL_SECRET')}")
-print(f"LINE_CHANNEL_ACCESS_TOKEN: {os.getenv('LINE_CHANNEL_ACCESS_TOKEN')}")
-print(f"OPENAI_API_KEY: {os.getenv('OPENAI_API_KEY')}")
-
+# Flaskアプリ初期化
 app = Flask(__name__)
 
-# 環境変数から読み込み
+# 環境変数から各種キー取得
 CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
 CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
+# 環境変数の読み込み確認（Renderのデバッグ用）
+print("==DEBUG== Loading environment variables...")
+print("LINE_CHANNEL_SECRET:", CHANNEL_SECRET)
+print("LINE_CHANNEL_ACCESS_TOKEN:", CHANNEL_ACCESS_TOKEN)
+print("OPENAI_API_KEY:", OPENAI_API_KEY)
+
+# LINE・OpenAIのAPI初期化
 line_bot_api = LineBotApi(CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(CHANNEL_SECRET)
 openai.api_key = OPENAI_API_KEY
 
+# LINEからのWebhookを受け取るエンドポイント
 @app.route("/callback", methods=["POST"])
 def callback():
     signature = request.headers["X-Line-Signature"]
@@ -37,11 +41,12 @@ def callback():
 
     return "OK"
 
+# メッセージ受信時の処理
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     user_message = event.message.text
 
-    # OpenAI に問い合わせ
+    # OpenAI ChatGPTにメッセージ送信
     response = openai.ChatCompletion.create(
         model="gpt-4",
         messages=[
@@ -53,10 +58,13 @@ def handle_message(event):
 
     reply_text = response.choices[0].message.content.strip()
 
+    # LINEに返信
     line_bot_api.reply_message(
         event.reply_token,
         TextSendMessage(text=reply_text)
     )
 
+# Render対応：正しいhost/portで起動
 if __name__ == "__main__":
-    app.run()
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
