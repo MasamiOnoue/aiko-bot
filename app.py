@@ -31,16 +31,20 @@ openai.api_key = OPENAI_API_KEY
 # LINEからのWebhookを受け取るエンドポイント
 @app.route("/callback", methods=["POST"])
 def callback():
-    signature = request.headers["X-Line-Signature"]
+    signature = request.headers.get("X-Line-Signature", "")
     body = request.get_data(as_text=True)
+
+    print("=== Debug: signature ===")
+    print(signature)
+    print("=== Debug: body ===")
+    print(body)
 
     try:
         handler.handle(body, signature)
-    except InvalidSignatureError:
-        print("⚠️ Invalid signature")
-        abort(400)
     except Exception as e:
-        print("⚠️ 予期しないエラー:", e)
+        print("⚠️ handler.handle() でエラー")
+        import traceback
+        traceback.print_exc()
         abort(500)
 
     return "OK"
