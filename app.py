@@ -59,6 +59,19 @@ def handle_message(event):
         event.reply_token,
         TextSendMessage(text=reply_text)
     )
+@handler.add(FollowEvent)
+def handle_follow(event):
+    user_id = event.source.user_id
+    print("✅ 友だち追加されたユーザーID:", user_id)
+
+    # 必要に応じてここでデータベースやGoogle Sheetsに保存可能
+    # 例: save_user_id(user_id)
+
+    welcome_message = "愛子です。お友だち登録ありがとうございます。"
+    line_bot_api.reply_message(
+        event.reply_token,
+        TextSendMessage(text=welcome_message)
+    )
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
