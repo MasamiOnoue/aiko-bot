@@ -58,7 +58,7 @@ def handle_message(event):
     client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
     response = client.chat.completions.create(
-        model="gpt-4",
+        model="gpt-3.5-turbo",
         messages=[
             {"role": "system", "content": "あなたは親しみやすく頼れるAI秘書『愛子ちゃん』です。生産性や業務改善をやさしく丁寧にサポートしてください。"},
             {"role": "user", "content": user_message},
