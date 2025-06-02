@@ -5,6 +5,7 @@ from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage, FollowEvent
 from dotenv import load_dotenv
+from openai import OpenAI
 
 # 環境変数読み込み
 load_dotenv()
@@ -22,7 +23,6 @@ line_bot_api = LineBotApi(CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(CHANNEL_SECRET)
 
 # OpenAI 新API用クライアント作成
-from openai import OpenAI
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 @app.route("/callback", methods=["POST"])
