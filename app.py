@@ -54,13 +54,14 @@ def callback():
 def handle_message(event):
     user_message = event.message.text
 
-    # 最新の openai ライブラリに対応した書き方（v1.0以降）
-    client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
+    # OpenAI ChatGPTにメッセージ送信
     response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
+        model="gpt-4o",
         messages=[
-            {"role": "system", "content": "AI秘書『愛子』です。お仕事かんばりましょう"},
+            {
+                "role": "system",
+                "content": "あなたは頼れるAI秘書『愛子』です。LINEでは一度の返信をできるだけ短く簡潔に50文字程度以内にしてください。"
+            },
             {"role": "user", "content": user_message},
         ],
         temperature=0.7,
@@ -68,7 +69,7 @@ def handle_message(event):
 
     reply_text = response.choices[0].message.content.strip()
 
-    # LINE に返信
+    # LINEに返信
     line_bot_api.reply_message(
         event.reply_token,
         TextSendMessage(text=reply_text)
