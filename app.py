@@ -54,8 +54,10 @@ def callback():
 def handle_message(event):
     user_message = event.message.text
 
-    # OpenAI ChatGPTにメッセージ送信
-    response = openai.ChatCompletion.create(
+    # 最新の openai ライブラリに対応した書き方（v1.0以降）
+    client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+    response = client.chat.completions.create(
         model="gpt-4",
         messages=[
             {"role": "system", "content": "あなたは親しみやすく頼れるAI秘書『愛子ちゃん』です。生産性や業務改善をやさしく丁寧にサポートしてください。"},
@@ -66,7 +68,7 @@ def handle_message(event):
 
     reply_text = response.choices[0].message.content.strip()
 
-    # LINEに返信
+    # LINE に返信
     line_bot_api.reply_message(
         event.reply_token,
         TextSendMessage(text=reply_text)
