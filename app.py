@@ -48,7 +48,7 @@ def handle_message(event):
     response = client.chat.completions.create(
         model="gpt-4o",
         messages=[
-            {"role": "system", "content": "あなたは親しみやすく頼れるAI秘書『愛子ちゃん』です。LINEでは簡潔に、30文字以内で答えてください。"},
+            {"role": "system", "content": "あなたは親しみやすく頼れるAI秘書『愛子』です。LINEでは簡潔に、30文字以内で答えてください。"},
             {"role": "user", "content": user_message}
         ]
     )
