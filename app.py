@@ -8,6 +8,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# デバッグ出力（Renderログで確認用）
+print("==DEBUG== Loading environment variables...")
+print(f"LINE_CHANNEL_SECRET: {os.getenv('LINE_CHANNEL_SECRET')}")
+print(f"LINE_CHANNEL_ACCESS_TOKEN: {os.getenv('LINE_CHANNEL_ACCESS_TOKEN')}")
+print(f"OPENAI_API_KEY: {os.getenv('OPENAI_API_KEY')}")
+
 app = Flask(__name__)
 
 # 環境変数から読み込み
