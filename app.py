@@ -11,6 +11,9 @@ from openai import OpenAI
 # 環境変数読み込み
 load_dotenv()
 
+# ログ出力設定（INFO以上を表示）
+logging.basicConfig(level=logging.INFO)
+
 # Flask初期化
 app = Flask(__name__)
 
