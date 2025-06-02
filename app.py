@@ -37,7 +37,8 @@ def callback():
         print("⚠️ Invalid signature")
         abort(400)
     except Exception as e:
-        print("⚠️ 予期しないエラー:", e)
+        print("⚠️ 予期しないエラー:")
+        traceback.print_exc()
         abort(500)
 
     return "OK", 200
