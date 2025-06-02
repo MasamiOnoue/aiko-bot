@@ -22,7 +22,8 @@ line_bot_api = LineBotApi(CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(CHANNEL_SECRET)
 
 # OpenAI 新API用クライアント作成
-client = openai.OpenAI(api_key=OPENAI_API_KEY)
+from openai import OpenAI
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 @app.route("/callback", methods=["POST"])
 def callback():
