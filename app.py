@@ -60,7 +60,7 @@ def handle_follow(event):
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     user_id = event.source.user_id
-    logging.info("✅ メッセージを送ってきた UID:", user_id)
+    logging.info(f"✅ メッセージを送ってきた UID: {user_id}")
 
     user_message = event.message.text
 
