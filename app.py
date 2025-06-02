@@ -5,7 +5,6 @@ from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage, FollowEvent
 from dotenv import load_dotenv
-import openai
 
 # 環境変数読み込み
 load_dotenv()
