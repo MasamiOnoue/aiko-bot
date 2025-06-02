@@ -96,11 +96,13 @@ def push_message():
         if not user_id or not message:
             return jsonify({"error": "Missing 'target_uid' or 'message'"}), 400
 
+        # メッセージ送信
         line_bot_api.push_message(
             user_id,
             TextSendMessage(text=message)
         )
 
+        logging.info(f"📤 プッシュメッセージを送信: {user_id} → {message}")
         return jsonify({"status": "success", "to": user_id}), 200
 
     except Exception as e:
