@@ -1,81 +1,65 @@
 import os
-import openai
 from flask import Flask, request, abort
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
 from dotenv import load_dotenv
+import openai
 
-# 環境変数読み込み（ローカル開発用）
+# 環境変数読み込み
 load_dotenv()
 
-# Flaskアプリ初期化
+# Flask初期化
 app = Flask(__name__)
 
-# 環境変数から各種キー取得
+# 環境変数取得
 CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
 CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-# 環境変数の読み込み確認（Renderのデバッグ用）
-print("==DEBUG== Loading environment variables...")
-print("LINE_CHANNEL_SECRET:", CHANNEL_SECRET)
-print("LINE_CHANNEL_ACCESS_TOKEN:", CHANNEL_ACCESS_TOKEN)
-print("OPENAI_API_KEY:", OPENAI_API_KEY)
-
-# LINE・OpenAIのAPI初期化
+# LINE Bot SDK 初期化
 line_bot_api = LineBotApi(CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(CHANNEL_SECRET)
-openai.api_key = OPENAI_API_KEY
 
-# LINEからのWebhookを受け取るエンドポイント
+# OpenAI 新API用クライアント作成
+client = openai.OpenAI(api_key=OPENAI_API_KEY)
+
 @app.route("/callback", methods=["POST"])
 def callback():
-    signature = request.headers.get("X-Line-Signature", "")
+    signature = request.headers["X-Line-Signature"]
     body = request.get_data(as_text=True)
-
-    print("=== Debug: signature ===")
-    print(signature)
-    print("=== Debug: body ===")
-    print(body)
 
     try:
         handler.handle(body, signature)
+    except InvalidSignatureError:
+        print("⚠️ Invalid signature")
+        abort(400)
     except Exception as e:
-        print("⚠️ handler.handle() でエラー")
-        import traceback
-        traceback.print_exc()
+        print("⚠️ 予期しないエラー:", e)
         abort(500)
 
     return "OK"
 
-# メッセージ受信時の処理
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     user_message = event.message.text
 
-    # OpenAI ChatGPTにメッセージ送信
+    # ChatGPTへ問い合わせ（新API形式）
     response = client.chat.completions.create(
         model="gpt-4o",
         messages=[
-            {
-                "role": "system",
-                "content": "あなたは頼れるAI秘書『愛子』です。LINEでは一度の返信をできるだけ短く簡潔に50文字程度以内にしてください。"
-            },
-            {"role": "user", "content": user_message},
-        ],
-        temperature=0.7,
+            {"role": "system", "content": "あなたは親しみやすく頼れるAI秘書『愛子ちゃん』です。LINEでは簡潔に、30文字以内で答えてください。"},
+            {"role": "user", "content": user_message}
+        ]
     )
 
     reply_text = response.choices[0].message.content.strip()
 
-    # LINEに返信
     line_bot_api.reply_message(
         event.reply_token,
         TextSendMessage(text=reply_text)
     )
 
-# Render対応：正しいhost/portで起動
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
