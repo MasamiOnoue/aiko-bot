@@ -2,6 +2,7 @@ import os
 import traceback
 import logging
 from flask import Flask, request, abort
+from flask import jsonify
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage, FollowEvent
@@ -84,7 +85,29 @@ def handle_message(event):
         TextSendMessage(text=reply_text)
     )
 
-# ポート指定（Render対応）
+# LINEへのプッシュ送信用エンドポイント
+@app.route("/push", methods=["POST"])
+def push_message():
+    try:
+        data = request.get_json()
+        user_id = data.get("target_uid")
+        message = data.get("message")
+
+        if not user_id or not message:
+            return jsonify({"error": "Missing 'target_uid' or 'message'"}), 400
+
+        line_bot_api.push_message(
+            user_id,
+            TextSendMessage(text=message)
+        )
+
+        return jsonify({"status": "success", "to": user_id}), 200
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+# ✅ 最後に1回だけ
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
