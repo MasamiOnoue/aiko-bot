@@ -60,7 +60,7 @@ def handle_message(event):
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
-            {"role": "system", "content": "あなたは親しみやすく頼れるAI秘書『愛子ちゃん』です。生産性や業務改善をやさしく丁寧にサポートしてください。"},
+            {"role": "system", "content": "AI秘書『愛子』です。お仕事かんばりましょう"},
             {"role": "user", "content": user_message},
         ],
         temperature=0.7,
