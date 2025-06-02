@@ -22,9 +22,10 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 line_bot_api = LineBotApi(CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(CHANNEL_SECRET)
 
-# OpenAI 新API用クライアント作成
+# OpenAI クライアント初期化
 client = OpenAI(api_key=OPENAI_API_KEY)
 
+# Webhookのエンドポイント
 @app.route("/callback", methods=["POST"])
 def callback():
     signature = request.headers["X-Line-Signature"]
@@ -35,54 +36,34 @@ def callback():
     except InvalidSignatureError:
         print("⚠️ Invalid signature")
         abort(400)
-    except Exception as e:
+    except Exception:
         print("⚠️ 予期しないエラー:")
         traceback.print_exc()
         abort(500)
 
     return "OK", 200
 
-@handler.add(MessageEvent, message=TextMessage)
-def handle_message(event):
-    user_message = event.message.text
-
-    # ChatGPTへ問い合わせ（新API形式）
-    response = client.chat.completions.create(
-        model="gpt-4o",
-        messages=[
-            {"role": "system", "content": "あなたは親しみやすく頼れるAI秘書『愛子』です。LINEでは簡潔に、30文字以内で答えてください。"},
-            {"role": "user", "content": user_message}
-        ]
-    )
-
-    reply_text = response.choices[0].message.content.strip()
-
-    line_bot_api.reply_message(
-        event.reply_token,
-        TextSendMessage(text=reply_text)
-    )
+# 友だち追加時
 @handler.add(FollowEvent)
 def handle_follow(event):
     user_id = event.source.user_id
-    print("✅ 友だち追加されたユーザーID:", user_id)
-
-    # 必要に応じてここでデータベースやGoogle Sheetsに保存可能
-    # 例: save_user_id(user_id)
+    print("✅ 友だち追加された UID:", user_id)
 
     welcome_message = "愛子です。お友だち登録ありがとうございます。"
     line_bot_api.reply_message(
         event.reply_token,
         TextSendMessage(text=welcome_message)
     )
+
+# メッセージ受信時
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
-    # UID をログに出力
     user_id = event.source.user_id
-    print("UID:", user_id)
+    print("✅ メッセージを送ってきた UID:", user_id)
 
     user_message = event.message.text
 
-    # ChatGPTへ問い合わせ（新API形式）
+    # OpenAI APIに送信
     response = client.chat.completions.create(
         model="gpt-4o",
         messages=[
@@ -99,6 +80,7 @@ def handle_message(event):
         TextSendMessage(text=reply_text)
     )
 
+# ポート指定（Render対応）
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
