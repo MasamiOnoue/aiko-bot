@@ -31,7 +31,7 @@ openai.api_key = OPENAI_API_KEY
 # LINEからのWebhookを受け取るエンドポイント
 @app.route("/callback", methods=["POST"])
 def callback():
-signature = request.headers["X-Line-Signature"]
+    signature = request.headers["X-Line-Signature"]
     body = request.get_data(as_text=True)
 
     try:
