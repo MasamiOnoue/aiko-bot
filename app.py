@@ -21,6 +21,7 @@ logging.basicConfig(level=logging.INFO)
 # Flask初期化
 app = Flask(__name__)
 
+# LINE会話ログをgoogle driveに保存する
 SERVICE_ACCOUNT_FILE = 'your-key-file.json'
 SPREADSHEET_ID = 'your-spreadsheet-id'
 RANGE_NAME = 'ログ!A:C'
