@@ -24,7 +24,7 @@ app = Flask(__name__)
 # LINE会話ログをgoogle driveに保存する
 SERVICE_ACCOUNT_FILE = 'aiko-bot-log-cfbf23e039fd.json'
 SPREADSHEET_ID = '14tFyTz_xYqHYwegGLU2g4Ez4kc37hBgSmR2G85DLMWE'
-RANGE_NAME = 'ログ!A:C'
+RANGE_NAME = 'ログ!A:D'
 
 creds = service_account.Credentials.from_service_account_file(
     SERVICE_ACCOUNT_FILE,
