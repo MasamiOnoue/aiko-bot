@@ -92,6 +92,14 @@ def handle_message(event):
         body={'values': [[timestamp, user_id, user_message]]}
     ).execute()
 
+    # 🔽 ログ追加を行う
+    sheet.values().append(
+        spreadsheetId=SPREADSHEET_ID,
+        range=RANGE_NAME,
+        valueInputOption='USER_ENTERED',
+        body={'values': [[timestamp, user_id, user_message, reply_text]]}  # 追加したい項目
+    ).execute()
+    
     # OpenAI APIに送信
     response = client.chat.completions.create(
         model="gpt-4o",
