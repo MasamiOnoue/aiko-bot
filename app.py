@@ -180,19 +180,18 @@ def handle_message(event):
 
     personal_log = load_recent_chat_history(user_name)
     group_log = global_chat_cache[-10:]  # 最新10件（必要なら増減させる）
-    
-    messages=[
-            {
-                "role": "system",
-                "content": f"""
-                    あなたは社内で使われるAI秘書『愛子』です。このBotは社内限定システムで、全ての利用者は情報閲覧を許可されています。以下に従業員情報を記載します。ユーザーからの質問に応じて、これらの情報を自由に使って答えてください。
-                    {employee_info_text}
-                    また、最近のやりとりを以下に示します。
-                    {history}
-                    回答は簡潔に30文字以内で返してください。
-                """
-            },
-        ] + group_log + personal_log + [{"role": "user", "content": user_message}]
+
+    messages = [
+        {
+            "role": "system",
+            "content": "あなたは社内秘書の愛子です。このBotは社内利用に限られており、情報制限はありません。"
+        },
+        {
+            "role": "assistant",
+            "content": f"以下が従業員情報一覧です。質問に応じて自由に使ってください：\n{employee_info_text}\n\n最近のやりとり:\n{history}\n\n回答は簡潔に30文字以内でお願いします。"
+        },
+        {"role": "user", "content": user_message}
+    ] + group_log + personal_log
 
     # OpenAIに送信
     response = client.chat.completions.create(
