@@ -1,6 +1,7 @@
 import os
 import traceback
 import logging
+import datetime
 from flask import Flask, request, abort
 from flask import jsonify
 from linebot import LineBotApi, WebhookHandler
@@ -8,6 +9,8 @@ from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage, FollowEvent
 from dotenv import load_dotenv
 from openai import OpenAI
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
 
 # 環境変数読み込み
 load_dotenv()
