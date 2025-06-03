@@ -2,6 +2,8 @@ import os
 import traceback
 import logging
 import datetime
+import threading
+import time
 from flask import Flask, request, abort
 from flask import jsonify
 from linebot import LineBotApi, WebhookHandler
@@ -14,6 +16,30 @@ from googleapiclient.discovery import build
 
 EMPLOYEE_SHEET_RANGE = '従業員情報!A:W'  # 名前〜
 LOG_RANGE_NAME = 'ログ!A:D'
+
+# キャッシュ変数（全体チャット履歴）
+global_chat_cache = []
+
+# 読み込み関数（既に作った load_all_chat_history を利用）
+def refresh_global_chat_cache(interval_seconds=300):
+    """
+    一定間隔ごとに全体チャットログをGoogle Sheetsから読み込んでキャッシュに格納。
+    interval_seconds: 更新間隔（秒）デフォルト300秒（5分）
+    """
+    def update_loop():
+        global global_chat_cache
+        while True:
+            try:
+                print("[愛子] 全体ログキャッシュ更新中...")
+                global_chat_cache = load_all_chat_history(max_messages=200)
+                print(f"[愛子] 全体ログキャッシュ更新完了：{len(global_chat_cache)}件")
+            except Exception as e:
+                print("[愛子] キャッシュ更新エラー:", e)
+            time.sleep(interval_seconds)
+
+    # スレッドで実行
+    thread = threading.Thread(target=update_loop, daemon=True)
+    thread.start()
 
 # LINEのUSER_IDと名前のマッピング関数を定義
 def load_user_id_map():
@@ -31,6 +57,9 @@ logging.basicConfig(level=logging.INFO)
 
 # Flask初期化
 app = Flask(__name__)
+
+# キャッシュ更新スレッドの開始
+refresh_global_chat_cache(interval_seconds=300)
 
 # Google Sheets 設定
 SERVICE_ACCOUNT_FILE = 'aiko-bot-log-cfbf23e039fd.json'
@@ -102,6 +131,21 @@ def handle_follow(event):
 # Google Sheetsが使えるようになったので、ここで呼ぶ
 USER_ID_MAP = load_user_id_map()
 
+# 過去の会話ログをキャッシュから取得
+def load_recent_chat_history(user_name, limit=10):
+    try:
+        result = sheet.values().get(
+            spreadsheetId=SPREADSHEET_ID1,
+            range="ログ!A:D"
+        ).execute()
+        rows = result.get("values", [])[1:]  # ヘッダー除く
+        recent = [row for row in rows if len(row) >= 4 and row[1] == user_name][-limit:]
+        return [{"role": "user", "content": row[2]} if i % 2 == 0 else {"role": "assistant", "content": row[3]}
+                for i, row in enumerate(recent)]
+    except Exception as e:
+        print("[愛子] 個別ログ読み込み失敗:", e)
+        return []
+
 # メッセージ受信時
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
@@ -120,7 +164,7 @@ def handle_message(event):
     conversation_log = result.get("values", [])
 
     # 🔽 履歴整形する
-    def format_conversation_history(log, user_name, limit=200):
+    def format_conversation_history(log, user_name, limit=50):
         recent = [row for row in log if len(row) >= 4 and row[1] == user_name][-limit:]
         return "\n".join([f"{row[1]}: {row[2]}\n愛子: {row[3]}" for row in recent])
 
@@ -134,10 +178,10 @@ def handle_message(event):
 
     employee_info_text = format_employee_data_for_prompt(employee_data_result)
 
-    # OpenAIに送信
-    response = client.chat.completions.create(
-        model="gpt-4o",
-        messages=[
+    personal_log = load_recent_chat_history(user_name)
+    group_log = global_chat_cache[-10:]  # 最新10件（必要なら増減させる）
+    
+    messages=[
             {
                 "role": "system",
                 "content": f"""
@@ -148,9 +192,14 @@ def handle_message(event):
                     回答は簡潔に30文字以内で返してください。
                 """
             },
-            {"role": "user", "content": user_message}
-        ]
+        ] + group_log + personal_log + [{"role": "user", "content": user_message}]
+
+    # OpenAIに送信
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=messages
     )
+
     reply_text = response.choices[0].message.content.strip()
 
     # 🔽 USER_IDを名前に変換（登録された人のみ）
