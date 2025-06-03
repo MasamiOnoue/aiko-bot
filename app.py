@@ -13,6 +13,7 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
 EMPLOYEE_SHEET_RANGE = '従業員情報!A:W'  # 名前〜
+LOG_RANGE_NAME = 'ログ!A:D'
 
 # ユーザーIDと名前のマッピング関数だけを定義
 def load_user_id_map():
@@ -34,10 +35,7 @@ app = Flask(__name__)
 # Google Sheets 設定
 SERVICE_ACCOUNT_FILE = 'aiko-bot-log-cfbf23e039fd.json'
 SPREADSHEET_ID1 = '14tFyTz_xYqHYwegGLU2g4Ez4kc37hBgSmR2G85DLMWE' #ログのスプレッドシート
-_NAME1 = 'ログ!A:D'
-
 SPREADSHEET_ID2 = '1kO7-r-D-iZzYzv9LEZ9J4FzVAaZ13WKJWT_-97F6vbM' #従業員情報のスプレッドシート
-_NAME2 = '従業員情報!A:W'
 
 creds = service_account.Credentials.from_service_account_file(
     SERVICE_ACCOUNT_FILE,
@@ -84,7 +82,7 @@ def format_employee_data_for_prompt(data):
     rows = data[1:]
     formatted = []
     for row in rows:
-        entry = {headers[i]: row[i] if i < len(row) else "" for i in range(len(headers))
+        entry = {headers[i]: row[i] if i < len(row) else "" for i in range(len(headers))}
         summary = f"{entry.get('名前', '')}（{entry.get('呼ばれ方', '')}）: {entry.get('電話番号', '番号不明')}"
         formatted.append(summary)
     return "\n".join(formatted)
@@ -162,7 +160,7 @@ def handle_message(event):
     timestamp = datetime.datetime.now().isoformat()
     sheet.values().append(
         spreadsheetId=SPREADSHEET_ID1,
-        range=RANGE_NAME1,
+        range=LOG_RANGE_NAME,
         valueInputOption='USER_ENTERED',
         body={'values': [[timestamp, user_name, user_message, reply_text]]}
     ).execute()
