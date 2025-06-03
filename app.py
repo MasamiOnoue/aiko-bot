@@ -83,23 +83,6 @@ def handle_message(event):
 
     user_message = event.message.text
 
-    # 🔽 会話ログを Google Sheets に保存
-    timestamp = datetime.datetime.now().isoformat()
-    sheet.values().append(
-        spreadsheetId=SPREADSHEET_ID,
-        range=RANGE_NAME,
-        valueInputOption='USER_ENTERED',
-        body={'values': [[timestamp, user_id, user_message]]}
-    ).execute()
-
-    # 🔽 ログ追加を行う
-    sheet.values().append(
-        spreadsheetId=SPREADSHEET_ID,
-        range=RANGE_NAME,
-        valueInputOption='USER_ENTERED',
-        body={'values': [[timestamp, user_id, user_message, reply_text]]}  # 追加したい項目
-    ).execute()
-    
     # OpenAI APIに送信
     response = client.chat.completions.create(
         model="gpt-4o",
@@ -111,6 +94,15 @@ def handle_message(event):
 
     reply_text = response.choices[0].message.content.strip()
 
+    # 🔽 会話ログを Google Sheets に保存
+    timestamp = datetime.datetime.now().isoformat()
+    sheet.values().append(
+        spreadsheetId=SPREADSHEET_ID,
+        range=RANGE_NAME,
+        valueInputOption='USER_ENTERED',
+        body={'values': [[timestamp, user_id, user_message, reply_text]]}
+    ).execute()
+    
     # LINEへ返信
     line_bot_api.reply_message(
         event.reply_token,
