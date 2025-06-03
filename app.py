@@ -111,7 +111,7 @@ def handle_message(event):
         spreadsheetId=SPREADSHEET_ID,
         range=RANGE_NAME,
         valueInputOption='USER_ENTERED',
-        body={'values': [[timestamp, user_id, user_message, reply_text]]}
+        body={'values': [[timestamp, user_name, user_message, reply_text]]}
     ).execute()
     
     # LINEへ返信
