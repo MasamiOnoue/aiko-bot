@@ -21,6 +21,17 @@ logging.basicConfig(level=logging.INFO)
 # Flask初期化
 app = Flask(__name__)
 
+SERVICE_ACCOUNT_FILE = 'your-key-file.json'
+SPREADSHEET_ID = 'your-spreadsheet-id'
+RANGE_NAME = 'ログ!A:C'
+
+creds = service_account.Credentials.from_service_account_file(
+    SERVICE_ACCOUNT_FILE,
+    scopes=['https://www.googleapis.com/auth/spreadsheets']
+)
+sheets_service = build('sheets', 'v4', credentials=creds)
+sheet = sheets_service.spreadsheets()
+
 # 環境変数取得
 CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
 CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
