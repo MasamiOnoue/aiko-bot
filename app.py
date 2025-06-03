@@ -4,6 +4,7 @@ import logging
 import datetime
 import threading
 import time
+import requests
 from flask import Flask, request, abort
 from flask import jsonify
 from linebot import LineBotApi, WebhookHandler
@@ -55,6 +56,20 @@ def refresh_global_chat_cache(interval_seconds=300):
     thread = threading.Thread(target=update_loop, daemon=True)
     thread.start()
 
+def keep_server_awake(interval_seconds=900):
+    def ping():
+        while True:
+            try:
+                url = os.getenv("RENDER_EXTERNAL_URL") or "http://localhost:5000"
+                print("[愛子] Renderスリープ防止ping:", url)
+                requests.get(url)
+            except Exception as e:
+                print("[愛子] ping失敗:", e)
+            time.sleep(interval_seconds)
+
+    thread = threading.Thread(target=ping, daemon=True)
+    thread.start()
+
 def load_user_id_map():
     result = sheet.values().get(
         spreadsheetId=SPREADSHEET_ID2,
@@ -81,6 +96,7 @@ sheet = sheets_service.spreadsheets()
 
 refresh_global_chat_cache(interval_seconds=300)
 refresh_employee_data_cache(interval_seconds=300)
+keep_server_awake(interval_seconds=900)
 
 CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
 CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
