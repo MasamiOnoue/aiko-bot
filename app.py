@@ -19,7 +19,7 @@ def load_user_id_map():
     result = sheet.values().get(
         spreadsheetId=SPREADSHEET_ID,
         range='従業員情報!A:W'
-    ).execute().get("values", [])[1:]
+    ).execute().get("values", [])[1:]# 1列目のヘッダー除く
     return {row[2]: row[1] for row in result if len(row) >= 3}
 
 # 環境変数読み込み
