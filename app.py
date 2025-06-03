@@ -86,9 +86,25 @@ def handle_follow(event):
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     user_id = event.source.user_id
-    logging.info(f"✅ メッセージを送ってきた UID: {user_id}")
-
     user_message = event.message.text
+    logging.info(f"✅ メッセージを送ってきた UID: {user_id}")
+    
+    # 🔽 名前を取得
+    user_name = USER_ID_MAP.get(user_id, f"未登録 ({user_id})")
+
+    # 🔽 会話の過去ログを取得
+    result = sheet.values().get(
+        spreadsheetId=SPREADSHEET_ID,
+        range="ログ!A:D"
+    ).execute()
+    conversation_log = result.get("values", [])
+
+    # 🔽 履歴整形する
+    def format_conversation_history(log, user_name, limit=5):
+        recent = [row for row in log if len(row) >= 4 and row[1] == user_name][-limit:]
+        return "\n".join([f"{row[1]}: {row[2]}\n愛子: {row[3]}" for row in recent])
+
+    history = format_conversation_history(conversation_log, user_name)
 
     # OpenAI APIに送信
     response = client.chat.completions.create(
