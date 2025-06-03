@@ -238,7 +238,13 @@ def handle_message(event):
         },
         {
             "role": "assistant",
-            "content": f"以下は従業員情報一覧です。必要に応じて、あなた自身の判断で柔軟に活用して構いません。また、直近の会話履歴も文脈把握のために自由に利用してください。：\n{employee_info_text}\n\n最近のやりとり:\n{history}\n\n回答は簡潔に50文字以内でお願いします。"
+            "content": (
+                "以下は従業員情報一覧です。必要に応じて、あなた自身の判断で柔軟に活用して構いません。\n\n"
+                f"{employee_info_text}\n\n"
+                "以下は最近の会話履歴です。文脈を把握するために自由に利用してください。\n\n"
+                f"{history}\n\n"
+                "すべての情報を参考にして、回答は簡潔に50文字以内でお願いします。"
+            )
         },
         {"role": "user", "content": user_message}
     ] + group_log + personal_log
