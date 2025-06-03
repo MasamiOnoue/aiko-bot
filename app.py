@@ -15,7 +15,7 @@ from googleapiclient.discovery import build
 EMPLOYEE_SHEET_RANGE = '従業員情報!A:W'  # 名前〜
 LOG_RANGE_NAME = 'ログ!A:D'
 
-# ユーザーIDと名前のマッピング関数だけを定義
+# LINEのUSER_IDと名前のマッピング関数を定義
 def load_user_id_map():
     result = sheet.values().get(
         spreadsheetId=SPREADSHEET_ID2,
