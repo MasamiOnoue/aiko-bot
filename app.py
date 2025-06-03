@@ -72,6 +72,19 @@ def callback():
 
     return "OK", 200
 
+def format_employee_data_for_prompt(data):
+    if not data or len(data) < 2:
+        return "情報がありません。"
+
+    headers = data[0]
+    rows = data[1:]
+    formatted = []
+    for row in rows:
+        entry = {headers[i]: row[i] if i < len(row) else "" for i in range(len(headers))}
+        summary = f"{entry.get('名前', '')}（{entry.get('呼ばれ方', '')}）: {entry.get('電話番号', '番号不明')}"
+        formatted.append(summary)
+    return "\n".join(formatted)
+
 # 友だち追加時
 @handler.add(FollowEvent)
 def handle_follow(event):
@@ -102,50 +115,40 @@ def handle_message(event):
     conversation_log = result.get("values", [])
 
     # 🔽 履歴整形する
-    def format_conversation_history(log, user_name, limit=5):
+    def format_conversation_history(log, user_name, limit=200):
         recent = [row for row in log if len(row) >= 4 and row[1] == user_name][-limit:]
         return "\n".join([f"{row[1]}: {row[2]}\n愛子: {row[3]}" for row in recent])
 
     history = format_conversation_history(conversation_log, user_name)
 
-    # ▼ 名前とキーワードから個人情報を抽出
-    def find_employee_info(log, target_name):
-    for row in log:
-        if len(row) >= 2 and row[0] == target_name:
-            return {
-                "名前の読み": row[1],
-                "呼ばれ方": row[2],
-                "愛子ちゃんからの呼ばれ方": row[3]
-                "愛子からの呼ばれ方（読み）": row[4]
-                "役職": row[5]
-                "入社年": row[6]
-                "生年月日": row[7]
-                "メールアドレス": row[8]
-                "古いメールアドレス": row[9]
-                "個人メールアドレス": row[10]
-                "LINE ID": row[11]
-                "LINEのUID": row[12]
-                "携帯電話番号": row[13]
-                "自宅電話": row[14]
-                "住所": row[15]
-                "郵便番号": row[16]
-                "緊急連絡先": row[17]
-                "ペット情報": row[18]
-                "性格": row[19]
-                "口癖": row[20]
-                "備考": row[21] 
-            }
-    return None
-    # OpenAI APIに送信
+    # 従業員情報取得
+    employee_data_result = sheet.values().get(
+        spreadsheetId=SPREADSHEET_ID,
+        range="従業員情報!A:W"
+    ).execute().get("values", [])
+
+    history = format_conversation_history(conversation_result, user_name)
+    employee_info_text = format_employee_data_for_prompt(employee_data_result)
+
+    # OpenAIに送信
     response = client.chat.completions.create(
         model="gpt-4o",
         messages=[
-            {"role": "system", "content": "あなたは親しみやすく頼れるAI秘書『愛子』です。LINEでは簡潔に、30文字以内で答えてください。"},
-            {"role": "system", "content": f"以下はこれまでの会話履歴です。\n{history}"},
+            {
+                "role": "system",
+                "content": f"""
+                    あなたは社内で使われるAI秘書『愛子』です。
+                    以下は従業員の情報です。会話に必要な情報があればこれを参照して答えてください：
+                    個人情報は求められたときのみ返してください。
+                    {employee_info_text}
+                    また、最近のやりとりを以下に示します。
+                    {history}
+                    回答は簡潔に30文字以内で返してください。
+                """
+            },
             {"role": "user", "content": user_message}
         ]
     )
-
     reply_text = response.choices[0].message.content.strip()
 
     # 🔽 USER_IDを名前に変換（登録された人のみ）
