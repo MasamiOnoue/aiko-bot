@@ -47,7 +47,7 @@ def load_user_id_map():
         spreadsheetId=SPREADSHEET_ID2,
         range='従業員情報!A:W'
     ).execute().get("values", [])[1:]# 1列目のヘッダー除く
-    return {row[2]: row[1] for row in result if len(row) >= 3}
+    return {row[12]: row[1] for row in result if len(row) >= 13}
 
 # 環境変数読み込み
 load_dotenv()
