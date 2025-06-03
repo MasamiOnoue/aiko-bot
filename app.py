@@ -43,9 +43,6 @@ creds = service_account.Credentials.from_service_account_file(
 sheets_service = build('sheets', 'v4', credentials=creds)
 sheet = sheets_service.spreadsheets()
 
-# Google Sheetsが使えるようになったので、ここで呼ぶ
-USER_ID_MAP = load_user_id_map()
-
 # 環境変数取得
 CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
 CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
@@ -100,6 +97,9 @@ def handle_follow(event):
         event.reply_token,
         TextSendMessage(text=welcome_message)
     )
+
+# Google Sheetsが使えるようになったので、ここで呼ぶ
+USER_ID_MAP = load_user_id_map()
 
 # メッセージ受信時
 @handler.add(MessageEvent, message=TextMessage)
