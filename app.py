@@ -111,6 +111,7 @@ def handle_message(event):
         model="gpt-4o",
         messages=[
             {"role": "system", "content": "あなたは親しみやすく頼れるAI秘書『愛子』です。LINEでは簡潔に、30文字以内で答えてください。"},
+            {"role": "system", "content": f"以下はこれまでの会話履歴です。\n{history}"},
             {"role": "user", "content": user_message}
         ]
     )
