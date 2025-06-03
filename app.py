@@ -23,7 +23,7 @@ app = Flask(__name__)
 
 # LINE会話ログをgoogle driveに保存する
 SERVICE_ACCOUNT_FILE = 'aiko-bot-log-cfbf23e039fd.json'
-SPREADSHEET_ID = 'LINE会話ログ'
+SPREADSHEET_ID = '14tFyTz_xYqHYwegGLU2g4Ez4kc37hBgSmR2G85DLMWE'
 RANGE_NAME = 'ログ!A:C'
 
 creds = service_account.Credentials.from_service_account_file(
@@ -82,6 +82,15 @@ def handle_message(event):
     logging.info(f"✅ メッセージを送ってきた UID: {user_id}")
 
     user_message = event.message.text
+
+    # 🔽 会話ログを Google Sheets に保存
+    timestamp = datetime.datetime.now().isoformat()
+    sheet.values().append(
+        spreadsheetId=SPREADSHEET_ID,
+        range=RANGE_NAME,
+        valueInputOption='USER_ENTERED',
+        body={'values': [[timestamp, user_id, user_message]]}
+    ).execute()
 
     # OpenAI APIに送信
     response = client.chat.completions.create(
