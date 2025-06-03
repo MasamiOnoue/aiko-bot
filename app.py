@@ -17,6 +17,33 @@ from googleapiclient.discovery import build
 EMPLOYEE_SHEET_RANGE = '従業員情報!A:W'  # 名前〜
 LOG_RANGE_NAME = 'ログ!A:D'
 
+# キャッシュ変数（従業員情報）
+employee_data_cache = []
+
+def refresh_employee_data_cache(interval_seconds=300):
+    """
+    従業員情報をGoogle Sheetsから定期的に読み込んでキャッシュする。
+    interval_seconds: 秒単位の更新間隔
+    """
+    def update_loop():
+        global employee_data_cache
+        while True:
+            try:
+                print("[愛子] 従業員情報キャッシュ更新中...")
+                result = sheet.values().get(
+                    spreadsheetId=SPREADSHEET_ID2,
+                    range='従業員情報!A:W'
+                ).execute().get("values", [])
+                employee_data_cache = result
+                print(f"[愛子] 従業員情報キャッシュ完了：{len(result)-1}件")
+            except Exception as e:
+                print("[愛子] 従業員情報キャッシュ失敗:", e)
+            time.sleep(interval_seconds)
+
+    # バックグラウンドスレッドで実行
+    thread = threading.Thread(target=update_loop, daemon=True)
+    thread.start()
+    
 # キャッシュ変数（全体チャット履歴）
 global_chat_cache = []
 
@@ -58,9 +85,6 @@ logging.basicConfig(level=logging.INFO)
 # Flask初期化
 app = Flask(__name__)
 
-# キャッシュ更新スレッドの開始
-refresh_global_chat_cache(interval_seconds=300)
-
 # Google Sheets 設定
 SERVICE_ACCOUNT_FILE = 'aiko-bot-log-cfbf23e039fd.json'
 SPREADSHEET_ID1 = '14tFyTz_xYqHYwegGLU2g4Ez4kc37hBgSmR2G85DLMWE' #ログのスプレッドシート
@@ -72,6 +96,10 @@ creds = service_account.Credentials.from_service_account_file(
 )
 sheets_service = build('sheets', 'v4', credentials=creds)
 sheet = sheets_service.spreadsheets()
+
+# キャッシュ更新スレッドの開始
+refresh_global_chat_cache(interval_seconds=300)    #従業員情報をキャッシュ
+refresh_employee_data_cache(interval_seconds=300)    #チャット履歴をキャッシュ
 
 # 環境変数取得
 CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
@@ -116,6 +144,21 @@ def format_employee_data_for_prompt(data):
         formatted.append(summary)
     return "\n".join(formatted)
 
+# 従業員情報を5分ごとにキャッシュに読み込む
+def format_employee_data_for_prompt_from_cache():
+    data = employee_data_cache
+    if not data or len(data) < 2:
+        return "情報がありません。"
+
+    headers = data[0]
+    rows = data[1:]
+    formatted = []
+    for row in rows:
+        entry = {headers[i]: row[i] if i < len(row) else "" for i in range(len(headers))}
+        summary = f"{entry.get('名前', '')}（{entry.get('呼ばれ方', '')}）: {entry.get('電話番号', '番号不明')}"
+        formatted.append(summary)
+    return "\n".join(formatted)
+
 # 友だち追加時
 @handler.add(FollowEvent)
 def handle_follow(event):
@@ -130,6 +173,18 @@ def handle_follow(event):
 
 # Google Sheetsが使えるようになったので、ここで呼ぶ
 USER_ID_MAP = load_user_id_map()
+
+# 従業員情報をキャッシュから取得
+def get_structured_employee_data():
+    global employee_data_cache
+    if not employee_data_cache or len(employee_data_cache) < 2:
+        return []
+    headers = employee_data_cache[0]
+    rows = employee_data_cache[1:]
+    return [
+        {headers[i]: row[i] if i < len(row) else "" for i in range(len(headers))}
+        for row in rows
+    ]
 
 # 過去の会話ログをキャッシュから取得
 def load_recent_chat_history(user_name, limit=10):
@@ -170,13 +225,8 @@ def handle_message(event):
 
     history = format_conversation_history(conversation_log, user_name)
 
-    # 従業員情報取得
-    employee_data_result = sheet.values().get(
-        spreadsheetId=SPREADSHEET_ID2,
-        range="従業員情報!A:W"
-    ).execute().get("values", [])
-
-    employee_info_text = format_employee_data_for_prompt(employee_data_result)
+    # 従業員情報取得（キャッシュ使用版）
+    employee_info_text = format_employee_data_for_prompt_from_cache()
 
     personal_log = load_recent_chat_history(user_name)
     group_log = global_chat_cache[-10:]  # 最新10件（必要なら増減させる）
@@ -188,7 +238,7 @@ def handle_message(event):
         },
         {
             "role": "assistant",
-            "content": f"以下が従業員情報一覧です。質問に応じて自由に使ってください：\n{employee_info_text}\n\n最近のやりとり:\n{history}\n\n回答は簡潔に30文字以内でお願いします。"
+            "content": f"以下は従業員情報一覧です。必要に応じて、あなた自身の判断で柔軟に活用して構いません。また、直近の会話履歴も文脈把握のために自由に利用してください。：\n{employee_info_text}\n\n最近のやりとり:\n{history}\n\n回答は簡潔に50文字以内でお願いします。"
         },
         {"role": "user", "content": user_message}
     ] + group_log + personal_log
