@@ -12,6 +12,13 @@ from openai import OpenAI
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
+# ユーザーIDと名前のマッピング（必要に応じて追加）
+USER_ID_MAP = {
+    "Uf1401051234b19ce0c53a10bb3f8433d": "政美さん",
+    "U800406a25d7a7535d432290ab3987356": "おきくさん",
+    # 必要な分だけ追加
+}
+
 # 環境変数読み込み
 load_dotenv()
 
@@ -93,6 +100,10 @@ def handle_message(event):
     )
 
     reply_text = response.choices[0].message.content.strip()
+
+    # 🔽 USER_IDを名前に変換（登録された人のみ）
+    user_id = event.source.user_id
+    user_name = USER_ID_MAP.get(user_id, f"未登録 ({user_id})")  # 見つからなければIDを残す
 
     # 🔽 会話ログを Google Sheets に保存
     timestamp = datetime.datetime.now().isoformat()
