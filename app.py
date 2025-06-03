@@ -127,7 +127,7 @@ def handle_message(event):
         range="従業員情報!A:W"
     ).execute().get("values", [])
 
-    history = format_conversation_history(conversation_result, user_name)
+    history = format_conversation_history(conversation_log, user_name)
     employee_info_text = format_employee_data_for_prompt(employee_data_result)
 
     # OpenAIに送信
