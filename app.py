@@ -12,6 +12,8 @@ from openai import OpenAI
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
+EMPLOYEE_SHEET_RANGE = '従業員情報!A:W'  # 名前〜
+
 # ユーザーIDと名前のマッピング（必要に応じて追加）
 USER_ID_MAP = {
     "Uf1401051234b19ce0c53a10bb3f8433d": "政美さん",
@@ -106,6 +108,34 @@ def handle_message(event):
 
     history = format_conversation_history(conversation_log, user_name)
 
+    # ▼ 名前とキーワードから個人情報を抽出
+    def find_employee_info(log, target_name):
+    for row in log:
+        if len(row) >= 2 and row[0] == target_name:
+            return {
+                "名前の読み": row[1],
+                "呼ばれ方": row[2],
+                "愛子ちゃんからの呼ばれ方": row[3]
+                "愛子からの呼ばれ方（読み）": row[4]
+                "役職": row[5]
+                "入社年": row[6]
+                "生年月日": row[7]
+                "メールアドレス": row[8]
+                "古いメールアドレス": row[9]
+                "個人メールアドレス": row[10]
+                "LINE ID": row[11]
+                "LINEのUID": row[12]
+                "携帯電話番号": row[13]
+                "自宅電話": row[14]
+                "住所": row[15]
+                "郵便番号": row[16]
+                "緊急連絡先": row[17]
+                "ペット情報": row[18]
+                "性格": row[19]
+                "口癖": row[20]
+                "備考": row[21] 
+            }
+    return None
     # OpenAI APIに送信
     response = client.chat.completions.create(
         model="gpt-4o",
