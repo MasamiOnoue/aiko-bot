@@ -85,7 +85,6 @@ def handle_follow(event):
 # メッセージ受信時
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
-    user_id = event.source.user_id
     logging.info(f"✅ メッセージを送ってきた UID: {user_id}")
 
     user_message = event.message.text
@@ -102,7 +101,6 @@ def handle_message(event):
     reply_text = response.choices[0].message.content.strip()
 
     # 🔽 USER_IDを名前に変換（登録された人のみ）
-    user_id = event.source.user_id
     user_name = USER_ID_MAP.get(user_id, f"未登録 ({user_id})")  # 見つからなければIDを残す
 
     # 🔽 会話ログを Google Sheets に保存
