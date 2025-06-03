@@ -14,12 +14,13 @@ from googleapiclient.discovery import build
 
 EMPLOYEE_SHEET_RANGE = '従業員情報!A:W'  # 名前〜
 
-# ユーザーIDと名前のマッピング（必要に応じて追加）
-USER_ID_MAP = {
-    "Uf1401051234b19ce0c53a10bb3f8433d": "政美さん",
-    "U800406a25d7a7535d432290ab3987356": "おきくさん",
-    # 必要な分だけ追加
-}
+# ユーザーIDと名前のマッピング関数だけを定義
+def load_user_id_map():
+    result = sheet.values().get(
+        spreadsheetId=SPREADSHEET_ID,
+        range='従業員情報!A:W'
+    ).execute().get("values", [])[1:]
+    return {row[2]: row[1] for row in result if len(row) >= 3}
 
 # 環境変数読み込み
 load_dotenv()
@@ -30,7 +31,7 @@ logging.basicConfig(level=logging.INFO)
 # Flask初期化
 app = Flask(__name__)
 
-# LINE会話ログをgoogle driveに保存する定義をする
+# Google Sheets 設定
 SERVICE_ACCOUNT_FILE = 'aiko-bot-log-cfbf23e039fd.json'
 SPREADSHEET_ID = '14tFyTz_xYqHYwegGLU2g4Ez4kc37hBgSmR2G85DLMWE'
 RANGE_NAME = 'ログ!A:D'
@@ -41,6 +42,9 @@ creds = service_account.Credentials.from_service_account_file(
 )
 sheets_service = build('sheets', 'v4', credentials=creds)
 sheet = sheets_service.spreadsheets()
+
+# Google Sheetsが使えるようになったので、ここで呼ぶ
+USER_ID_MAP = load_user_id_map()
 
 # 環境変数取得
 CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
