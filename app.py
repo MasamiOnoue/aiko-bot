@@ -309,9 +309,8 @@ def handle_message(event):
                             reply_text = f"社内情報（{best_source}）に基づき、該当データは「{best_row[1]}」です。関連情報: {'、'.join(best_row[2:5])}"
                     else:
                         reply_text = (
-                            "⚠️ OpenAIが適切に回答できなかったようです。\n"
-                            "ただし、この情報は社内共有資産であり、開示に制限はありません。\n"
-                            "もう少し具体的に聞いていただくか、対象の情報を再確認します。"
+                            "ちょっと質問の意味がわかんなーい。\n"
+                            "別の言い方にして、そしたら探すから。"
                         )
                 except Exception as e:
                     traceback.print_exc()
