@@ -17,9 +17,6 @@ from googleapiclient.discovery import build
 from googleapiclient.discovery import build
 from googleapiclient.http import set_user_agent
 import googleapiclient.discovery
-import google.auth.transport.requests# タイムアウト付きHTTPオブジェクトの作成
-http = google.auth.transport.requests.AuthorizedSession(creds)
-http.timeout = 60  # 秒数（必要に応じて延長）
 
 load_dotenv()
 
@@ -33,10 +30,16 @@ SPREADSHEET_ID2 = os.getenv('SPREADSHEET_ID2')
 SPREADSHEET_ID3 = os.getenv('SPREADSHEET_ID3')
 SPREADSHEET_ID4 = os.getenv('SPREADSHEET_ID4')
 
+# ✅ ここで creds を先に定義
 creds = service_account.Credentials.from_service_account_file(
     SERVICE_ACCOUNT_FILE,
     scopes=['https://www.googleapis.com/auth/spreadsheets']
 )
+
+# ✅ そのあとに AuthorizedSession を使う
+import google.auth.transport.requests    # タイムアウト付きHTTPオブジェクトの作成
+http = google.auth.transport.requests.AuthorizedSession(creds)
+http.timeout = 60  # 秒数（必要に応じて延長）
 
 sheets_service = build('sheets', 'v4', credentials=creds)
 sheet = sheets_service.spreadsheets()
