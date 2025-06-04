@@ -42,7 +42,7 @@ from googleapiclient.http import HttpRequest
 http = google.auth.transport.requests.AuthorizedSession(creds) # 認証後に追加（タイムアウト付き HTTP クライアントを設定）
 http.timeout = 90   # 秒数（必要に応じて延長）
 
-from googleapiclient.http import HttpRequest
+#from googleapiclient.http import HttpRequest
 
 # sheets_service を修正
 sheets_service = build(
