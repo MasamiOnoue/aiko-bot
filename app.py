@@ -30,20 +30,6 @@ SPREADSHEET_ID2 = os.getenv('SPREADSHEET_ID2')
 SPREADSHEET_ID3 = os.getenv('SPREADSHEET_ID3')
 SPREADSHEET_ID4 = os.getenv('SPREADSHEET_ID4')
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # ✅ ここで creds を先に定義
 creds = service_account.Credentials.from_service_account_file(
     SERVICE_ACCOUNT_FILE,
@@ -62,8 +48,13 @@ sheets_service = build(
     cache_discovery=False,
     requestBuilder=lambda *args, **kwargs: HttpRequest(http, *args, **kwargs)
 )
+    SERVICE_ACCOUNT_FILE,
+    scopes=['https://www.googleapis.com/auth/spreadsheets']
+)
 
-def custom_build_http():
+http = google.auth.transport.requests.AuthorizedSession(creds)
+http.timeout = 60
+
     http = google.auth.transport.requests.AuthorizedSession(creds)　# 認証後に追加（タイムアウト付き HTTP クライアントを設定）
     http.timeout = 60　# 秒数（必要に応じて延長）
     return http
@@ -83,11 +74,6 @@ TEMPLATE_RESPONSES = {
     "なぜ": "うーん、愛子も気になります、調べてみます！",
     "どうして": "どうしてかな〜、ちょっと過去の会話を思い出してみます！"
 }
-
-def personalized_prefix(name):
-    if name.startswith("未登録"):
-        return ""
-    return f"{name}さん、"
 
 def is_ambiguous(text):
     return any(phrase in text for phrase in AMBIGUOUS_PHRASES)
@@ -328,8 +314,7 @@ def handle_message(event):
                             reply_text = f"社内情報（{best_source}）に基づき、該当データは「{best_row[1]}」です。関連情報: {'、'.join(best_row[2:5])}"
                     else:
                         reply_text = (
-                            "ちょっと質問の意味がわかんなーい。\n"
-                            "別の言い方にして、そしたら探すから。"
+                            "ちょっと質問の意味がわかんなーい。別の言い方にして、そしたら探す"
                         )
                 except Exception as e:
                     traceback.print_exc()
@@ -348,7 +333,7 @@ def handle_message(event):
             greeting = "おはようございます" if current_hour < 10 else "お疲れさまです"
             return f"{name}さん、{greeting}。"
 
-        reply_text = personalized_prefix(user_name) + reply_text
+        reply_text = prefix(user_name) + reply_text
 
         save_conversation_log(user_id, user_name, "user", user_message)
         save_conversation_log(user_id, user_name, "assistant", reply_text)
