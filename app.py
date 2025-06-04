@@ -232,9 +232,36 @@ def handle_message(event):
                 messages=messages
             )
             reply_text = response.choices[0].message.content.strip()
-            if "申し訳" in reply_text or "できません" in reply_text:
-                reply_text += "\n※これは社内共有情報として開示可能です。"
-        except Exception as e:
+            if "申し訳" in reply_text or "できません" in reply_text or "お答えできません" in reply_text:
+    # OpenAIが拒否した場合、LINE Botが社内スプレッドシートから自力で探す
+    try:
+        keywords = user_message.replace("は？", "").replace("教えて", "").replace("誰", "").strip()
+        match = None
+        import difflib
+        for row in employee_data_cache[1:]:
+            score = 0
+            for cell in row:
+                if cell and keywords in cell:
+                    score += 2
+                elif cell and difflib.SequenceMatcher(None, keywords, cell).ratio() > 0.7:
+                    score += 1
+            if score >= 2:
+                match = row
+                break
+        if match:
+            reply_text = f"社内情報に基づき、該当者は「{match[1]}」さんです（役職: {match[2]}、所属: {match[3]}）。"
+        else:
+            reply_text = (
+                "⚠️ OpenAIが適切に回答できなかったようです。
+"
+                "ただし、この情報は社内共有資産であり、開示に制限はありません。
+"
+                "もう少し具体的に聞いていただくか、対象の情報を再確認します。"
+            )
+    except Exception as e:
+        reply_text = "⚠️ 社内データベース検索中にエラーが発生しました。管理者にご連絡ください。"
+else:
+    reply_text = response.choices[0].message.content.strip()
             traceback.print_exc()
             reply_text = "エラーが発生しました。管理者に連絡してください。"
 
