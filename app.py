@@ -279,7 +279,7 @@ def handle_message(event):
                                     break
                             if probable_attribute:
                                 break
-                        return clean_msg, probable_attribute
+                        return clean_msg, probable_attribute              
 
                     keywords, target_attr = extract_keywords_and_attribute(user_message)
 
@@ -303,12 +303,15 @@ def handle_message(event):
                                 best_score = score
                                 best_row = row
                                 best_source = label
-                                # 属性カラムを推定
-                                if target_attr:
-                                    for i, h in enumerate(headers):
-                                        if target_attr in h or any(k in h for k in attribute_keywords.get(target_attr, [])):
-                                            best_column = i
-                                            break
+
+                    # 属性カラムを推定
+                    if target_attr:
+                        for i, h in enumerate(headers):
+                            h_clean = clean_text(h)
+                            attr_keywords = attribute_keywords.get(target_attr, [])
+                            if target_attr in h_clean or any(k in h_clean for k in attr_keywords):
+                                best_column = i
+                                break
 
                     # 各スプレッドシートのキャッシュデータを検索
                     search_best_match(employee_data_cache, "従業員情報")
