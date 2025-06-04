@@ -362,57 +362,56 @@ def handle_message(event):
                 logging.error("OpenAI応答失敗: %s", e)
                 reply_text = "⚠️ エラーが発生しました。"
 
-    # 関数定義
-    def extract_keywords_and_attribute(message):
-        clean_msg = clean_text(message)
-        probable_attribute = None
-        for attr, keywords in attribute_keywords.items():
-            for k in keywords:
-                if k in clean_msg:
-                    probable_attribute = attr
-                    break
-            if probable_attribute:
+# 関数定義
+def extract_keywords_and_attribute(message):
+    clean_msg = clean_text(message)
+    probable_attribute = None
+    for attr, keywords in attribute_keywords.items():
+        for k in keywords:
+            if k in clean_msg:
+                probable_attribute = attr
                 break
-        return clean_msg, probable_attribute
+        if probable_attribute:
+            break
+    return clean_msg, probable_attribute
 
-    # 関数を実行する（関数外で）
-    keywords, target_attr = extract_keywords_and_attribute(user_message)
+# 関数を実行する（関数外で）
+keywords, target_attr = extract_keywords_and_attribute(user_message)
 
-    #match = None
+def search_best_match(data_cache, label, keywords, target_attr):
     best_score = 0
     best_row = None
     best_source = ""
     best_column = -1
 
-                    def search_best_match(data_cache, label):
-                        nonlocal best_score, best_row, best_source, best_column
-                        if not data_cache:
-                            return
+    if not data_cache:
+        return best_score, best_row, best_source, best_column
 
-                        headers = data_cache[0]
+    headers = data_cache[0]
+    # ✅ 先に属性カラムを特定する
+    if target_attr:
+        for i, h in enumerate(headers):
+            h_clean = clean_text(h)
+            attr_keywords = attribute_keywords.get(target_attr, [])
+            if target_attr in h_clean or any(k in h_clean for k in attr_keywords):
+                best_column = i
+                break
+                
+    # 🔁 対象者名に近い行だけからベストマッチを探す
+    for row in data_cache[1:]:
+        row_text = clean_text(" ".join(row))
+        ratio = difflib.SequenceMatcher(None, keywords, row_text).ratio()
+        token_match = sum(1 for token in keywords if token in row_text)
+        score = ratio + (0.05 * token_match)
+        if score > best_score:
+            best_score = score
+            best_row = row
+            best_source = label
 
-                        # ✅ 先に属性カラムを特定する
-                        if target_attr:
-                            for i, h in enumerate(headers):
-                                h_clean = clean_text(h)
-                                attr_keywords = attribute_keywords.get(target_attr, [])
-                                if target_attr in h_clean or any(k in h_clean for k in attr_keywords):
-                                    best_column = i
-                                    break
+    return best_score, best_row, best_source, best_column
 
-                    # 🔁 対象者名に近い行だけからベストマッチを探す
-                    for row in data_cache[1:]:
-                        row_text = clean_text(" ".join(row))
-                        ratio = difflib.SequenceMatcher(None, keywords, row_text).ratio()
-                        token_match = sum(1 for token in keywords if token in row_text)
-                        score = ratio + (0.05 * token_match)
-                        if score > best_score:
-                            best_score = score
-                            best_row = row
-                            best_source = label
-
-                    # 各スプレッドシートのキャッシュデータを検索
-                    search_best_match(employee_data_cache, "従業員情報")
+# 各スプレッドシートのキャッシュデータを検索
+search_best_match(employee_data_cache, "従業員情報")
 
                     try:
                         customer_data_cache = sheet.values().get(spreadsheetId=SPREADSHEET_ID3, range='顧客情報!A:Z').execute().get("values", [])
