@@ -197,28 +197,57 @@ def handle_message(event):
     else:
         try:
             response = client.chat.completions.create(
-                model="gpt-4o",
-                messages=messages
-            )
+            model="gpt-4o",
+            messages=messages
+        )
             reply_text = response.choices[0].message.content.strip()
 
             if "申し訳" in reply_text or "できません" in reply_text or "お答えできません" in reply_text:
+                # OpenAIが拒否した場合、LINE Botが社内スプレッドシートから自力で探す
                 try:
-                    keywords = user_message.replace("は？", "").replace("教えて", "").replace("誰", "").strip()
-                    match = None
                     import difflib
-                    for row in employee_data_cache[1:]:
-                        score = 0
-                        for cell in row:
-                            if cell and keywords in cell:
-                                score += 2
-                            elif cell and difflib.SequenceMatcher(None, keywords, cell).ratio() > 0.7:
-                                score += 1
-                        if score >= 2:
-                            match = row
-                            break
-                    if match:
-                        reply_text = f"社内情報に基づき、該当者は「{match[1]}」さんです（役職: {match[2]}、所属: {match[3]}）。"
+                    from itertools import chain
+
+                    keywords = user_message
+                    for kw in ["は？", "教えて", "誰", "って何", "とは？", "どこ", "何者", "詳細", "について"]:
+                        keywords = keywords.replace(kw, "")
+                    keywords = keywords.strip()
+
+                    match = None
+                    best_score = 0
+                    best_row = None
+                    best_source = ""
+
+                    def search_best_match(data_cache, label):
+                        nonlocal best_score, best_row, best_source
+                        for row in data_cache[1:]:
+                            row_text = " ".join(row)
+                            ratio = difflib.SequenceMatcher(None, keywords, row_text).ratio()
+                            if ratio > best_score:
+                                best_score = ratio
+                                best_row = row
+                                best_source = label
+
+                    # 各スプレッドシートのキャッシュデータを検索
+                    search_best_match(employee_data_cache, "従業員情報")
+
+                    try:
+                        customer_data_cache = sheet.values().get(spreadsheetId=SPREADSHEET_ID3, range='顧客情報!A:Z').execute().get("values", [])
+                    except Exception as e:
+                        customer_data_cache = []
+                        logging.warning("[愛子] 顧客情報キャッシュ失敗: %s", e)
+
+                    try:
+                        company_data_cache = sheet.values().get(spreadsheetId=SPREADSHEET_ID4, range='会社情報!A:Z').execute().get("values", [])
+                    except Exception as e:
+                        company_data_cache = []
+                        logging.warning("[愛子] 会社情報キャッシュ失敗: %s", e)
+
+                    search_best_match(customer_data_cache, "顧客情報")
+                    search_best_match(company_data_cache, "会社情報")
+
+                    if best_score > 0.5 and best_row:
+                        reply_text = f"社内情報（{best_source}）に基づき、該当データは「{best_row[1]}」です。関連情報: {'、'.join(best_row[2:5])}"
                     else:
                         reply_text = (
                             "⚠️ OpenAIが適切に回答できなかったようです。\n"
@@ -232,12 +261,12 @@ def handle_message(event):
             traceback.print_exc()
             reply_text = "エラーが発生しました。管理者に連絡してください。"
 
-    reply_text = shorten_reply(reply_text)
+        reply_text = shorten_reply(reply_text)
 
-    save_conversation_log(user_id, user_name, "user", user_message)
-    save_conversation_log(user_id, user_name, "assistant", reply_text)
+        save_conversation_log(user_id, user_name, "user", user_message)
+        save_conversation_log(user_id, user_name, "assistant", reply_text)
 
-    line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
 
 @app.route("/push", methods=["POST"])
 def push_message():
