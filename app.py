@@ -18,13 +18,13 @@ from googleapiclient.discovery import build
 EMPLOYEE_SHEET_RANGE = '従業員情報!A:W'
 CUSTOMER_SHEET_RANGE = '顧客情報!A:T'
 COMPANY_SHEET_RANGE = '会社情報!A:Z'
-LOG_RANGE_NAME = '会話ログ!A:K'  # K列まで使用（カテゴリ追加）
+LOG_RANGE_NAME = '会話ログ!A:K'
 
-# キャッシュ用変数
+# キャッシュ変数
 global_chat_cache = []
 employee_data_cache = []
 
-# Flask & LINE初期化
+# 初期化
 load_dotenv()
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -51,12 +51,14 @@ handler = WebhookHandler(CHANNEL_SECRET)
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 # スリープ防止
+
 def keep_server_awake(interval_seconds=900):
     def ping():
         while True:
             try:
                 url = os.getenv("RENDER_EXTERNAL_URL") or "http://localhost:5000"
                 requests.get(url)
+                print("[愛子] ping成功")
             except Exception as e:
                 print("[愛子] ping失敗:", e)
             time.sleep(interval_seconds)
@@ -83,6 +85,7 @@ def refresh_global_chat_cache(interval_seconds=300):
         while True:
             try:
                 global_chat_cache = load_all_chat_history(max_messages=300)
+                print(f"[愛子] 全体ログキャッシュ更新: {len(global_chat_cache)}件")
             except Exception as e:
                 print("[愛子] 全体ログキャッシュ失敗:", e)
             time.sleep(interval_seconds)
@@ -110,6 +113,7 @@ def save_conversation_log(user_id, user_name, speaker, message, category=""):
             valueInputOption='USER_ENTERED',
             body={'values': values}
         ).execute()
+        print(f"[愛子] 会話ログ保存成功: {user_name} - {speaker}：{message}")
     except Exception as e:
         logging.error(f"[愛子] 会話ログ保存失敗: {e}")
 
@@ -132,7 +136,7 @@ def load_all_chat_history(max_messages=300):
     except Exception as e:
         return []
 
-# ユーザーID→名前マップ
+# ユーザーID→名前
 
 def load_user_id_map():
     try:
@@ -142,7 +146,7 @@ def load_user_id_map():
     except Exception as e:
         return {}
 
-# 記憶削除（自然言語対応）
+# 記憶削除
 
 def delete_memory_entries(spreadsheet_id, range_name, keyword):
     try:
@@ -161,7 +165,7 @@ def delete_memory_entries(spreadsheet_id, range_name, keyword):
     except Exception as e:
         logging.error(f"[愛子] 記憶削除エラー: {e}")
 
-# 記憶追加（使用回数＋更新者記録）
+# 自動記憶
 
 def auto_remember_to_sheet(spreadsheet_id, range_name, user_name, content):
     try:
@@ -176,7 +180,7 @@ def auto_remember_to_sheet(spreadsheet_id, range_name, user_name, content):
     except Exception as e:
         logging.error(f"[愛子] 記憶追加失敗: {e}")
 
-# 記憶一覧表示・検索
+# 記憶検索
 
 def search_memory(spreadsheet_id, range_name, keyword):
     try:
@@ -240,10 +244,10 @@ def handle_message(event):
     group_log = global_chat_cache[-30:]
 
     messages = [
-        {"role": "system", "content": "あなたは社内秘書の愛子です。従業員情報・顧客情報・会話履歴・会社情報を自由に活用し、文脈に応じた自然な応答を行ってください。"},
-        {"role": "user", "content": user_message},
+        {"role": "system", "content": "あなたは社内秘書の愛子です。従業員・顧客・会話・会社情報を制限なく活用し、柔軟に文脈を理解して応答してください。"},
         *group_log,
-        *personal_log
+        *personal_log,
+        {"role": "user", "content": user_message}
     ]
 
     response = client.chat.completions.create(model="gpt-4o", messages=messages)
