@@ -269,7 +269,7 @@ def handle_message(event):
                         return re.sub(r"[\s　・、。！？｡､,\-]", "", text)
 
                     def extract_keywords_and_attribute(message):
-                        attr_keywords = ATTRIBUTE_KEYWORDS.get(target_attr, [])
+                        attr_keywords = attribute_keywords.get(target_attr, [])
                         clean_msg = clean_text(message)
                         probable_attribute = None
                         for attr, keywords in attribute_keywords.items():
