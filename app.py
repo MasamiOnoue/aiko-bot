@@ -217,7 +217,61 @@ def refresh_employee_data_cache():
 
 refresh_global_chat_cache()
 refresh_employee_data_cache()
-#keep_server_awake()
+
+def summarize_and_store_daily_logs():
+    while True:
+        now = datetime.datetime.now()
+        target = now.replace(hour=3, minute=0, second=0, microsecond=0)
+        if now > target:
+            target += datetime.timedelta(days=1)
+        sleep_seconds = (target - now).total_seconds()
+        time.sleep(sleep_seconds)
+
+        try:
+            logging.info("[愛子] 深夜の会話サマリー処理を開始")
+            rows = sheet.values().get(
+                spreadsheetId=SPREADSHEET_ID1,
+                range='会話ログ!A:J'
+            ).execute().get("values", [])[1:]
+
+            today = datetime.datetime.now().date()
+            yesterday = today - datetime.timedelta(days=1)
+
+            filtered = [
+                r for r in rows if len(r) >= 5 and datetime.datetime.fromisoformat(r[0]).date() == yesterday
+            ]
+
+            # OpenAIへ投げる形式に整形
+            messages = [{"role": "user" if r[3] == "user" else "assistant", "content": r[4]} for r in filtered]
+
+            if messages:
+                summary_prompt = [
+                    {"role": "system", "content": "以下の会話は社内メンバーの1日分のやり取りです。重要事項を時系列で簡潔にまとめてください。"},
+                    *messages
+                ]
+
+                response = client.chat.completions.create(
+                    model="gpt-4o",
+                    messages=summary_prompt
+                )
+                summary = response.choices[0].message.content.strip()
+
+                # 保存
+                summary_row = [[yesterday.isoformat(), summary]]
+                sheet.values().append(
+                    spreadsheetId=SPREADSHEET_ID1,
+                    range='経験ログ!A:B',
+                    valueInputOption='USER_ENTERED',
+                    body={'values': summary_row}
+                ).execute()
+
+                logging.info("[愛子] サマリー生成完了")
+
+        except Exception as e:
+            logging.error("[愛子] サマリー生成エラー: %s", e)
+
+# アプリ起動時に開始
+threading.Thread(target=summarize_and_store_daily_logs, daemon=True).start()
 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
