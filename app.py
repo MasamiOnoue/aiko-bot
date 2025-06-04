@@ -274,6 +274,19 @@ def summarize_and_store_daily_logs():
 # アプリ起動時に開始
 threading.Thread(target=summarize_and_store_daily_logs, daemon=True).start()
 
+def load_summary_memory(days=7):
+    try:
+        rows = sheet.values().get(spreadsheetId=SPREADSHEET_ID1, range='経験ログ!A:B').execute().get("values", [])[1:]
+        today = datetime.datetime.now().date()
+        return [
+            {"role": "system", "content": f"【{r[0]}のまとめ】{r[1]}"}
+            for r in rows
+            if datetime.datetime.fromisoformat(r[0]).date() >= (today - datetime.timedelta(days=days))
+        ]
+    except Exception as e:
+        logging.warning("[愛子] 経験ログ読み込み失敗: %s", e)
+        return []
+
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     user_id = event.source.user_id
@@ -307,12 +320,15 @@ def handle_message(event):
     if is_ambiguous(user_message):
         system_message += " 曖昧な質問には、過去の会話内容などから理由を推測し、丁寧に答えなさい。"
 
+    summary_log = load_summary_memory(days=7)  # ← 🆕 経験ログからの7日間サマリー読み込み
+
     messages = [
         {"role": "system", "content": system_message},
+        *summary_log,              # ← 🧠 経験サマリーをまず挿入
         *group_log,
         *personal_log,
         {"role": "user", "content": user_message}
-    ]    
+    ]
 
     template_reply = get_template_response(user_message)
     template_prefix = template_reply + " " if template_reply else ""
