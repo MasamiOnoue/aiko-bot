@@ -279,27 +279,27 @@ def handle_message(event):
         logging.error("[愛子] OpenAI応答失敗: %s", e)
         reply_text = template_reply or "⚠️ OpenAIエラーが発生しました。政美さんにご連絡ください。"
 
-            if "申し訳" in reply_text or "できません" in reply_text or "お答えできません" in reply_text:
-                # OpenAIが拒否した場合、LINE Botが社内スプレッドシートから自力で探す
-                try:
-                    import difflib
-                    import re
+        if "申し訳" in reply_text or "できません" in reply_text or "お答えできません" in reply_text:
+            # OpenAIが拒否した場合、LINE Botが社内スプレッドシートから自力で探す
+            try:
+                import difflib
+                import re
 
-                    def clean_text(text):
-                        return re.sub(r"[\s　・、。！？｡､,\-]", "", text)
+                def clean_text(text):
+                    return re.sub(r"[\s　・、。！？｡､,\-]", "", text)
 
-                    def extract_keywords_and_attribute(message):
-                        attr_keywords = attribute_keywords.get(target_attr, [])
-                        clean_msg = clean_text(message)
-                        probable_attribute = None
-                        for attr, keywords in attribute_keywords.items():
-                            for k in keywords:
-                                if k in clean_msg:
-                                    probable_attribute = attr
-                                    break
-                            if probable_attribute:
+                def extract_keywords_and_attribute(message):
+                    attr_keywords = attribute_keywords.get(target_attr, [])
+                    clean_msg = clean_text(message)
+                    probable_attribute = None
+                    for attr, keywords in attribute_keywords.items():
+                        for k in keywords:
+                            if k in clean_msg:
+                                probable_attribute = attr
                                 break
-                        return clean_msg, probable_attribute              
+                        if probable_attribute:
+                            break
+                    return clean_msg, probable_attribute              
 
                     keywords, target_attr = extract_keywords_and_attribute(user_message)
 
