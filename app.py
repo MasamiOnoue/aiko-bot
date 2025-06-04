@@ -173,7 +173,11 @@ def refresh_employee_data_cache():
         global employee_data_cache
         while True:
             try:
-                employee_data_cache = sheet.values().get(spreadsheetId=SPREADSHEET_ID2, range='従業員情報!A:W').execute().get("values", [])
+                temp_sheet = sheets_service.spreadsheets()  # 新しく取得
+                employee_data_cache = temp_sheet.values().get(
+                    spreadsheetId=SPREADSHEET_ID2,
+                    range='従業員情報!A:W'
+                ).execute().get("values", [])
             except Exception as e:
                 logging.warning("[愛子] 従業員情報キャッシュ失敗: %s", e)
             time.sleep(300)
