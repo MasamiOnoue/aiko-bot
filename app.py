@@ -411,6 +411,7 @@ def handle_message(event):
         save_conversation_log(user_id, user_name, "assistant", reply_text)
 
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
+        logging.info("[愛子] 最終応答（%s）→ %s", user_name, reply_text)
 
 @app.route("/push", methods=["POST"])
 def push_message():
