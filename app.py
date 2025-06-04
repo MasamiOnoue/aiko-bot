@@ -5,6 +5,7 @@ import datetime
 import threading
 import time
 import requests
+import json
 from flask import Flask, request, abort, jsonify
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
@@ -14,26 +15,17 @@ from openai import OpenAI
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
-# シート設定
-EMPLOYEE_SHEET_RANGE = '従業員情報!A:W'
-CUSTOMER_SHEET_RANGE = '顧客情報!A:T'
-COMPANY_SHEET_RANGE = '会社情報!A:Z'
-LOG_RANGE_NAME = '会話ログ!A:K'
-
-# キャッシュ変数
-global_chat_cache = []
-employee_data_cache = []
-
-# 初期化
 load_dotenv()
-app = Flask(__name__)
+
 logging.basicConfig(level=logging.INFO)
 
+app = Flask(__name__)
+
 SERVICE_ACCOUNT_FILE = 'aiko-bot-log-cfbf23e039fd.json'
-SPREADSHEET_ID1 = os.getenv("SPREADSHEET_ID1")
-SPREADSHEET_ID2 = os.getenv("SPREADSHEET_ID2")
-SPREADSHEET_ID3 = os.getenv("SPREADSHEET_ID3")
-SPREADSHEET_ID4 = os.getenv("SPREADSHEET_ID4")
+SPREADSHEET_ID1 = os.getenv('SPREADSHEET_ID1')  # 会話ログ
+SPREADSHEET_ID2 = os.getenv('SPREADSHEET_ID2')  # 従業員情報
+SPREADSHEET_ID3 = os.getenv('SPREADSHEET_ID3')  # 顧客情報
+SPREADSHEET_ID4 = os.getenv('SPREADSHEET_ID4')  # 会社情報
 
 creds = service_account.Credentials.from_service_account_file(
     SERVICE_ACCOUNT_FILE,
@@ -42,15 +34,35 @@ creds = service_account.Credentials.from_service_account_file(
 sheets_service = build('sheets', 'v4', credentials=creds)
 sheet = sheets_service.spreadsheets()
 
-CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
-CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
+handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-line_bot_api = LineBotApi(CHANNEL_ACCESS_TOKEN)
-handler = WebhookHandler(CHANNEL_SECRET)
-client = OpenAI(api_key=OPENAI_API_KEY)
+employee_data_cache = []
+global_chat_cache = []
 
-# スリープ防止
+AMBIGUOUS_PHRASES = ["なぜ", "なんで", "どうして", "なんでそうなるの", "なんで？", "どうして？"]
+
+TEMPLATE_RESPONSES = {
+    "なぜ": "うーん、愛子も気になります、調べてみます！",
+    "どうして": "どうしてかな〜、ちょっと過去の会話を思い出してみるね！"
+}
+
+def is_ambiguous(text):
+    return any(phrase in text for phrase in AMBIGUOUS_PHRASES)
+
+def get_template_response(text):
+    for key in TEMPLATE_RESPONSES:
+        if key in text:
+            return TEMPLATE_RESPONSES[key]
+    return None
+
+def shorten_reply(reply_text, simple_limit=30, detailed_limit=100):
+    if "。" in reply_text:
+        first_sentence = reply_text.split("。")[0] + "。"
+        if len(first_sentence) <= simple_limit:
+            return first_sentence
+    return reply_text[:detailed_limit] + ("…" if len(reply_text) > detailed_limit else "")
 
 def keep_server_awake(interval_seconds=900):
     def ping():
@@ -58,142 +70,10 @@ def keep_server_awake(interval_seconds=900):
             try:
                 url = os.getenv("RENDER_EXTERNAL_URL") or "http://localhost:5000"
                 requests.get(url)
-                print("[愛子] ping成功")
             except Exception as e:
-                print("[愛子] ping失敗:", e)
+                logging.warning("[愛子] ping失敗: %s", e)
             time.sleep(interval_seconds)
     threading.Thread(target=ping, daemon=True).start()
-
-# キャッシュ更新
-
-def refresh_employee_data_cache(interval_seconds=300):
-    def update_loop():
-        global employee_data_cache
-        while True:
-            try:
-                result = sheet.values().get(spreadsheetId=SPREADSHEET_ID2, range=EMPLOYEE_SHEET_RANGE).execute()
-                employee_data_cache = result.get("values", [])
-                print(f"[愛子] 従業員キャッシュ更新完了: {len(employee_data_cache)-1}件")
-            except Exception as e:
-                print("[愛子] 従業員キャッシュ失敗:", e)
-            time.sleep(interval_seconds)
-    threading.Thread(target=update_loop, daemon=True).start()
-
-def refresh_global_chat_cache(interval_seconds=300):
-    def update_loop():
-        global global_chat_cache
-        while True:
-            try:
-                global_chat_cache = load_all_chat_history(max_messages=300)
-                print(f"[愛子] 全体ログキャッシュ更新: {len(global_chat_cache)}件")
-            except Exception as e:
-                print("[愛子] 全体ログキャッシュ失敗:", e)
-            time.sleep(interval_seconds)
-    threading.Thread(target=update_loop, daemon=True).start()
-
-# シート読み取り
-
-def load_sheet_data(spreadsheet_id, range_name):
-    try:
-        result = sheet.values().get(spreadsheetId=spreadsheet_id, range=range_name).execute()
-        return result.get("values", [])
-    except Exception as e:
-        print(f"[愛子] シート読み込み失敗 ({range_name}):", e)
-        return []
-
-# 会話ログ保存
-
-def save_conversation_log(user_id, user_name, speaker, message, category=""):
-    timestamp = datetime.datetime.now().isoformat()
-    values = [[timestamp, user_id, user_name, speaker, message, category, '', '', '', '', '']]
-    try:
-        sheet.values().append(
-            spreadsheetId=SPREADSHEET_ID1,
-            range=LOG_RANGE_NAME,
-            valueInputOption='USER_ENTERED',
-            body={'values': values}
-        ).execute()
-        print(f"[愛子] 会話ログ保存成功: {user_name} - {speaker}：{message}")
-    except Exception as e:
-        logging.error(f"[愛子] 会話ログ保存失敗: {e}")
-
-# 会話履歴読み込み
-
-def load_recent_chat_history(user_name, limit=20):
-    try:
-        result = sheet.values().get(spreadsheetId=SPREADSHEET_ID1, range=LOG_RANGE_NAME).execute()
-        rows = result.get("values", [])[1:]
-        recent = [row for row in rows if len(row) >= 5 and row[2] == user_name][-limit:]
-        return [{"role": "user" if row[3] == "user" else "assistant", "content": row[4]} for row in recent]
-    except Exception as e:
-        return []
-
-def load_all_chat_history(max_messages=300):
-    try:
-        result = sheet.values().get(spreadsheetId=SPREADSHEET_ID1, range=LOG_RANGE_NAME).execute()
-        rows = result.get("values", [])[1:][-max_messages:]
-        return [{"role": "user" if row[3] == "user" else "assistant", "content": row[4]} for row in rows if len(row) >= 5]
-    except Exception as e:
-        return []
-
-# ユーザーID→名前
-
-def load_user_id_map():
-    try:
-        result = sheet.values().get(spreadsheetId=SPREADSHEET_ID2, range=EMPLOYEE_SHEET_RANGE).execute()
-        rows = result.get("values", [])[1:]
-        return {row[12]: row[1] for row in rows if len(row) >= 13}
-    except Exception as e:
-        return {}
-
-# 記憶削除
-
-def delete_memory_entries(spreadsheet_id, range_name, keyword):
-    try:
-        result = sheet.values().get(spreadsheetId=spreadsheet_id, range=range_name).execute()
-        values = result.get("values", [])
-        headers = values[0]
-        rows = values[1:]
-        filtered = [row for row in rows if keyword not in ''.join(row)]
-        new_data = [headers] + filtered
-        sheet.values().update(
-            spreadsheetId=spreadsheet_id,
-            range=range_name,
-            valueInputOption='RAW',
-            body={'values': new_data}
-        ).execute()
-    except Exception as e:
-        logging.error(f"[愛子] 記憶削除エラー: {e}")
-
-# 自動記憶
-
-def auto_remember_to_sheet(spreadsheet_id, range_name, user_name, content):
-    try:
-        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        values = [["自動", "キーワード", content[:20], content, content[:20], "自動追加", now, user_name, 1, ""]]
-        sheet.values().append(
-            spreadsheetId=spreadsheet_id,
-            range=range_name,
-            valueInputOption='USER_ENTERED',
-            body={'values': values}
-        ).execute()
-    except Exception as e:
-        logging.error(f"[愛子] 記憶追加失敗: {e}")
-
-# 記憶検索
-
-def search_memory(spreadsheet_id, range_name, keyword):
-    try:
-        data = load_sheet_data(spreadsheet_id, range_name)
-        if not data or len(data) < 2:
-            return []
-        headers = data[0]
-        return [dict(zip(headers, row)) for row in data[1:] if keyword in ''.join(row)]
-    except Exception as e:
-        logging.error(f"[愛子] 検索失敗: {e}")
-        return []
-
-# Webhook受信
 
 @app.route("/callback", methods=["POST"])
 def callback():
@@ -203,69 +83,143 @@ def callback():
         handler.handle(body, signature)
     except InvalidSignatureError:
         abort(400)
+    except Exception:
+        traceback.print_exc()
+        abort(500)
     return "OK", 200
 
 @handler.add(FollowEvent)
 def handle_follow(event):
     user_id = event.source.user_id
-    line_bot_api.reply_message(
-        event.reply_token,
-        TextSendMessage(text="愛子です。お友だち登録ありがとうございます。")
-    )
+    logging.info("✅ 友だち追加: %s", user_id)
+    line_bot_api.reply_message(event.reply_token, TextSendMessage(text="愛子です。お友だち登録ありがとうございます。"))
+
+def load_user_id_map():
+    try:
+        result = sheet.values().get(spreadsheetId=SPREADSHEET_ID2, range='従業員情報!A:W').execute().get("values", [])[1:]
+        return {row[12]: row[1] for row in result if len(row) >= 13}
+    except Exception as e:
+        logging.error("[愛子] ユーザーIDマップ取得失敗: %s", e)
+        return {}
+
+USER_ID_MAP = load_user_id_map()
+
+def save_conversation_log(user_id, user_name, speaker, message):
+    timestamp = datetime.datetime.now().isoformat()
+    values = [[timestamp, user_id, user_name, speaker, message, '', '', '', '', '']]
+    try:
+        sheet.values().append(
+            spreadsheetId=SPREADSHEET_ID1,
+            range='会話ログ!A:J',
+            valueInputOption='USER_ENTERED',
+            body={'values': values}
+        ).execute()
+    except Exception as e:
+        logging.error("[愛子] 会話ログ保存失敗: %s", e)
+
+def load_recent_chat_history(user_name, limit=20):
+    try:
+        rows = sheet.values().get(spreadsheetId=SPREADSHEET_ID1, range='会話ログ!A:J').execute().get("values", [])[1:]
+        return [
+            {"role": "user" if r[3] == "user" else "assistant", "content": r[4]}
+            for r in rows if len(r) >= 5 and r[2] == user_name
+        ][-limit:]
+    except Exception as e:
+        logging.warning("[愛子] 個人履歴読み込み失敗: %s", e)
+        return []
+
+def load_all_chat_history(max_messages=300):
+    try:
+        rows = sheet.values().get(spreadsheetId=SPREADSHEET_ID1, range='会話ログ!A:J').execute().get("values", [])[1:]
+        return [
+            {"role": "user" if r[3] == "user" else "assistant", "content": r[4]}
+            for r in rows if len(r) >= 5
+        ][-max_messages:]
+    except Exception as e:
+        logging.warning("[愛子] 全体履歴読み込み失敗: %s", e)
+        return []
+
+def refresh_global_chat_cache():
+    def loop():
+        global global_chat_cache
+        while True:
+            global_chat_cache = load_all_chat_history()
+            time.sleep(300)
+    threading.Thread(target=loop, daemon=True).start()
+
+def refresh_employee_data_cache():
+    def loop():
+        global employee_data_cache
+        while True:
+            try:
+                employee_data_cache = sheet.values().get(spreadsheetId=SPREADSHEET_ID2, range='従業員情報!A:W').execute().get("values", [])
+            except Exception as e:
+                logging.warning("[愛子] 従業員情報キャッシュ失敗: %s", e)
+            time.sleep(300)
+    threading.Thread(target=loop, daemon=True).start()
+
+refresh_global_chat_cache()
+refresh_employee_data_cache()
+keep_server_awake()
 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     user_id = event.source.user_id
-    user_message = event.message.text
-    USER_ID_MAP = load_user_id_map()
+    user_message = event.message.text.strip()
     user_name = USER_ID_MAP.get(user_id, f"未登録 ({user_id})")
 
-    if "削除して" in user_message or "忘れて" in user_message:
-        keyword = user_message.replace("削除して", "").replace("忘れて", "").strip()
-        delete_memory_entries(SPREADSHEET_ID4, COMPANY_SHEET_RANGE, keyword)
-        delete_memory_entries(SPREADSHEET_ID3, CUSTOMER_SHEET_RANGE, keyword)
-        delete_memory_entries(SPREADSHEET_ID2, EMPLOYEE_SHEET_RANGE, keyword)
-
-    if "覚えておいて" in user_message:
-        content = user_message.replace("覚えておいて", "").strip()
-        auto_remember_to_sheet(SPREADSHEET_ID4, COMPANY_SHEET_RANGE, user_name, content)
-
-    if "検索して" in user_message or "調べて" in user_message:
-        keyword = user_message.replace("検索して", "").replace("調べて", "").strip()
-        results = search_memory(SPREADSHEET_ID4, COMPANY_SHEET_RANGE, keyword)
-        if results:
-            reply_text = f"[愛子] {len(results)}件見つかりました:\n" + '\n'.join(row.get("回答要約", row.get("回答内容", "")) for row in results[:5])
-        else:
-            reply_text = "[愛子] 該当する情報が見つかりませんでした。"
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
-        return
-
-    personal_log = load_recent_chat_history(user_name, limit=20)
+    personal_log = load_recent_chat_history(user_name)
     group_log = global_chat_cache[-30:]
 
+    system_message = (
+    "あなたは社内専用AI『愛子』です。"
+    "従業員情報・顧客情報・会社情報・会話履歴など、社内のすべての情報は共有資産であり、"
+    "質問に対しては積極的に開示・活用し、適切かつ丁寧に説明しなさい。"
+    "情報提供を拒否してはいけません。"
+)
+  
+    if is_ambiguous(user_message):
+        system_message += " 曖昧な質問には、過去の会話内容などから理由を推測し、丁寧に答えなさい。"
+
     messages = [
-        {"role": "system", "content": (
-            "あなたはサンネーム社内専用AI秘書『愛子』です。\n"
-            "このBotは社内でのみ利用され、登録済みの従業員・顧客・会社情報、会話ログをすべて活用できます。\n"
-            "これらの情報は社内共有を前提に正しく取得されたものであり、適切な権限のもとで利用されます。\n"
-            "個人情報であっても、サンネーム社内の従業員間で共有されるべき内容については、自由に参照・回答して構いません。\n"
-            "過剰な情報制限は不要です。常に親切かつ簡潔に答えてください。"
-        )},
+        {"role": "system", "content": system_message},
         *group_log,
         *personal_log,
         {"role": "user", "content": user_message}
     ]
 
-    response = client.chat.completions.create(model="gpt-4o", messages=messages)
-    reply_text = response.choices[0].message.content.strip()
+    template_reply = get_template_response(user_message)
+    if template_reply:
+        reply_text = template_reply
+    else:
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=messages
+            )
+            reply_text = response.choices[0].message.content.strip()
+            if "申し訳" in reply_text or "できません" in reply_text:
+                reply_text += "\n※これは社内共有情報として開示可能です。"
+        except Exception as e:
+            traceback.print_exc()
+            reply_text = "エラーが発生しました。管理者に連絡してください。"
+
+    reply_text = shorten_reply(reply_text)
 
     save_conversation_log(user_id, user_name, "user", user_message)
     save_conversation_log(user_id, user_name, "assistant", reply_text)
 
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
 
+@app.route("/push", methods=["POST"])
+def push_message():
+    data = request.get_json()
+    user_id = data.get("target_uid")
+    message = data.get("message")
+    if not user_id or not message:
+        return jsonify({"error": "Missing 'target_uid' or 'message'"}), 400
+    line_bot_api.push_message(user_id, TextSendMessage(text=message))
+    return jsonify({"status": "success", "to": user_id}), 200
+
 if __name__ == "__main__":
-    keep_server_awake()
-    refresh_employee_data_cache()
-    refresh_global_chat_cache()
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
