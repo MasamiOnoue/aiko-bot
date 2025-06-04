@@ -46,6 +46,7 @@ SPREADSHEET_ID1 = os.getenv('SPREADSHEET_ID1')
 SPREADSHEET_ID2 = os.getenv('SPREADSHEET_ID2')
 SPREADSHEET_ID3 = os.getenv('SPREADSHEET_ID3')
 SPREADSHEET_ID4 = os.getenv('SPREADSHEET_ID4')
+SPREADSHEET_ID5 = os.getenv('SPREADSHEET_ID5')
 
 # ✅ ここで creds を先に定義
 creds = service_account.Credentials.from_service_account_file(
@@ -361,7 +362,7 @@ def extract_keywords_and_attribute(message):
 # 関数を実行する（関数外で）
 keywords, target_attr = extract_keywords_and_attribute(user_message)
 
-                    match = None
+                    #match = None
                     best_score = 0
                     best_row = None
                     best_source = ""
