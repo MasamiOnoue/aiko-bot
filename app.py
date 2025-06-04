@@ -412,21 +412,28 @@ def search_best_match(data_cache, label, keywords, target_attr):
 
 # 各スプレッドシートのキャッシュデータを検索
 search_best_match(employee_data_cache, "従業員情報")
+# 各スプレッドシートのキャッシュデータを検索
+search_best_match(employee_data_cache, "従業員情報")
 
-    try:
-        customer_data_cache = sheet.values().get(spreadsheetId=SPREADSHEET_ID3, range='顧客情報!A:Z').execute().get("values", [])
-    except Exception as e:
-        customer_data_cache = []
-        logging.warning("[愛子] 顧客情報キャッシュ失敗: %s", e)
+# 各スプレッドシートのキャッシュデータを検索
+try:
+    best_score, best_row, best_source, best_column = search_best_match(employee_data_cache, "従業員情報", keywords, target_attr)
 
-    try:
-        company_data_cache = sheet.values().get(spreadsheetId=SPREADSHEET_ID4, range='会社情報!A:Z').execute().get("values", [])
-    except Exception as e:
-        company_data_cache = []
-        logging.warning("[愛子] 会社情報キャッシュ失敗: %s", e)
+    customer_data_cache = sheet.values().get(
+        spreadsheetId=SPREADSHEET_ID3,
+        range='顧客情報!A:Z'
+    ).execute().get("values", [])
+    score_c, row_c, source_c, col_c = search_best_match(customer_data_cache, "顧客情報", keywords, target_attr)
+    if score_c > best_score:
+        best_score, best_row, best_source, best_column = score_c, row_c, source_c, col_c
 
-    search_best_match(customer_data_cache, "顧客情報")
-    search_best_match(company_data_cache, "会社情報")
+    company_data_cache = sheet.values().get(
+        spreadsheetId=SPREADSHEET_ID4,
+        range='会社情報!A:Z'
+    ).execute().get("values", [])
+    score_comp, row_comp, source_comp, col_comp = search_best_match(company_data_cache, "会社情報", keywords, target_attr)
+    if score_comp > best_score:
+        best_score, best_row, best_source, best_column = score_comp, row_comp, source_comp, col_comp
 
     if best_score > 0.5 and best_row:
         if best_column >= 0 and best_column < len(best_row):
@@ -438,14 +445,12 @@ search_best_match(employee_data_cache, "従業員情報")
         reply_text = (
             "質問の意味がわかんない。別の言い方にして、そしたら探す"
         )
-    #except Exception as e:
-    #    traceback.print_exc()
-    #    reply_text = "⚠️ 社内データベースにエラーが見つかったよ。政美さんにご連絡して"
-    except Exception as e:
-        traceback.print_exc()
-        reply_text = "エラーが発生したよ。政美さんに連絡して"
 
-    reply_text = shorten_reply(reply_text)
+except Exception as e:
+    traceback.print_exc()
+    reply_text = "エラーが発生したよ。政美さんに連絡して"
+
+reply_text = shorten_reply(reply_text)
 
 def personalized_prefix(name):
     if name.startswith("未登録"):
