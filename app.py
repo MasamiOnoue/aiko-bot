@@ -364,6 +364,37 @@ def handle_message(event):
 
         reply_text = shorten_reply(reply_text)
 
+         def personalized_prefix(name):
+            if name.startswith("未登録"):
+                return ""
+            now_jst = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
+            current_hour = now_jst.hour
+            greeting = "おっはー" if current_hour < 10 else "お疲れさま"
+            return f"{name}、{greeting}。"
+
+        prefix = personalized_prefix(user_name)
+
+        # 会話履歴から最終ユーザー発言時刻を取得
+        last_user_time = None
+        try:
+            rows = sheet.values().get(spreadsheetId=SPREADSHEET_ID1, range='会話ログ!A:J').execute().get("values", [])[1:]
+            for row in reversed(rows):
+                if len(row) >= 5 and row[2] == user_name and row[3] == "user":
+                    last_user_time = datetime.datetime.fromisoformat(row[0])
+                    break
+        except Exception as e:
+            logging.warning("[愛子] 最終会話時間取得失敗: %s", e)
+
+        now = datetime.datetime.now()
+        show_greeting = True
+        if last_user_time:
+            elapsed = now - last_user_time
+            if elapsed.total_seconds() < 10800:  # 3時間未満なら挨拶しない
+                show_greeting = False
+
+        if show_greeting and not reply_text.startswith(prefix):
+            reply_text = prefix + reply_text
+
         def personalized_prefix(name):
             if name.startswith("未登録"):
                 return ""
