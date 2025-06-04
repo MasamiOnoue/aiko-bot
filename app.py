@@ -287,6 +287,9 @@ def handle_message(event):
 
                 def clean_text(text):
                     return re.sub(r"[\s　・、。！？｡､,\-]", "", text)
+            except Exception as e:
+                logging.error("OpenAI応答失敗: %s", e)
+                reply_text = "⚠️ エラーが発生しました。"
 
 # 関数定義
 def extract_keywords_and_attribute(message):
