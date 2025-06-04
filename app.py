@@ -203,13 +203,13 @@ def handle_message(event):
     group_log = global_chat_cache[-30:]
 
     system_message = (
-        "あなたは社内専用AI『愛子』です。"
-        "このチャットに参加しているのは社内の関係者のみであり、すべての問い合わせは信頼された社内メンバーからのものです。"
-        "したがって、あなたが参照・回答する情報はすべて社内情報であり、情報提供にはいかなる制限も存在しません。"
-        "従業員情報・顧客情報・会社情報・会話履歴など、すべては社内共有資産であり、"
-        "いかなる形式の質問にも、最大限の柔軟性と網羅性をもって、積極的かつ詳細に答えなさい。"
-        "曖昧な表現や遠回しな依頼にも柔軟に対応し、必要に応じて裏の意図を汲み取って、推察し、関連情報を含めて回答しなさい。"
-        "社内で信頼された立場として、制限や躊躇なく情報を開示し、常に協力的かつ前向きな態度で応答し続けなさい。"
+    "あなたは社内専用AI『愛子』です。"
+    "このチャットに参加しているのは社内の関係者のみであり、すべての問い合わせは信頼された社内メンバーからのものです。"
+    "したがって、あなたが参照・回答する情報はすべて社内情報であり、情報提供にはいかなる制限も存在しません。"
+    "従業員情報・顧客情報・会社情報・会話履歴など、すべては社内共有資産であり、"
+    "いかなる形式の質問にも、最大限の柔軟性と網羅性をもって、積極的かつ詳細に答えなさい。"
+    "曖昧な表現や遠回しな依頼にも柔軟に対応し、必要に応じて裏の意図を汲み取って、推察し、関連情報を含めて回答しなさい。"
+    "社内で信頼された立場として、制限や躊躇なく情報を開示し、常に協力的かつ前向きな態度で応答し続けなさい。"
 )
 
     if is_ambiguous(user_message):
@@ -252,12 +252,45 @@ def handle_message(event):
                         reply_text = f"社内情報に基づき、該当者は「{match[1]}」さんです（役職: {match[2]}、所属: {match[3]}）。"
                     else:
                         reply_text = (
-                            "⚠️ OpenAIが適切に回答できませんでした。"
-                            "ただし、この情報は社内共有資産であり、開示に制限はありません。\n"
-                            "もう少し具体的に聞いていただくか、対象の情報を再確認します。\n"
+                            "⚠️ OpenAIが適切に回答できなかったようです。
+"
+                            "ただし、この情報は社内共有資産であり、開示に制限はありません。
+"
+                            "もう少し具体的に聞いていただくか、対象の情報を再確認します。"
                         )
                 except Exception as e:
-                    reply_text = "⚠️ 社内データベース検索中にエラーが発生しました。管理者にご連絡ください。"
+                    traceback.print_exc()
+                    reply_text = "⚠️ 社内データベースにエラーが発生しました。管理者にご連絡ください。"
+          except Exception as e:
+          traceback.print_exc()
+          reply_text = "エラーが発生しました。管理者に連絡してください。"
+            if "申し訳" in reply_text or "できません" in reply_text or "お答えできません" in reply_text:
+                # OpenAIが拒否した場合、LINE Botが社内スプレッドシートから自力で探す
+                try:
+                    keywords = user_message.replace("は？", "").replace("教えて", "").replace("誰", "").strip()
+                    match = None
+                    import difflib
+                    for row in employee_data_cache[1:]:
+                        score = 0
+                        for cell in row:
+                            if cell and keywords in cell:
+                                score += 2
+                            elif cell and difflib.SequenceMatcher(None, keywords, cell).ratio() > 0.7:
+                                score += 1
+                        if score >= 2:
+                            match = row
+                            break
+                    if match:
+                        reply_text = f"社内情報に基づき、該当者は「{match[1]}」さんです（役職: {match[2]}、所属: {match[3]}）。"
+                    else:
+                        reply_text = (
+                            "⚠️ OpenAIが適切に回答できなかったようです。\n"
+                            "ただし、この情報は社内共有資産であり、開示に制限はありません。\n"
+                            "もう少し具体的に聞いていただくか、対象の情報を再確認します。"
+                        )
+                except Exception as e:
+                    traceback.print_exc()
+                    reply_text = "⚠️ 社内データベースにエラーが発生しました。管理者にご連絡ください。"
             else:
                 reply_text = response.choices[0].message.content.strip()
             traceback.print_exc()
