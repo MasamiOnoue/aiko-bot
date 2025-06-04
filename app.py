@@ -369,7 +369,12 @@ def handle_message(event):
                 return ""
             now_jst = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
             current_hour = now_jst.hour
-            greeting = "おっはー" if current_hour < 10 else "お疲れさま"
+            if current_hour < 11:
+                greeting = "おっはー"
+            elif current_hour < 17:
+                greeting = "こんにちは"
+            else:
+                greeting = "残業がんば"
             return f"{name}、{greeting}。"
 
         prefix = personalized_prefix(user_name)
