@@ -200,7 +200,7 @@ def handle_message(event):
     if template_reply:
         reply_text = template_reply
     else:
-               try:
+        try:
             response = client.chat.completions.create(
                 model="gpt-4o",
                 messages=messages
