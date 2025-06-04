@@ -51,11 +51,8 @@ sheets_service = build(
     scopes=['https://www.googleapis.com/auth/spreadsheets']
 )
 
-http = google.auth.transport.requests.AuthorizedSession(creds)
-http.timeout = 60
-
     http = google.auth.transport.requests.AuthorizedSession(creds)　# 認証後に追加（タイムアウト付き HTTP クライアントを設定）
-    http.timeout = 60　# 秒数（必要に応じて延長）
+    http.timeout = 90　# 秒数（必要に応じて延長）
     return http
 
 sheet = sheets_service.spreadsheets()
