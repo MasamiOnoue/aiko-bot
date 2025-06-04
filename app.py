@@ -173,10 +173,8 @@ def refresh_employee_data_cache():
         global employee_data_cache
         while True:
             try:
-                local_sheets_service = build('sheets', 'v4', credentials=creds, cache_discovery=False)
-                local_sheet = local_sheets_service.spreadsheets()
-
-                temp_sheet = sheets_service.spreadsheets()  # 新しく取得
+                local_sheets_service = build('sheets', 'v4', credentials=creds, cache_discovery=False)# 新しく取得
+                local_sheet = local_sheets_service.spreadsheets()#関数の中で再度呼び出す
                 employee_data_cache = temp_sheet.values().get(
                     spreadsheetId=SPREADSHEET_ID2,
                     range='従業員情報!A:W'
