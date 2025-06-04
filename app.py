@@ -48,7 +48,6 @@ sheets_service = build(
     cache_discovery=False,
     requestBuilder=lambda *args, **kwargs: HttpRequest(http, *args, **kwargs)
 )
-    SERVICE_ACCOUNT_FILE,
     scopes=['https://www.googleapis.com/auth/spreadsheets']
 )
 
