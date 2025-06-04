@@ -212,7 +212,6 @@ def handle_message(event):
                 try:
                     import difflib
                     import re
-                    import datetime
 
                     def clean_text(text):
                         return re.sub(r"[\s　・、。！？｡､,\-]", "", text)
@@ -306,12 +305,11 @@ def handle_message(event):
 
         reply_text = shorten_reply(reply_text)
 
-        # 名前＋時間帯あいさつを先頭に付与
         def personalized_prefix(name):
             if name.startswith("未登録"):
                 return ""
-            now_hour = datetime.datetime.now().hour
-            greeting = "おはようございます" if now_hour < 10 else "お疲れさまです"
+            current_hour = datetime.datetime.now().hour
+            greeting = "おはようございます" if current_hour < 10 else "お疲れさまです"
             return f"{name}さん、{greeting}。"
 
         reply_text = personalized_prefix(user_name) + reply_text
