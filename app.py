@@ -18,7 +18,7 @@ from googleapiclient.discovery import build
 EMPLOYEE_SHEET_RANGE = '従業員情報!A:W'
 CUSTOMER_SHEET_RANGE = '顧客情報!A:T'
 COMPANY_SHEET_RANGE = '会社情報!A:Z'
-LOG_RANGE_NAME = '会話ログ!A:J'
+LOG_RANGE_NAME = '会話ログ!A:K'  # K列まで使用（カテゴリ追加）
 
 # キャッシュ用変数
 global_chat_cache = []
@@ -62,7 +62,8 @@ def keep_server_awake(interval_seconds=900):
             time.sleep(interval_seconds)
     threading.Thread(target=ping, daemon=True).start()
 
-# 従業員キャッシュ
+# キャッシュ更新
+
 def refresh_employee_data_cache(interval_seconds=300):
     def update_loop():
         global employee_data_cache
@@ -76,7 +77,6 @@ def refresh_employee_data_cache(interval_seconds=300):
             time.sleep(interval_seconds)
     threading.Thread(target=update_loop, daemon=True).start()
 
-# 全体ログキャッシュ
 def refresh_global_chat_cache(interval_seconds=300):
     def update_loop():
         global global_chat_cache
@@ -88,10 +88,21 @@ def refresh_global_chat_cache(interval_seconds=300):
             time.sleep(interval_seconds)
     threading.Thread(target=update_loop, daemon=True).start()
 
+# シート読み取り
+
+def load_sheet_data(spreadsheet_id, range_name):
+    try:
+        result = sheet.values().get(spreadsheetId=spreadsheet_id, range=range_name).execute()
+        return result.get("values", [])
+    except Exception as e:
+        print(f"[愛子] シート読み込み失敗 ({range_name}):", e)
+        return []
+
 # 会話ログ保存
-def save_conversation_log(user_id, user_name, speaker, message):
+
+def save_conversation_log(user_id, user_name, speaker, message, category=""):
     timestamp = datetime.datetime.now().isoformat()
-    values = [[timestamp, user_id, user_name, speaker, message, '', '', '', '', '']]
+    values = [[timestamp, user_id, user_name, speaker, message, category, '', '', '', '', '']]
     try:
         sheet.values().append(
             spreadsheetId=SPREADSHEET_ID1,
@@ -103,6 +114,7 @@ def save_conversation_log(user_id, user_name, speaker, message):
         logging.error(f"[愛子] 会話ログ保存失敗: {e}")
 
 # 会話履歴読み込み
+
 def load_recent_chat_history(user_name, limit=20):
     try:
         result = sheet.values().get(spreadsheetId=SPREADSHEET_ID1, range=LOG_RANGE_NAME).execute()
@@ -121,6 +133,7 @@ def load_all_chat_history(max_messages=300):
         return []
 
 # ユーザーID→名前マップ
+
 def load_user_id_map():
     try:
         result = sheet.values().get(spreadsheetId=SPREADSHEET_ID2, range=EMPLOYEE_SHEET_RANGE).execute()
@@ -130,23 +143,53 @@ def load_user_id_map():
         return {}
 
 # 記憶削除（自然言語対応）
-def delete_memory_entries(user_id, user_name, keyword):
+
+def delete_memory_entries(spreadsheet_id, range_name, keyword):
     try:
-        result = sheet.values().get(spreadsheetId=SPREADSHEET_ID4, range=COMPANY_SHEET_RANGE).execute()
+        result = sheet.values().get(spreadsheetId=spreadsheet_id, range=range_name).execute()
         values = result.get("values", [])
         headers = values[0]
         rows = values[1:]
         filtered = [row for row in rows if keyword not in ''.join(row)]
         new_data = [headers] + filtered
         sheet.values().update(
-            spreadsheetId=SPREADSHEET_ID4,
-            range=COMPANY_SHEET_RANGE,
+            spreadsheetId=spreadsheet_id,
+            range=range_name,
             valueInputOption='RAW',
             body={'values': new_data}
         ).execute()
-        logging.info(f"[愛子] {user_name}の記憶 '{keyword}' を削除しました")
     except Exception as e:
         logging.error(f"[愛子] 記憶削除エラー: {e}")
+
+# 記憶追加（使用回数＋更新者記録）
+
+def auto_remember_to_sheet(spreadsheet_id, range_name, user_name, content):
+    try:
+        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        values = [["自動", "キーワード", content[:20], content, content[:20], "自動追加", now, user_name, 1, ""]]
+        sheet.values().append(
+            spreadsheetId=spreadsheet_id,
+            range=range_name,
+            valueInputOption='USER_ENTERED',
+            body={'values': values}
+        ).execute()
+    except Exception as e:
+        logging.error(f"[愛子] 記憶追加失敗: {e}")
+
+# 記憶一覧表示・検索
+
+def search_memory(spreadsheet_id, range_name, keyword):
+    try:
+        data = load_sheet_data(spreadsheet_id, range_name)
+        if not data or len(data) < 2:
+            return []
+        headers = data[0]
+        return [dict(zip(headers, row)) for row in data[1:] if keyword in ''.join(row)]
+    except Exception as e:
+        logging.error(f"[愛子] 検索失敗: {e}")
+        return []
+
+# Webhook受信
 
 @app.route("/callback", methods=["POST"])
 def callback():
@@ -174,16 +217,33 @@ def handle_message(event):
     user_name = USER_ID_MAP.get(user_id, f"未登録 ({user_id})")
 
     if "削除して" in user_message or "忘れて" in user_message:
-        delete_memory_entries(user_id, user_name, user_message.replace("削除して", "").replace("忘れて", "").strip())
+        keyword = user_message.replace("削除して", "").replace("忘れて", "").strip()
+        delete_memory_entries(SPREADSHEET_ID4, COMPANY_SHEET_RANGE, keyword)
+        delete_memory_entries(SPREADSHEET_ID3, CUSTOMER_SHEET_RANGE, keyword)
+        delete_memory_entries(SPREADSHEET_ID2, EMPLOYEE_SHEET_RANGE, keyword)
 
-    personal_log = load_recent_chat_history(user_name)
+    if "覚えておいて" in user_message:
+        content = user_message.replace("覚えておいて", "").strip()
+        auto_remember_to_sheet(SPREADSHEET_ID4, COMPANY_SHEET_RANGE, user_name, content)
+
+    if "検索して" in user_message or "調べて" in user_message:
+        keyword = user_message.replace("検索して", "").replace("調べて", "").strip()
+        results = search_memory(SPREADSHEET_ID4, COMPANY_SHEET_RANGE, keyword)
+        if results:
+            reply_text = f"[愛子] {len(results)}件見つかりました:\n" + '\n'.join(row.get("回答要約", row.get("回答内容", "")) for row in results[:5])
+        else:
+            reply_text = "[愛子] 該当する情報が見つかりませんでした。"
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
+        return
+
+    personal_log = load_recent_chat_history(user_name, limit=20)
     group_log = global_chat_cache[-30:]
 
     messages = [
         {"role": "system", "content": "あなたは社内秘書の愛子です。従業員情報・顧客情報・会話履歴・会社情報を自由に活用し、文脈に応じた自然な応答を行ってください。"},
+        {"role": "user", "content": user_message},
         *group_log,
-        *personal_log,
-        {"role": "user", "content": user_message}
+        *personal_log
     ]
 
     response = client.chat.completions.create(model="gpt-4o", messages=messages)
