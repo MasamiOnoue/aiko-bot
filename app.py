@@ -128,6 +128,14 @@ def load_user_id_map():
         logging.error("[愛子] ユーザーIDマップ取得失敗: %s", e)
         return {}
 
+def refresh_user_id_map():#5分ごとにUSER_ID_MAPをリロードして更新
+    def loop():
+        global USER_ID_MAP
+        while True:
+            USER_ID_MAP = load_user_id_map()
+            time.sleep(300)
+    threading.Thread(target=loop, daemon=True).start()
+
 USER_ID_MAP = load_user_id_map()
 
 def save_conversation_log(user_id, user_name, speaker, message):
