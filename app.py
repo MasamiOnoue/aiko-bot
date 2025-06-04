@@ -290,9 +290,9 @@ def handle_message(event):
                     best_column = -1
 
                     def search_best_match(data_cache, label):
-                    nonlocal best_score, best_row, best_source, best_column
-                    if not data_cache:
-                        return
+                        nonlocal best_score, best_row, best_source, best_column
+                        if not data_cache:
+                            return
 
                     headers = data_cache[0]
 
