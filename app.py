@@ -195,7 +195,7 @@ def handle_message(event):
     if template_reply:
         reply_text = template_reply
     else:
-        try:
+                try:
             response = client.chat.completions.create(
                 model="gpt-4o",
                 messages=messages
@@ -209,20 +209,40 @@ def handle_message(event):
                     import re
 
                     def clean_text(text):
-                        return re.sub(r"[\s\u3000・、。！？｡､,\-]", "", text)
+                        return re.sub(r"[\s　・、。！？｡､,\-]", "", text)
 
-                    keywords = user_message
-                    for kw in ["は？", "教えて", "誰", "って何", "とは？", "どこ", "何者", "詳細", "について"]:
-                        keywords = keywords.replace(kw, "")
-                    keywords = clean_text(keywords.strip())
+                    def extract_keywords_and_attribute(message):
+                        attribute_keywords = {
+                            "住所": ["住所", "所在地", "場所", "どこ"],
+                            "電話": ["電話", "連絡先", "番号"],
+                            "部署": ["部署", "部門", "部"],
+                            "名前": ["名前", "氏名"],
+                            "メール": ["メール", "e-mail", "連絡"]
+                        }
+                        clean_msg = clean_text(message)
+                        probable_attribute = None
+                        for attr, keywords in attribute_keywords.items():
+                            for k in keywords:
+                                if k in clean_msg:
+                                    probable_attribute = attr
+                                    break
+                            if probable_attribute:
+                                break
+                        return clean_msg, probable_attribute
+
+                    keywords, target_attr = extract_keywords_and_attribute(user_message)
 
                     match = None
                     best_score = 0
                     best_row = None
                     best_source = ""
+                    best_column = -1
 
                     def search_best_match(data_cache, label):
-                        nonlocal best_score, best_row, best_source
+                        nonlocal best_score, best_row, best_source, best_column
+                        if not data_cache:
+                            return
+                        headers = data_cache[0]
                         for row in data_cache[1:]:
                             row_text = clean_text(" ".join(row))
                             ratio = difflib.SequenceMatcher(None, keywords, row_text).ratio()
@@ -232,6 +252,11 @@ def handle_message(event):
                                 best_score = score
                                 best_row = row
                                 best_source = label
+                                # 属性カラムを推定
+                                if target_attr and target_attr in headers:
+                                    best_column = headers.index(target_attr)
+                                else:
+                                    best_column = -1
 
                     # 各スプレッドシートのキャッシュデータを検索
                     search_best_match(employee_data_cache, "従業員情報")
@@ -252,7 +277,11 @@ def handle_message(event):
                     search_best_match(company_data_cache, "会社情報")
 
                     if best_score > 0.5 and best_row:
-                        reply_text = f"社内情報（{best_source}）に基づき、該当データは「{best_row[1]}」です。関連情報: {'、'.join(best_row[2:5])}"
+                        if best_column >= 0 and best_column < len(best_row):
+                            attr_value = best_row[best_column]
+                            reply_text = f"社内情報（{best_source}）に基づき、「{best_row[1]}」の{target_attr}は「{attr_value}」です。"
+                        else:
+                            reply_text = f"社内情報（{best_source}）に基づき、該当データは「{best_row[1]}」です。関連情報: {'、'.join(best_row[2:5])}"
                     else:
                         reply_text = (
                             "⚠️ OpenAIが適切に回答できなかったようです。\n"
