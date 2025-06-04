@@ -305,16 +305,16 @@ def handle_message(event):
                         if not data_cache:
                             return
 
-                    headers = data_cache[0]
+                        headers = data_cache[0]
 
-                    # ✅ 先に属性カラムを特定する
-                    if target_attr:
-                        for i, h in enumerate(headers):
-                            h_clean = clean_text(h)
-                            attr_keywords = attribute_keywords.get(target_attr, [])
-                            if target_attr in h_clean or any(k in h_clean for k in attr_keywords):
-                                best_column = i
-                                break
+                        # ✅ 先に属性カラムを特定する
+                        if target_attr:
+                            for i, h in enumerate(headers):
+                                h_clean = clean_text(h)
+                                attr_keywords = attribute_keywords.get(target_attr, [])
+                                if target_attr in h_clean or any(k in h_clean for k in attr_keywords):
+                                    best_column = i
+                                    break
 
                     # 🔁 対象者名に近い行だけからベストマッチを探す
                     for row in data_cache[1:]:
@@ -364,7 +364,7 @@ def handle_message(event):
 
         reply_text = shorten_reply(reply_text)
 
-         def personalized_prefix(name):
+        def personalized_prefix(name):
             if name.startswith("未登録"):
                 return ""
             now_jst = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
