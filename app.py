@@ -166,6 +166,37 @@ keep_server_awake()
 def handle_message(event):
     user_id = event.source.user_id
     user_message = event.message.text.strip()
+
+    # 管理者コマンド処理
+    if user_message.startswith("/add "):
+        parts = user_message.split(maxsplit=2)
+        if len(parts) == 3:
+            new_uid, name = parts[1], parts[2]
+            USER_ID_MAP[new_uid] = name
+            line_bot_api.reply_message(
+                event.reply_token,
+                TextSendMessage(text=f"✅ {name} さんを登録しました。")
+            )
+            return
+
+    elif user_message.startswith("/remove "):
+        parts = user_message.split(maxsplit=1)
+        if len(parts) == 2:
+            target_uid = parts[1]
+            removed_name = USER_ID_MAP.pop(target_uid, None)
+            if removed_name:
+                line_bot_api.reply_message(
+                    event.reply_token,
+                    TextSendMessage(text=f"❌ {removed_name} さんの登録を削除しました。")
+                )
+            else:
+                line_bot_api.reply_message(
+                    event.reply_token,
+                    TextSendMessage(text=f"⚠️ 該当のユーザーが見つかりません。")
+                )
+            return
+    user_id = event.source.user_id
+    user_message = event.message.text.strip()
     user_name = USER_ID_MAP.get(user_id, f"未登録 ({user_id})")
 
     personal_log = load_recent_chat_history(user_name)
