@@ -362,11 +362,11 @@ def extract_keywords_and_attribute(message):
 # 関数を実行する（関数外で）
 keywords, target_attr = extract_keywords_and_attribute(user_message)
 
-                    #match = None
-                    best_score = 0
-                    best_row = None
-                    best_source = ""
-                    best_column = -1
+    #match = None
+    best_score = 0
+    best_row = None
+    best_source = ""
+    best_column = -1
 
                     def search_best_match(data_cache, label):
                         nonlocal best_score, best_row, best_source, best_column
