@@ -346,9 +346,9 @@ def handle_message(event):
                 reply_text = template_reply
             else:
                 reply_text = template_reply + " " + reply_text
-    except Exception as e:
-        logging.error("[愛子] OpenAI応答失敗: %s", e)
-        reply_text = template_reply or "⚠️ OpenAIエラーが発生しました。政美さんにご連絡ください。"
+        except Exception as e:
+            logging.error("[愛子] OpenAI応答失敗: %s", e)
+            reply_text = template_reply or "⚠️ OpenAIエラーが発生しました。政美さんにご連絡ください。"
 
         if "申し訳" in reply_text or "できません" in reply_text or "お答えできません" in reply_text:
             # OpenAIが拒否した場合、LINE Botが社内スプレッドシートから自力で探す
