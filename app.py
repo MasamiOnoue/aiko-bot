@@ -16,7 +16,25 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import set_user_agent
 import googleapiclient.discovery
-
+attribute_keywords = {
+    "名前": ["名前", "氏名"],
+    "名前の読み": ["読み", "よみ"],
+    "役職": ["ポスト"],
+    "入社年": ["住所", "所在地", "場所", "どこ"],
+    "生年月日": ["生まれ", "誕生日", "バースデー"],
+    "メールアドレス": ["メール", "e-mail", "連絡", "アドレス", "メアド"],
+    "携帯電話番号": ["携帯", "携帯番号", "携帯電話", "携帯電話番号", "電話番号", "携帯は", "携帯番号は", "携帯電話番号は"],
+    "自宅電話": ["電話", "連絡先", "番号", "電話番号", "自宅の電"],
+    "住所": ["住所", "所在地", "場所", "どこ"],
+    "郵便番号": ["〒", "郵便"],
+    "緊急連絡先": ["緊急", "問い合わせ先", "至急連絡"],
+    "ペット情報": ["犬", "猫", "いぬ", "イヌ", "ネコ", "ねこ", "にゃんこ", "わんちゃん", "わんこ"],
+    "性格": ["大人しい", "うるさい", "性質", "特性"],
+    "口癖": ["よく言う", "よく語る"],
+    "備考": ["その他"],			
+    "追加情報": ["部署", "部門", "部"],
+    "家族": ["家族", "配偶者", "妻", "夫", "子供", "扶養", "ペット", "犬", "猫", "いぬ", "ねこ", "わんちゃん"]
+}
 load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
@@ -251,25 +269,7 @@ def handle_message(event):
                         return re.sub(r"[\s　・、。！？｡､,\-]", "", text)
 
                     def extract_keywords_and_attribute(message):
-                        attribute_keywords = {
-                            "名前": ["名前", "氏名"],
-                            "名前の読み": ["読み", "よみ"],
-                            "役職": ["ポスト"],
-                            "入社年": ["住所", "所在地", "場所", "どこ"],
-                            "生年月日": ["生まれ", "誕生日", "バースデー"],
-                            "メールアドレス": ["メール", "e-mail", "連絡", "アドレス", "メアド"],
-                            "携帯電話番号": ["携帯", "携帯番号", "携帯電話", "携帯電話番号", "電話番号", "携帯は", "携帯番号は", "携帯電話番号は"],
-                            "自宅電話": ["電話", "連絡先", "番号", "電話番号"],
-                            "住所": ["住所", "所在地", "場所", "どこ"],
-                            "郵便番号": ["〒", "郵便"],
-                            "緊急連絡先": ["緊急", "問い合わせ先", "至急連絡"],
-                            "ペット情報": ["犬", "猫", "いぬ", "イヌ", "ネコ", "ねこ", "にゃんこ", "わんちゃん", "わんこ"],
-                            "性格": ["大人しい", "うるさい", "性質", "特性"],
-                            "口癖": ["よく言う", "よく語る"],
-                            "備考": ["その他"],			
-                            "追加情報": ["部署", "部門", "部"],
-                            "家族": ["家族", "配偶者", "妻", "夫", "子供", "扶養", "ペット", "犬", "猫", "いぬ", "ねこ", "わんちゃん"]
-                        }
+                        attr_keywords = ATTRIBUTE_KEYWORDS.get(target_attr, [])
                         clean_msg = clean_text(message)
                         probable_attribute = None
                         for attr, keywords in attribute_keywords.items():
@@ -290,21 +290,13 @@ def handle_message(event):
                     best_column = -1
 
                     def search_best_match(data_cache, label):
-                        nonlocal best_score, best_row, best_source, best_column
-                        if not data_cache:
-                            return
-                        headers = data_cache[0]
-                        for row in data_cache[1:]:
-                            row_text = clean_text(" ".join(row))
-                            ratio = difflib.SequenceMatcher(None, keywords, row_text).ratio()
-                            token_match = sum(1 for token in keywords if token in row_text)
-                            score = ratio + (0.05 * token_match)
-                            if score > best_score:
-                                best_score = score
-                                best_row = row
-                                best_source = label
+                    nonlocal best_score, best_row, best_source, best_column
+                    if not data_cache:
+                        return
 
-                    # 属性カラムを推定
+                    headers = data_cache[0]
+
+                    # ✅ 先に属性カラムを特定する
                     if target_attr:
                         for i, h in enumerate(headers):
                             h_clean = clean_text(h)
@@ -312,6 +304,17 @@ def handle_message(event):
                             if target_attr in h_clean or any(k in h_clean for k in attr_keywords):
                                 best_column = i
                                 break
+
+                    # 🔁 対象者名に近い行だけからベストマッチを探す
+                    for row in data_cache[1:]:
+                        row_text = clean_text(" ".join(row))
+                        ratio = difflib.SequenceMatcher(None, keywords, row_text).ratio()
+                        token_match = sum(1 for token in keywords if token in row_text)
+                        score = ratio + (0.05 * token_match)
+                        if score > best_score:
+                            best_score = score
+                            best_row = row
+                            best_source = label
 
                     # 各スプレッドシートのキャッシュデータを検索
                     search_best_match(employee_data_cache, "従業員情報")
