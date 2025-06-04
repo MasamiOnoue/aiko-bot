@@ -85,16 +85,16 @@ def shorten_reply(reply_text, simple_limit=30, detailed_limit=100):
             return first_sentence
     return reply_text[:detailed_limit] + ("…" if len(reply_text) > detailed_limit else "")
 
-def keep_server_awake(interval_seconds=900):
-    def ping():
-        while True:
-            try:
-                url = os.getenv("RENDER_EXTERNAL_URL") or "http://localhost:5000"
-                requests.get(url)
-            except Exception as e:
-                logging.warning("[愛子] ping失敗: %s", e)
-            time.sleep(interval_seconds)
-    threading.Thread(target=ping, daemon=True).start()
+#def keep_server_awake(interval_seconds=900):
+#    def ping():
+#        while True:
+#            try:
+#                url = os.getenv("RENDER_EXTERNAL_URL") or "http://localhost:5000"
+#                requests.get(url)
+#            except Exception as e:
+#                logging.warning("[愛子] ping失敗: %s", e)
+#            time.sleep(interval_seconds)
+#    threading.Thread(target=ping, daemon=True).start()
 
 @app.route("/callback", methods=["POST"])
 def callback():
@@ -181,7 +181,7 @@ def refresh_employee_data_cache():
 
 refresh_global_chat_cache()
 refresh_employee_data_cache()
-keep_server_awake()
+#keep_server_awake()
 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
