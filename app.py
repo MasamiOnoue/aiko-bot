@@ -312,15 +312,13 @@ def handle_message(event):
 
         reply_text = shorten_reply(reply_text)
 
-    from datetime import datetime, timedelta
-
-    def personalized_prefix(name):
-        if name.startswith("未登録"):
-            return ""
-            now_jst = datetime.utcnow() + timedelta(hours=9)  # UTC→JST変換
+        def personalized_prefix(name):
+            if name.startswith("未登録"):
+                return ""
+            now_jst = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
             current_hour = now_jst.hour
             greeting = "おはようございます" if current_hour < 10 else "お疲れさまです"
-        return f"{name}さん、{greeting}"
+            return f"{name}さん、{greeting}。"
 
         reply_text = personalized_prefix(user_name) + reply_text
 
