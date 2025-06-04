@@ -48,6 +48,11 @@ TEMPLATE_RESPONSES = {
     "どうして": "どうしてかな〜、ちょっと過去の会話を思い出してみます！"
 }
 
+def personalized_prefix(name):
+    if name.startswith("未登録"):
+        return ""
+    return f"{name}さん、"
+
 def is_ambiguous(text):
     return any(phrase in text for phrase in AMBIGUOUS_PHRASES)
 
