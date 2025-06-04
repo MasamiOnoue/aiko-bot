@@ -411,6 +411,16 @@ def handle_message(event):
         save_conversation_log(user_id, user_name, "assistant", reply_text)
 
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
+
+        if show_greeting:
+            logging.info("[愛子] 挨拶を追加（%s）: %s", user_name, prefix.strip())
+        else:
+            if last_user_time:
+                elapsed_hours = (now - last_user_time).total_seconds() / 3600
+                logging.info("[愛子] 挨拶スキップ（%s）: %.2f時間ぶりの発言", user_name, elapsed_hours)
+            else:
+                logging.info("[愛子] 挨拶スキップ（%s）: 会話履歴なし", user_name)
+                
         logging.info("[愛子] 最終応答（%s）→ %s", user_name, reply_text)
 
 @app.route("/push", methods=["POST"])
