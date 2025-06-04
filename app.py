@@ -288,20 +288,21 @@ def handle_message(event):
                 def clean_text(text):
                     return re.sub(r"[\s　・、。！？｡､,\-]", "", text)
 
-                def extract_keywords_and_attribute(message):
-                    attr_keywords = attribute_keywords.get(target_attr, [])
-                    clean_msg = clean_text(message)
-                    probable_attribute = None
-                    for attr, keywords in attribute_keywords.items():
-                        for k in keywords:
-                            if k in clean_msg:
-                                probable_attribute = attr
-                                break
-                        if probable_attribute:
-                            break
-                    return clean_msg, probable_attribute              
+# 関数定義
+def extract_keywords_and_attribute(message):
+    clean_msg = clean_text(message)
+    probable_attribute = None
+    for attr, keywords in attribute_keywords.items():
+        for k in keywords:
+            if k in clean_msg:
+                probable_attribute = attr
+                break
+        if probable_attribute:
+            break
+    return clean_msg, probable_attribute
 
-                    keywords, target_attr = extract_keywords_and_attribute(user_message)
+# 関数を実行する（関数外で）
+keywords, target_attr = extract_keywords_and_attribute(user_message)
 
                     match = None
                     best_score = 0
