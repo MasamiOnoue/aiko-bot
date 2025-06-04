@@ -253,7 +253,7 @@ def handle_message(event):
                     def extract_keywords_and_attribute(message):
                         attribute_keywords = {
                             "住所": ["住所", "所在地", "場所", "どこ"],
-                            "電話": ["電話", "連絡先", "番号"],
+                            "電話": ["電話", "連絡先", "番号", "電話番号"],
                             "携帯": ["携帯", "携帯番号", "携帯電話", "携帯電話番号", "電話番号", "携帯は", "携帯番号は", "携帯電話番号は"],
                             "部署": ["部署", "部門", "部"],
                             "名前": ["名前", "氏名"],
@@ -326,7 +326,7 @@ def handle_message(event):
                             reply_text = f"社内情報（{best_source}）から、該当データは「{best_row[1]}」です。関連情報: {'、'.join(best_row[2:5])}"
                     else:
                         reply_text = (
-                            "ちょっと質問の意味がわかんなーい。別の言い方にして、そしたら探す"
+                            "質問の意味がわかんない。別の言い方にして、そしたら探す"
                         )
                 except Exception as e:
                     traceback.print_exc()
