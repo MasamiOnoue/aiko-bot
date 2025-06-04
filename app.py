@@ -117,7 +117,12 @@ def handle_follow(event):
 
 def load_user_id_map():
     try:
-        result = sheet.values().get(spreadsheetId=SPREADSHEET_ID2, range='従業員情報!A:W').execute().get("values", [])[1:]
+        sheets_service_temp = build('sheets', 'v4', credentials=creds, cache_discovery=False)
+        local_sheet = sheets_service_temp.spreadsheets()
+        result = local_sheet.values().get(
+            spreadsheetId=SPREADSHEET_ID2,
+            range='従業員情報!A:W'
+        ).execute().get("values", [])[1:]
         return {row[12]: row[3] for row in result if len(row) >= 13}
     except Exception as e:
         logging.error("[愛子] ユーザーIDマップ取得失敗: %s", e)
