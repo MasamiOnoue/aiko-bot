@@ -102,7 +102,7 @@ def handle_follow(event):
 def load_user_id_map():
     try:
         result = sheet.values().get(spreadsheetId=SPREADSHEET_ID2, range='従業員情報!A:W').execute().get("values", [])[1:]
-        return {row[12]: row[1] for row in result if len(row) >= 13}
+        return {row[12]: row[3] for row in result if len(row) >= 13}
     except Exception as e:
         logging.error("[愛子] ユーザーIDマップ取得失敗: %s", e)
         return {}
@@ -305,12 +305,15 @@ def handle_message(event):
 
         reply_text = shorten_reply(reply_text)
 
-        def personalized_prefix(name):
-            if name.startswith("未登録"):
-                return ""
-            current_hour = datetime.datetime.now().hour
+    from datetime import datetime, timedelta
+
+    def personalized_prefix(name):
+        if name.startswith("未登録"):
+            return ""
+            now_jst = datetime.utcnow() + timedelta(hours=9)  # UTC→JST変換
+            current_hour = now_jst.hour
             greeting = "おはようございます" if current_hour < 10 else "お疲れさまです"
-            return f"{name}さん、{greeting}。"
+        return f"{name}さん、{greeting}"
 
         reply_text = personalized_prefix(user_name) + reply_text
 
