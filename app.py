@@ -257,18 +257,27 @@ def handle_message(event):
         *group_log,
         *personal_log,
         {"role": "user", "content": user_message}
-    ]
+    ]    
 
     template_reply = get_template_response(user_message)
-    if template_reply:
-        reply_text = template_reply
-    else:
-        try:
-            response = client.chat.completions.create(
-                model="gpt-4o",
-                messages=messages
-            )
-            reply_text = response.choices[0].message.content.strip()
+    template_prefix = template_reply + " " if template_reply else ""
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=messages
+        )
+        reply_text = response.choices[0].message.content.strip()
+
+        if template_reply:
+            # 応答が空だったらテンプレのみ
+            if not reply_text or len(reply_text) < 10:
+                reply_text = template_reply
+            else:
+                reply_text = template_reply + " " + reply_text
+    except Exception as e:
+        logging.error("[愛子] OpenAI応答失敗: %s", e)
+        reply_text = template_reply or "⚠️ OpenAIエラーが発生しました。政美さんにご連絡ください。"
 
             if "申し訳" in reply_text or "できません" in reply_text or "お答えできません" in reply_text:
                 # OpenAIが拒否した場合、LINE Botが社内スプレッドシートから自力で探す
@@ -369,12 +378,16 @@ def handle_message(event):
                 return ""
             now_jst = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
             current_hour = now_jst.hour
-            if current_hour < 11:
+            if current_hour < 5:
+                greeting = "もう眠いよ〜"
+            elif current_hour < 11:
                 greeting = "おっはー"
             elif current_hour < 17:
                 greeting = "こんにちは"
-            else:
+            elif current_hour < 22:
                 greeting = "残業がんば"
+            else:
+                greeting = "夜遅くまでお疲れです"
             return f"{name}、{greeting}。"
 
         prefix = personalized_prefix(user_name)
