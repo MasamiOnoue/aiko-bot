@@ -41,7 +41,14 @@ import google.auth.transport.requests    # タイムアウト付きHTTPオブジ
 http = google.auth.transport.requests.AuthorizedSession(creds)
 http.timeout = 60  # 秒数（必要に応じて延長）
 
-sheets_service = build('sheets', 'v4', credentials=creds)
+from googleapiclient.http import build_http
+
+def custom_build_http():
+    http = google.auth.transport.requests.AuthorizedSession(creds)
+    http.timeout = 60
+    return http
+
+sheets_service = build('sheets', 'v4', credentials=creds, requestBuilder=custom_build_http)
 sheet = sheets_service.spreadsheets()
 
 line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
