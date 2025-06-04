@@ -14,6 +14,12 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
+from googleapiclient.discovery import build
+from googleapiclient.http import set_user_agent
+import googleapiclient.discovery
+import google.auth.transport.requests# タイムアウト付きHTTPオブジェクトの作成
+http = google.auth.transport.requests.AuthorizedSession(creds)
+http.timeout = 60  # 秒数（必要に応じて延長）
 
 load_dotenv()
 
@@ -31,6 +37,7 @@ creds = service_account.Credentials.from_service_account_file(
     SERVICE_ACCOUNT_FILE,
     scopes=['https://www.googleapis.com/auth/spreadsheets']
 )
+
 sheets_service = build('sheets', 'v4', credentials=creds)
 sheet = sheets_service.spreadsheets()
 
