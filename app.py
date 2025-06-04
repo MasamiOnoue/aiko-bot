@@ -473,47 +473,40 @@ prefix = personalized_prefix(user_name)
 
 # 会話履歴から最終ユーザー発言時刻を取得
 last_user_time = None
-    try:
-        rows = sheet.values().get(spreadsheetId=SPREADSHEET_ID1, range='会話ログ!A:J').execute().get("values", [])[1:]
-        for row in reversed(rows):
-            if len(row) >= 5 and row[2] == user_name and row[3] == "user":
-                last_user_time = datetime.datetime.fromisoformat(row[0])
-                break
-    except Exception as e:
-        logging.warning("[愛子] 最終会話時間取得失敗: %s", e)
+try:
+    rows = sheet.values().get(spreadsheetId=SPREADSHEET_ID1, range='会話ログ!A:J').execute().get("values", [])[1:]
+    for row in reversed(rows):
+        if len(row) >= 5 and row[2] == user_name and row[3] == "user":
+            last_user_time = datetime.datetime.fromisoformat(row[0])
+            break
+except Exception as e:
+    logging.warning("[愛子] 最終会話時間取得失敗: %s", e)
 
-    now = datetime.datetime.now()
-    show_greeting = True
+now = datetime.datetime.now()
+show_greeting = True
+if last_user_time:
+    elapsed = now - last_user_time
+    if elapsed.total_seconds() < 10800:  # 3時間未満なら挨拶しない
+        show_greeting = False
+
+if show_greeting and not reply_text.startswith(prefix):
+    reply_text = prefix + reply_text
+
+save_conversation_log(user_id, user_name, "user", user_message)
+save_conversation_log(user_id, user_name, "assistant", reply_text)
+
+line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
+
+if show_greeting:
+    logging.info("[愛子] 挨拶を追加（%s）: %s", user_name, prefix.strip())
+else:
     if last_user_time:
-        elapsed = now - last_user_time
-        if elapsed.total_seconds() < 10800:  # 3時間未満なら挨拶しない
-            show_greeting = False
-
-    if show_greeting and not reply_text.startswith(prefix):
-        reply_text = prefix + reply_text
-
-    # まず一回だけ prefix を生成
-    #prefix = personalized_prefix(user_name)
-
-    # reply_text に prefix がすでに含まれていないか確認してから追加
-    #if not reply_text.startswith(prefix):
-        #reply_text = prefix + reply_text
-
-    save_conversation_log(user_id, user_name, "user", user_message)
-    save_conversation_log(user_id, user_name, "assistant", reply_text)
-
-    line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
-
-    if show_greeting:
-        logging.info("[愛子] 挨拶を追加（%s）: %s", user_name, prefix.strip())
+        elapsed_hours = (now - last_user_time).total_seconds() / 3600
+        logging.info("[愛子] 挨拶スキップ（%s）: %.2f時間ぶりの発言", user_name, elapsed_hours)
     else:
-        if last_user_time:
-            elapsed_hours = (now - last_user_time).total_seconds() / 3600
-            logging.info("[愛子] 挨拶スキップ（%s）: %.2f時間ぶりの発言", user_name, elapsed_hours)
-        else:
-            logging.info("[愛子] 挨拶スキップ（%s）: 会話履歴なし", user_name)
-                
-    logging.info("[愛子] 最終応答（%s）→ %s", user_name, reply_text)
+        logging.info("[愛子] 挨拶スキップ（%s）: 会話履歴なし", user_name)
+
+logging.info("[愛子] 最終応答（%s）→ %s", user_name, reply_text)
 
 @app.route("/push", methods=["POST"])
 def push_message():
