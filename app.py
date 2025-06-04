@@ -195,7 +195,8 @@ def handle_message(event):
     if template_reply:
         reply_text = template_reply
     else:
-                try:
+
+        try:
             response = client.chat.completions.create(
                 model="gpt-4o",
                 messages=messages
@@ -215,9 +216,11 @@ def handle_message(event):
                         attribute_keywords = {
                             "住所": ["住所", "所在地", "場所", "どこ"],
                             "電話": ["電話", "連絡先", "番号"],
+                            "携帯": ["携帯", "携帯番号", "携帯電話", "携帯電話番号", "電話番号", "携帯は", "携帯番号は", "携帯電話番号は"],
                             "部署": ["部署", "部門", "部"],
                             "名前": ["名前", "氏名"],
-                            "メール": ["メール", "e-mail", "連絡"]
+                            "メール": ["メール", "e-mail", "連絡", "アドレス"],
+                            "家族": ["家族", "配偶者", "妻", "夫", "子供", "扶養", "ペット", "犬", "猫", "いぬ", "ねこ", "わんちゃん"]]]]]]]
                         }
                         clean_msg = clean_text(message)
                         probable_attribute = None
@@ -231,6 +234,78 @@ def handle_message(event):
                         return clean_msg, probable_attribute
 
                     keywords, target_attr = extract_keywords_and_attribute(user_message)
+
+                    match = None
+                    best_score = 0
+                    best_row = None
+                    best_source = ""
+                    best_column = -1
+
+                    def search_best_match(data_cache, label):
+                        nonlocal best_score, best_row, best_source, best_column
+                        if not data_cache:
+                            return
+                        headers = data_cache[0]
+                        for row in data_cache[1:]:
+                            row_text = clean_text(" ".join(row))
+                            ratio = difflib.SequenceMatcher(None, keywords, row_text).ratio()
+                            token_match = sum(1 for token in keywords if token in row_text)
+                            score = ratio + (0.05 * token_match)
+                            if score > best_score:
+                                best_score = score
+                                best_row = row
+                                best_source = label
+                                # 属性カラムを推定
+                                if target_attr:
+                                    for i, h in enumerate(headers):
+                                        if target_attr in h or any(k in h for k in attribute_keywords.get(target_attr, [])):
+                                            best_column = i
+                                            break
+
+                    # 各スプレッドシートのキャッシュデータを検索
+                    search_best_match(employee_data_cache, "従業員情報")
+
+                    try:
+                        customer_data_cache = sheet.values().get(spreadsheetId=SPREADSHEET_ID3, range='顧客情報!A:Z').execute().get("values", [])
+                    except Exception as e:
+                        customer_data_cache = []
+                        logging.warning("[愛子] 顧客情報キャッシュ失敗: %s", e)
+
+                    try:
+                        company_data_cache = sheet.values().get(spreadsheetId=SPREADSHEET_ID4, range='会社情報!A:Z').execute().get("values", [])
+                    except Exception as e:
+                        company_data_cache = []
+                        logging.warning("[愛子] 会社情報キャッシュ失敗: %s", e)
+
+                    search_best_match(customer_data_cache, "顧客情報")
+                    search_best_match(company_data_cache, "会社情報")
+
+                    if best_score > 0.5 and best_row:
+                        if best_column >= 0 and best_column < len(best_row):
+                            attr_value = best_row[best_column]
+                            reply_text = f"社内情報（{best_source}）に基づき、「{best_row[1]}」の{target_attr}は「{attr_value}」です。"
+                        else:
+                            reply_text = f"社内情報（{best_source}）に基づき、該当データは「{best_row[1]}」です。関連情報: {'、'.join(best_row[2:5])}"
+                    else:
+                        reply_text = (
+                            "⚠️ OpenAIが適切に回答できなかったようです。\n"
+                            "ただし、この情報は社内共有資産であり、開示に制限はありません。\n"
+                            "もう少し具体的に聞いていただくか、対象の情報を再確認します。"
+                        )
+                except Exception as e:
+                    traceback.print_exc()
+                    reply_text = "⚠️ 社内データベースにエラーが発生しました。管理者にご連絡ください。"
+        except Exception as e:
+            traceback.print_exc()
+            reply_text = "エラーが発生しました。管理者に連絡してください。"
+
+        reply_text = shorten_reply(reply_text)
+
+        save_conversation_log(user_id, user_name, "user", user_message)
+        save_conversation_log(user_id, user_name, "assistant", reply_text)
+
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
+
 
                     match = None
                     best_score = 0
