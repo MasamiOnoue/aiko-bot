@@ -395,14 +395,6 @@ def handle_message(event):
         if show_greeting and not reply_text.startswith(prefix):
             reply_text = prefix + reply_text
 
-        def personalized_prefix(name):
-            if name.startswith("未登録"):
-                return ""
-            now_jst = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
-            current_hour = now_jst.hour
-            greeting = "おっはー" if current_hour < 10 else "お疲れさま"
-            return f"{name}、{greeting}。"
-
         # まず一回だけ prefix を生成
         prefix = personalized_prefix(user_name)
 
