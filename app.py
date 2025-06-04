@@ -36,11 +36,11 @@ creds = service_account.Credentials.from_service_account_file(
 )
 
 # ✅ そのあとに AuthorizedSession を使う
-import google.auth.transport.requests # タイムアウト付きHTTPオブジェクトの作成
-from googleapiclient.http import HttpRequest
+#import google.auth.transport.requests # タイムアウト付きHTTPオブジェクトの作成
+#from googleapiclient.http import HttpRequest
 
-http = google.auth.transport.requests.AuthorizedSession(creds) # 認証後に追加（タイムアウト付き HTTP クライアントを設定）
-http.timeout = 90   # 秒数（必要に応じて延長）
+#http = google.auth.transport.requests.AuthorizedSession(creds) # 認証後に追加（タイムアウト付き HTTP クライアントを設定）
+#http.timeout = 90   # 秒数（必要に応じて延長）
 
 #from googleapiclient.http import HttpRequest
 
@@ -50,7 +50,7 @@ sheets_service = build(
     'v4',
     credentials=creds,
     cache_discovery=False,
-    requestBuilder=lambda *args, **kwargs: HttpRequest(http, *args, **kwargs)
+    #requestBuilder=lambda *args, **kwargs: HttpRequest(http, *args, **kwargs)
 )
 
 sheet = sheets_service.spreadsheets()
