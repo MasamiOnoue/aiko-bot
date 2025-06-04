@@ -341,14 +341,14 @@ def handle_message(event):
         reply_text = response.choices[0].message.content.strip()
 
         if template_reply:
-            # 応答が空だったらテンプレのみ
             if not reply_text or len(reply_text) < 10:
                 reply_text = template_reply
             else:
                 reply_text = template_reply + " " + reply_text
-        except Exception as e:
-            logging.error("[愛子] OpenAI応答失敗: %s", e)
-            reply_text = template_reply or "⚠️ OpenAIエラーが発生しました。政美さんにご連絡ください。"
+
+    except Exception as e:
+        logging.error("[愛子] OpenAI応答失敗: %s", e)
+        reply_text = template_reply or "⚠️ OpenAIエラーが発生しました。政美さんにご連絡ください。"
 
         if "申し訳" in reply_text or "できません" in reply_text or "お答えできません" in reply_text:
             # OpenAIが拒否した場合、LINE Botが社内スプレッドシートから自力で探す
@@ -362,21 +362,21 @@ def handle_message(event):
                 logging.error("OpenAI応答失敗: %s", e)
                 reply_text = "⚠️ エラーが発生しました。"
 
-# 関数定義
-def extract_keywords_and_attribute(message):
-    clean_msg = clean_text(message)
-    probable_attribute = None
-    for attr, keywords in attribute_keywords.items():
-        for k in keywords:
-            if k in clean_msg:
-                probable_attribute = attr
+    # 関数定義
+    def extract_keywords_and_attribute(message):
+        clean_msg = clean_text(message)
+        probable_attribute = None
+        for attr, keywords in attribute_keywords.items():
+            for k in keywords:
+                if k in clean_msg:
+                    probable_attribute = attr
+                    break
+            if probable_attribute:
                 break
-        if probable_attribute:
-            break
-    return clean_msg, probable_attribute
+        return clean_msg, probable_attribute
 
-# 関数を実行する（関数外で）
-keywords, target_attr = extract_keywords_and_attribute(user_message)
+    # 関数を実行する（関数外で）
+    keywords, target_attr = extract_keywords_and_attribute(user_message)
 
     #match = None
     best_score = 0
