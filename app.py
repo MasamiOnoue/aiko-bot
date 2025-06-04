@@ -438,9 +438,9 @@ search_best_match(employee_data_cache, "従業員情報")
         reply_text = (
             "質問の意味がわかんない。別の言い方にして、そしたら探す"
         )
-    except Exception as e:
-        traceback.print_exc()
-        reply_text = "⚠️ 社内データベースにエラーが見つかったよ。政美さんにご連絡して"
+    #except Exception as e:
+    #    traceback.print_exc()
+    #    reply_text = "⚠️ 社内データベースにエラーが見つかったよ。政美さんにご連絡して"
     except Exception as e:
         traceback.print_exc()
         reply_text = "エラーが発生したよ。政美さんに連絡して"
