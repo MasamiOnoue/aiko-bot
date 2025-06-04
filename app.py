@@ -401,11 +401,11 @@ def handle_message(event):
             reply_text = prefix + reply_text
 
         # まず一回だけ prefix を生成
-        prefix = personalized_prefix(user_name)
+        #prefix = personalized_prefix(user_name)
 
         # reply_text に prefix がすでに含まれていないか確認してから追加
-        if not reply_text.startswith(prefix):
-            reply_text = prefix + reply_text
+        #if not reply_text.startswith(prefix):
+            #reply_text = prefix + reply_text
 
         save_conversation_log(user_id, user_name, "user", user_message)
         save_conversation_log(user_id, user_name, "assistant", reply_text)
