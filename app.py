@@ -197,21 +197,24 @@ def handle_message(event):
     else:
         try:
             response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=messages
-        )
+                model="gpt-4o",
+                messages=messages
+            )
             reply_text = response.choices[0].message.content.strip()
 
             if "申し訳" in reply_text or "できません" in reply_text or "お答えできません" in reply_text:
                 # OpenAIが拒否した場合、LINE Botが社内スプレッドシートから自力で探す
                 try:
                     import difflib
-                    from itertools import chain
+                    import re
+
+                    def clean_text(text):
+                        return re.sub(r"[\s\u3000・、。！？｡､,\-]", "", text)
 
                     keywords = user_message
                     for kw in ["は？", "教えて", "誰", "って何", "とは？", "どこ", "何者", "詳細", "について"]:
                         keywords = keywords.replace(kw, "")
-                    keywords = keywords.strip()
+                    keywords = clean_text(keywords.strip())
 
                     match = None
                     best_score = 0
@@ -221,10 +224,12 @@ def handle_message(event):
                     def search_best_match(data_cache, label):
                         nonlocal best_score, best_row, best_source
                         for row in data_cache[1:]:
-                            row_text = " ".join(row)
+                            row_text = clean_text(" ".join(row))
                             ratio = difflib.SequenceMatcher(None, keywords, row_text).ratio()
-                            if ratio > best_score:
-                                best_score = ratio
+                            token_match = sum(1 for token in keywords if token in row_text)
+                            score = ratio + (0.05 * token_match)
+                            if score > best_score:
+                                best_score = score
                                 best_row = row
                                 best_source = label
 
