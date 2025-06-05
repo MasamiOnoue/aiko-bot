@@ -33,8 +33,12 @@ employee_info_map = {}
 last_greeting_time = {}
 conversation_cache = []
 experience_cache = []
+client_cache = []
+company_cache = []
 last_cache_update_time = datetime.datetime.min
 last_experience_cache_time = datetime.datetime.min
+last_client_cache_time = datetime.datetime.min
+last_company_cache_time = datetime.datetime.min
 
 credentials = service_account.Credentials.from_service_account_file(
     SERVICE_ACCOUNT_FILE,
@@ -80,52 +84,8 @@ def get_time_based_greeting():
     else:
         return "ねむねむ。"
 
-def log_conversation(timestamp, user_id, user_name, speaker, message, status="OK"):
-    try:
-        employee = employee_info_map.get(user_id, {})
-        nickname = employee.get("愛子からの呼ばれ方", "")
-        values = [[
-            timestamp,
-            user_id,
-            nickname,
-            speaker,
-            message,
-            "未分類",
-            "text",
-            "",
-            status,
-            ""
-        ]]
-        sheet.values().append(
-            spreadsheetId=SPREADSHEET_ID1,
-            range='会話ログ!A:J',
-            valueInputOption='USER_ENTERED',
-            body={'values': values}
-        ).execute()
-    except Exception as e:
-        logging.error("ログ保存失敗: %s", e)
-
-def search_employee_info_by_keywords(query):
-    words = query.split()
-    matches = {}
-    for column, keywords in attribute_keywords.items():
-        for keyword in keywords:
-            if any(keyword in word for word in words):
-                matches[column] = True
-                break
-
-    results = []
-    for data in employee_info_map.values():
-        for column in matches:
-            if column in data:
-                results.append(f"{column}: {data[column]}")
-        if results:
-            return "🔎 社内情報から見つけました: " + ", ".join(results)
-
-    return "⚠️ 社内情報でも見つかりませんでした。"
-
 def update_caches():
-    global last_cache_update_time, last_experience_cache_time, conversation_cache, experience_cache, employee_info_map
+    global last_cache_update_time, last_experience_cache_time, last_client_cache_time, last_company_cache_time
     try:
         now = datetime.datetime.now()
         if (now - last_cache_update_time).seconds > 300:
@@ -137,13 +97,23 @@ def update_caches():
                     employee_info_map[uid] = dict(zip(headers, row))
 
             conv_data = sheet.values().get(spreadsheetId=SPREADSHEET_ID1, range='会話ログ!A:J').execute().get("values", [])
-            conversation_cache = conv_data[-100:]
+            conversation_cache[:] = conv_data[-100:]
             last_cache_update_time = now
 
         if (now - last_experience_cache_time).seconds > 1800:
             exp_data = sheet.values().get(spreadsheetId=SPREADSHEET_ID5, range='経験ログ!B:B').execute().get("values", [])
-            experience_cache = exp_data[-20:]
+            experience_cache[:] = exp_data[-20:]
             last_experience_cache_time = now
+
+        if (now - last_client_cache_time).seconds > 1800:
+            client_data = sheet.values().get(spreadsheetId=SPREADSHEET_ID3, range='取引先情報!A:Z').execute().get("values", [])
+            client_cache[:] = client_data
+            last_client_cache_time = now
+
+        if (now - last_company_cache_time).seconds > 1800:
+            company_data = sheet.values().get(spreadsheetId=SPREADSHEET_ID4, range='会社ノウハウ情報!A:Z').execute().get("values", [])
+            company_cache[:] = company_data
+            last_company_cache_time = now
 
     except Exception as e:
         logging.error("キャッシュ更新失敗: %s", e)
@@ -153,7 +123,7 @@ def summarize_daily_logs():
         today = now_jst().date()
         yesterday = today - datetime.timedelta(days=1)
         logs = sheet.values().get(spreadsheetId=SPREADSHEET_ID1, range='会話ログ!A:J').execute().get("values", [])
-        target_logs = [log[4] for log in logs if len(log) > 0 and log[0].startswith(str(yesterday))]
+        target_logs = [log[4] for log in logs if len(log) > 4 and log[0].startswith(str(yesterday))]
 
         if not target_logs:
             return
@@ -161,7 +131,8 @@ def summarize_daily_logs():
         openai = OpenAI()
         messages = [
             {"role": "system", "content": "以下は社内AI愛子の前日の会話ログです。内容を要約して最大限の情報を抽出してください。"},
-            {"role": "user", "content": "\n".join(target_logs)}
+            {"role": "user", "content": "
+".join(target_logs)}
         ]
         response = openai.chat.completions.create(
             model="gpt-4o",
@@ -217,16 +188,19 @@ def handle_message(event):
     except Exception as e:
         logging.warning("最新会話ログ取得失敗: %s", e)
 
-    log_conversation(timestamp, user_id, user_name, "ユーザー", user_message)
-
     try:
         openai = OpenAI()
         messages = [
-            {"role": "system", "content": "あなたは社内サポートAIです。挨拶は繰り返さず、経験ログを参考に、簡潔かつ丁寧に回答してください。"}
+            {"role": "system", "content": "あなたは社内サポートAIです。経験ログ、取引先情報、会社情報を参考に、簡潔で丁寧な回答をしてください。挨拶は繰り返さないように注意してください。"}
         ]
 
         for row in experience_cache:
-            messages.append({"role": "system", "content": row[0]})
+            if row:
+                messages.append({"role": "system", "content": row[0]})
+        for row in client_cache[:5]:
+            messages.append({"role": "system", "content": ", ".join(row)})
+        for row in company_cache[:5]:
+            messages.append({"role": "system", "content": ", ".join(row)})
 
         for log in reversed(recent_logs):
             messages.append({"role": "user", "content": log[4]})
@@ -243,19 +217,39 @@ def handle_message(event):
             if "愛子" in user_message:
                 reply_text = f"{nickname}、何かご用でしょうか？"
             else:
-                reply_text = search_employee_info_by_keywords(user_message)
+                reply_text = "社内情報でも見つかりませんでした。"
         else:
             reply_text = greeting + nickname + "、" + reply_content
 
     except Exception as e:
         logging.error("OpenAI呼び出し失敗: %s", e)
-        reply_text = search_employee_info_by_keywords(user_message)
+        reply_text = "社内情報でも見つかりませんでした。"
 
-    log_conversation(timestamp, user_id, user_name, "愛子", reply_text)
+    values = [[timestamp, user_id, nickname, "ユーザー", user_message, "未分類", "text", "", "OK", ""]]
+    sheet.values().append(
+        spreadsheetId=SPREADSHEET_ID1,
+        range='会話ログ!A:J',
+        valueInputOption='USER_ENTERED',
+        body={'values': values}
+    ).execute()
+
+    values = [[timestamp, user_id, nickname, "愛子", reply_text, "未分類", "text", "", "OK", ""]]
+    sheet.values().append(
+        spreadsheetId=SPREADSHEET_ID1,
+        range='会話ログ!A:J',
+        valueInputOption='USER_ENTERED',
+        body={'values': values}
+    ).execute()
+
     line_bot_api.reply_message(
         event.reply_token,
         TextSendMessage(text=reply_text)
     )
 
+
+
+    )
+
+# Flaskアプリ起動判定（この中には実処理を置かない）
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
