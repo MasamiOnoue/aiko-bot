@@ -235,11 +235,11 @@ def summarize_daily_conversations():
                 ] + [""] * 16]  # 残りの予備1〜予備16を空で埋める
                 sheet.values().append(
                     spreadsheetId=SPREADSHEET_ID4,
-                    range='会社ノウハウ!A:AF',
+                    range='会社情報!A:Z',
                     valueInputOption='USER_ENTERED',
                     body={'values': values}
                 ).execute()
-                logging.info(f"{name} の重要情報を会社ノウハウに保存しました")
+                logging.info(f"{name} の重要情報を会社情報に保存しました")
             except Exception as e:
                 logging.error(f"{name} の会社情報登録失敗: {e}")
     except Exception as e:
@@ -268,7 +268,7 @@ def handle_message(event):
     tags = re.findall(r"#(\w+)", user_message)
     tag_str = ", ".join(tags) if tags else "未分類"
 
-    # ノウハウ記録：重要なメッセージは会社ノウハウへも保存
+    # ノウハウ記録：重要なメッセージは会社情報へも保存
     if is_important:
         try:
             knowledge_values = [[
@@ -280,12 +280,12 @@ def handle_message(event):
             ]]
             sheet.values().append(
                 spreadsheetId=SPREADSHEET_ID4,
-                range='会社ノウハウ!A:E',
+                range='会社情報!A:Z',
                 valueInputOption='USER_ENTERED',
                 body={'values': knowledge_values}
             ).execute()
         except Exception as e:
-            logging.error("ノウハウ記録失敗: %s", e)
+            logging.error("会社ノウハウへ記録失敗: %s", e)
 
     # ノウハウ確認要求があるかチェック
     confirm_knowledge_keywords = ["覚えた内容を確認", "ノウハウを確認", "記録した内容を見せて"]
@@ -293,7 +293,7 @@ def handle_message(event):
         try:
             result = sheet.values().get(
                 spreadsheetId=SPREADSHEET_ID4,
-                range='会社ノウハウ!A2:E'
+                range='会社情報!A:Z'
             ).execute()
             rows = result.get("values", [])[-5:]  # 最新5件のみ
             if rows:
