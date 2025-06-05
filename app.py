@@ -4,6 +4,7 @@ import logging
 import datetime
 import threading
 import time
+import re
 from flask import Flask, request, abort, jsonify
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
@@ -162,7 +163,6 @@ def handle_message(event):
     is_important = any(kw in user_message for kw in important_keywords)
 
     # タグ分類の簡易抽出（#タグ名形式を想定）
-    import re
     tags = re.findall(r"#(\w+)", user_message)
     tag_str = ", ".join(tags) if tags else "未分類"
 
