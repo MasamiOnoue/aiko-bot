@@ -224,9 +224,9 @@ def summarize_daily_conversations():
                 summary = response.choices[0].message.content.strip()
                 sheet.values().append(
                     spreadsheetId=SPREADSHEET_ID5,
-                    range='経験ログ!A:D',
+                    range='経験ログ!A:C',
                     valueInputOption='USER_ENTERED',
-                    body={'values': [[now_jst().isoformat(), uid, name, summary]]}
+                    body={'values': [[now_jst().isoformat(), "全体", summary]]}
                 ).execute()
                 logging.info(f"{name} の要約を保存しました")
             except Exception as e:
