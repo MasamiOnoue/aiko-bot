@@ -101,6 +101,7 @@ def handle_message(event):
 
     greeting = get_time_based_greeting()
     greeting_keywords = ["おっはー", "やっはろー", "おっつ〜", "ねむねむ"]
+    ai_greeting_phrases = ["こんにちは", "おはよう", "こんばんは", "ごきげんよう", "お疲れ様", "おつかれさま"]
 
     messages = [
         {"role": "system", "content": "あなたは社内アシスタントAI『愛子』です。以下のメッセージに丁寧に回答してください。"},
@@ -117,7 +118,7 @@ def handle_message(event):
         if any(kw in reply_text for kw in ["申し訳", "できません"]):
             reply_text = search_employee_info(user_message)
 
-        if not any(reply_text.startswith(g) for g in greeting_keywords):
+        if not any(reply_text.startswith(g) for g in greeting_keywords + ai_greeting_phrases):
             reply_text = f"{greeting}{reply_text}"
 
     except Exception as e:
