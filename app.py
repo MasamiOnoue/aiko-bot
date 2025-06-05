@@ -113,6 +113,9 @@ def load_employee_info():
 
 threading.Thread(target=lambda: (lambda: [refresh_cache() or load_employee_info() or time.sleep(300) for _ in iter(int, 1)])(), daemon=True).start()
 
+# Flask起動直前にこの行を追加
+threading.Thread(target=daily_summary_scheduler, daemon=True).start()
+
 app = Flask(__name__)
 
 line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
