@@ -506,7 +506,7 @@ def search_best_match(data_cache, label, keywords, target_attr):
     else:
         if last_user_time:
             elapsed_hours = (now - last_user_time).total_seconds() / 3600
-            logging.info("[愛子] 挨拶スキップ（%s）: %.2f時間ぶりの発言", user_name, elapsed_hours)
+            logging.info("[愛子] 挨拶スキップ（%s）: 3時間ぶりの発言", user_name, elapsed_hours)
         else:
             logging.info("[愛子] 挨拶スキップ（%s）: 会話履歴なし", user_name)
 
