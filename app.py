@@ -167,7 +167,17 @@ def summarize_daily_conversations():
         ).execute()
         rows = result.get("values", [])
 
-        filtered = [r for r in rows if len(r) >= 5 and start_time <= datetime.datetime.fromisoformat(r[0]).astimezone(JST) < end_time]
+        filtered = []
+        for r in rows:
+            if len(r) >= 5:
+                try:
+                    dt = datetime.datetime.fromisoformat(r[0])
+                    if dt.tzinfo is None:
+                        dt = JST.localize(dt)
+                    if start_time <= dt < end_time:
+                        filtered.append(r)
+                except Exception as e:
+                    logging.warning(f"日時変換エラー: {r[0]} - {e}")
 
         if not filtered:
             logging.info("対象期間の会話ログがありません。")
@@ -195,7 +205,7 @@ def summarize_daily_conversations():
                 response = client.chat.completions.create(
                     model="gpt-4o",
                     messages=prompt,
-                    max_tokens=2000
+                    max_tokens=800  # 約2000文字程度相当
                 )
                 summary = response.choices[0].message.content.strip()
                 sheet.values().append(
@@ -234,6 +244,15 @@ def summarize_daily_conversations():
                 logging.error(f"{name} の会社情報登録失敗: {e}")
     except Exception as e:
         logging.error(f"日記集計エラー: {e}")
+
+# ==== 自動実行スレッド ====
+def daily_summary_scheduler():
+    while True:
+        now = now_jst()
+        if now.hour == 3 and 0 <= now.minute < 5:
+            summarize_daily_conversations()
+            time.sleep(300)  # 5分待機（再実行防止）
+        time.sleep(60)  # 1分ごとにチェック
 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
