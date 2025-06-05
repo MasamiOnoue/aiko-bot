@@ -289,16 +289,28 @@ threading.Thread(target=summarize_and_store_daily_logs, daemon=True).start()
 
 def load_summary_memory(days=7):
     try:
-        rows = sheet.values().get(spreadsheetId=SPREADSHEET_ID5, range='経験ログ!A2:B').execute().get("values", [])[1:]
+        rows = sheet.values().get(
+            spreadsheetId=SPREADSHEET_ID5,
+            range='経験ログ!A2:B'
+        ).execute().get("values", [])[1:]
+
         today = datetime.datetime.now(JST).date()
-        return [
-            {"role": "system", "content": f"【{r[0]}のまとめ】{r[1]}"}
-            for r in rows
-            if datetime.datetime.fromisoformat(r[0]).date() >= (today - datetime.timedelta(days=days))
-        ]
+        summaries = []
+
+        for r in rows:
+            try:
+                date_obj = datetime.datetime.strptime(r[0], "%Y/%m/%d").date()  # ← 修正点
+                if date_obj >= (today - datetime.timedelta(days=days)):
+                    summaries.append({"role": "system", "content": f"【{r[0]}のまとめ】{r[1]}"})
+            except Exception as e:
+                logging.warning("[愛子] 日付形式エラー: %s", e)
+                continue
+
+        return summaries
+
     except Exception as e:
         logging.warning("[愛子] 経験ログ読み込み失敗: %s", e)
-        return []  
+        return []
         
 #@handler.add(MessageEvent, message=TextMessage)
 @handler.add(MessageEvent)
