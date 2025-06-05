@@ -29,6 +29,7 @@ SPREADSHEET_ID5 = os.getenv('SPREADSHEET_ID5')  # 愛子の経験サマリー記
 cache_lock = threading.Lock()
 recent_user_logs = {}
 employee_info_map = {}
+last_greeting_time = {}
 
 
 def now_jst():
@@ -107,17 +108,12 @@ def load_employee_info():
 
 threading.Thread(target=lambda: (lambda: [refresh_cache() or load_employee_info() or time.sleep(300) for _ in iter(int, 1)])(), daemon=True).start()
 
-
 app = Flask(__name__)
 
-# LINE Bot設定
 line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
 handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
-
-# OpenAIクライアント
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# Google Sheets設定
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 creds = service_account.Credentials.from_service_account_file(
     SERVICE_ACCOUNT_FILE, scopes=SCOPES
@@ -132,7 +128,6 @@ SPREADSHEET_IDS = [
     SPREADSHEET_ID4,
     SPREADSHEET_ID5
 ]
-
 
 @app.route("/callback", methods=["POST"])
 def callback():
@@ -168,7 +163,7 @@ def search_employee_info_by_keywords(query):
 def handle_message(event):
     user_message = event.message.text.strip()
     user_id = event.source.user_id
-    timestamp = now_jst().isoformat()
+    timestamp = now_jst()
     user_data = employee_info_map.get(user_id, {})
     user_name = user_data.get("名前", "")
 
@@ -176,12 +171,21 @@ def handle_message(event):
     greeting_keywords = ["おっはー", "やっはろー", "おっつ〜", "ねむねむ"]
     ai_greeting_phrases = ["こんにちは", "こんにちわ", "おはよう", "こんばんは", "ごきげんよう", "お疲れ様", "おつかれさま"]
 
-    log_conversation(timestamp, user_id, user_name, "ユーザー", user_message)
+    log_conversation(timestamp.isoformat(), user_id, user_name, "ユーザー", user_message)
 
     with cache_lock:
         user_recent = recent_user_logs.get(user_id, [])
 
     context = "\n".join(row[4] for row in user_recent if len(row) >= 5)
+
+    # 最後の挨拶から2時間以内なら greeting を削除
+    show_greeting = True
+    if user_id in last_greeting_time:
+        elapsed = (timestamp - last_greeting_time[user_id]).total_seconds()
+        if elapsed < 7200:
+            show_greeting = False
+    if show_greeting:
+        last_greeting_time[user_id] = timestamp
 
     messages = [
         {"role": "system", "content": (
@@ -203,7 +207,7 @@ def handle_message(event):
         if any(kw in reply_text for kw in ["申し訳", "できません"]):
             reply_text = search_employee_info_by_keywords(user_message)
 
-        if not any(reply_text.startswith(g) for g in greeting_keywords + ai_greeting_phrases):
+        if show_greeting and not any(reply_text.startswith(g) for g in greeting_keywords + ai_greeting_phrases):
             reply_text = f"{greeting}{user_name}。" + reply_text
 
     except Exception as e:
