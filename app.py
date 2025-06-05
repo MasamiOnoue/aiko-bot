@@ -161,17 +161,22 @@ def handle_message(event):
     important_keywords = ["覚えておいて", "おぼえておいて", "覚えてね", "記録して", "メモして"]]
     is_important = any(kw in user_message for kw in important_keywords)
 
+    # タグ分類の簡易抽出（#タグ名形式を想定）
+    import re
+    tags = re.findall(r"#(\w+)", user_message)
+    tag_str = ", ".join(tags) if tags else "未分類"
+
     # ノウハウ確認要求があるかチェック
     confirm_knowledge_keywords = ["覚えた内容を確認", "ノウハウを確認", "記録した内容を見せて"]
     if any(k in user_message for k in confirm_knowledge_keywords):
         try:
             result = sheet.values().get(
                 spreadsheetId=SPREADSHEET_ID4,
-                range='会社ノウハウ!A2:D'
+                range='会社ノウハウ!A2:E'
             ).execute()
             rows = result.get("values", [])[-5:]  # 最新5件のみ
             if rows:
-                reply_text = "📘最近の記録内容:\n" + "\n".join(f"・{r[3]} ({r[2]})" for r in rows if len(r) >= 4)
+                reply_text = "📘最近の記録内容:\n" + "\n".join(f"・{r[3]} ({r[2]})【{r[4] if len(r) > 4 else 'タグなし'}】" for r in rows if len(r) >= 4)
             else:
                 reply_text = "📘まだノウハウは記録されていません。"
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
