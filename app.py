@@ -45,7 +45,7 @@ def now_jst():
 def get_time_based_greeting():
     current_time = now_jst()
     logging.info(f"現在のJST時刻: {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
-    hour = now_jst().hour
+    hour = current_time.hour
     if 5 <= hour < 10:
         return "おっはー。"
     elif 10 <= hour < 18:
