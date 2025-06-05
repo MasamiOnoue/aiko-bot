@@ -273,7 +273,7 @@ def summarize_and_store_daily_logs():
                 # 保存
                 summary_row = [[yesterday.isoformat(), summary]]
                 sheet.values().append(
-                    spreadsheetId=SPREADSHEET_ID1,
+                    spreadsheetId=SPREADSHEET_ID5,
                     range='経験ログ!A2:B',
                     valueInputOption='USER_ENTERED',
                     body={'values': summary_row}
@@ -289,7 +289,7 @@ threading.Thread(target=summarize_and_store_daily_logs, daemon=True).start()
 
 def load_summary_memory(days=7):
     try:
-        rows = sheet.values().get(spreadsheetId=SPREADSHEET_ID1, range='経験ログ!A2:B').execute().get("values", [])[1:]
+        rows = sheet.values().get(spreadsheetId=SPREADSHEET_ID5, range='経験ログ!A2:B').execute().get("values", [])[1:]
         today = datetime.datetime.now(JST).date()
         return [
             {"role": "system", "content": f"【{r[0]}のまとめ】{r[1]}"}
