@@ -276,13 +276,13 @@ def summarize_and_store_daily_logs():
                 summary = response.choices[0].message.content.strip()
 
                 # 保存
-                summary_row = [[yesterday.isoformat(), summary]]
-                sheet.values().append(
-                    spreadsheetId=SPREADSHEET_ID5,
-                    range='経験ログ!A2:B',
-                    valueInputOption='USER_ENTERED',
-                    body={'values': summary_row}
-                ).execute()
+                #summary_row = [[yesterday.isoformat(), summary]]
+                #sheet.values().append(
+                #    spreadsheetId=SPREADSHEET_ID5,
+                #    range='経験ログ!A2:B',
+                #    valueInputOption='USER_ENTERED',
+                #    body={'values': summary_row}
+                #).execute()
 
                 logging.info("[愛子] サマリー生成完了")
 
