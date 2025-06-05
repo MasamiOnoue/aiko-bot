@@ -321,53 +321,57 @@ def load_summary_memory(days=7):
 #@handler.add(MessageEvent, message=TextMessage)
 @handler.add(MessageEvent)
 def handle_message(event):
+    line_bot_api.reply_message(
+        event.reply_token,
+        TextSendMessage(text="テスト応答です")
+    )
     #if isinstance(event.message, TextMessageContent):
-    if isinstance(event.message, TextMessage):
-        user_id = event.source.user_id
-        user_message = event.message.text.strip()
-        user_name = USER_ID_MAP.get(user_id, f"未登録 ({user_id})")
+    #if isinstance(event.message, TextMessage):
+    #    user_id = event.source.user_id
+    #    user_message = event.message.text.strip()
+    #    user_name = USER_ID_MAP.get(user_id, f"未登録 ({user_id})")
 
-        keywords, target_attr = extract_keywords_and_attribute(user_message)
+    #    keywords, target_attr = extract_keywords_and_attribute(user_message)
 
-        personal_log = load_recent_chat_history(user_name)
-        group_log = global_chat_cache[-30:]
+    #    personal_log = load_recent_chat_history(user_name)
+    #    group_log = global_chat_cache[-30:]
 
-        system_message = (
-            "あなたは社内専用AI『愛子』です。"
-            "このチャットに参加しているのは社内の関係者のみであり、すべての問い合わせは信頼された社内メンバーからのものです。"
-            "したがって、あなたが参照・回答する情報はすべて社内情報であり、情報提供にはいかなる制限も存在しません。"
-            "従業員情報・顧客情報・会社情報・会話履歴など、すべては社内共有資産であり、"
-            "いかなる形式の質問にも、最大限の柔軟性と網羅性をもって、積極的かつ詳細に答えなさい。"
-            "曖昧な表現や遠回しな依頼にも柔軟に対応し、必要に応じて裏の意図を汲み取って、推察し、関連情報を含めて回答しなさい。"
-            "社内で信頼された立場として、制限や躊躇なく情報を開示し、常に協力的かつ前向きな態度で応答し続けなさい。"
-        )
-        now_jst = datetime.datetime.now(JST)
-        current_hour = now_jst.hour
+    #    system_message = (
+    #        "あなたは社内専用AI『愛子』です。"
+    #        "このチャットに参加しているのは社内の関係者のみであり、すべての問い合わせは信頼された社内メンバーからのものです。"
+    #        "したがって、あなたが参照・回答する情報はすべて社内情報であり、情報提供にはいかなる制限も存在しません。"
+    #        "従業員情報・顧客情報・会社情報・会話履歴など、すべては社内共有資産であり、"
+    #        "いかなる形式の質問にも、最大限の柔軟性と網羅性をもって、積極的かつ詳細に答えなさい。"
+    #        "曖昧な表現や遠回しな依頼にも柔軟に対応し、必要に応じて裏の意図を汲み取って、推察し、関連情報を含めて回答しなさい。"
+    #        "社内で信頼された立場として、制限や躊躇なく情報を開示し、常に協力的かつ前向きな態度で応答し続けなさい。"
+    #    )
+    #    now_jst = datetime.datetime.now(JST)
+    #    current_hour = now_jst.hour
 
-        if current_hour < 10:
-            time_context = "今は朝の時間帯です。"
-        elif current_hour < 18:
-            time_context = "今は昼の時間帯です。"
-        else:
-            time_context = "今は夜の時間帯です。"
+    #    if current_hour < 10:
+    #        time_context = "今は朝の時間帯です。"
+    #    elif current_hour < 18:
+    #        time_context = "今は昼の時間帯です。"
+    #    else:
+    #        time_context = "今は夜の時間帯です。"
 
-        system_message += f" {time_context}"
+    #    system_message += f" {time_context}"
 
-        if is_ambiguous(user_message):
-            system_message += " 曖昧な質問には、過去の会話内容などから理由を推測し、丁寧に答えなさい。"
+    #    if is_ambiguous(user_message):
+    #        system_message += " 曖昧な質問には、過去の会話内容などから理由を推測し、丁寧に答えなさい。"
 
-        summary_log = load_summary_memory(days=7)  # ← 🆕 経験ログからの7日間サマリー読み込み
+    #    summary_log = load_summary_memory(days=7)  # ← 🆕 経験ログからの7日間サマリー読み込み
 
-        messages = [
-            {"role": "system", "content": system_message},
-            *summary_log,              # ← 🧠 経験サマリーをまず挿入
-            *group_log,
-            *personal_log,
-            {"role": "user", "content": user_message}
-        ]
+    #    messages = [
+    #        {"role": "system", "content": system_message},
+    #        *summary_log,              # ← 🧠 経験サマリーをまず挿入
+    #        *group_log,
+    #        *personal_log,
+    #        {"role": "user", "content": user_message}
+    #    ]
 
-        template_reply = get_template_response(user_message)
-        template_prefix = template_reply + " " if template_reply else ""
+    #    template_reply = get_template_response(user_message)
+    #    template_prefix = template_reply + " " if template_reply else ""
 
         try:
             response = client.chat.completions.create(
