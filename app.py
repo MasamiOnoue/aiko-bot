@@ -7,7 +7,7 @@ import time
 import requests
 import json
 from flask import Flask, request, abort, jsonify
-from linebot import LineBotApi, WebhookHandler
+#from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage, FollowEvent
 from dotenv import load_dotenv
@@ -16,6 +16,11 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import set_user_agent
 import googleapiclient.discovery
+from linebot.v3.messaging import MessagingApi, Configuration, TextMessage, TextSendMessage   #LINE botをV3に
+from linebot.v3.webhooks import MessageEvent    #LINE botをV3に
+
+app = Flask(__name__)
+
 attribute_keywords = {
     "名前": ["名前", "氏名"],
     "名前の読み": ["名前の読み", "読み", "よみ"],
@@ -38,8 +43,6 @@ attribute_keywords = {
 load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
-
-app = Flask(__name__)
 
 SERVICE_ACCOUNT_FILE = 'aiko-bot-log-cfbf23e039fd.json'
 SPREADSHEET_ID1 = os.getenv('SPREADSHEET_ID1')
@@ -293,6 +296,8 @@ def handle_message(event):
     user_message = event.message.text.strip()
     user_name = USER_ID_MAP.get(user_id, f"未登録 ({user_id})")
 
+    keywords, target_attr = extract_keywords_and_attribute(user_message)
+
     personal_log = load_recent_chat_history(user_name)
     group_log = global_chat_cache[-30:]
 
@@ -376,8 +381,6 @@ def extract_keywords_and_attribute(message):
     return clean_msg, probable_attribute
 
 # 関数を実行する（関数外で）
-keywords, target_attr = extract_keywords_and_attribute(user_message)
-
 def search_best_match(data_cache, label, keywords, target_attr):
     best_score = 0
     best_row = None
@@ -411,102 +414,102 @@ def search_best_match(data_cache, label, keywords, target_attr):
     return best_score, best_row, best_source, best_column
 
 # 各スプレッドシートのキャッシュデータを検索
-search_best_match(employee_data_cache, "従業員情報")
+#search_best_match(employee_data_cache, "従業員情報")
 # 各スプレッドシートのキャッシュデータを検索
-search_best_match(employee_data_cache, "従業員情報")
+#search_best_match(employee_data_cache, "従業員情報")
 
-# 各スプレッドシートのキャッシュデータを検索
-try:
-    best_score, best_row, best_source, best_column = search_best_match(employee_data_cache, "従業員情報", keywords, target_attr)
+    # 各スプレッドシートのキャッシュデータを検索（この関数はhandle_messageの中にあるので右に1tabずれている）
+    try:
+        best_score, best_row, best_source, best_column = search_best_match(employee_data_cache, "従業員情報", keywords, target_attr)
 
-    customer_data_cache = sheet.values().get(
-        spreadsheetId=SPREADSHEET_ID3,
-        range='顧客情報!A:Z'
-    ).execute().get("values", [])
-    score_c, row_c, source_c, col_c = search_best_match(customer_data_cache, "顧客情報", keywords, target_attr)
-    if score_c > best_score:
-        best_score, best_row, best_source, best_column = score_c, row_c, source_c, col_c
+        customer_data_cache = sheet.values().get(
+            spreadsheetId=SPREADSHEET_ID3,
+            range='顧客情報!A:Z'
+        ).execute().get("values", [])
+        score_c, row_c, source_c, col_c = search_best_match(customer_data_cache, "顧客情報", keywords, target_attr)
+        if score_c > best_score:
+            best_score, best_row, best_source, best_column = score_c, row_c, source_c, col_c
 
-    company_data_cache = sheet.values().get(
-        spreadsheetId=SPREADSHEET_ID4,
-        range='会社情報!A:Z'
-    ).execute().get("values", [])
-    score_comp, row_comp, source_comp, col_comp = search_best_match(company_data_cache, "会社情報", keywords, target_attr)
-    if score_comp > best_score:
-        best_score, best_row, best_source, best_column = score_comp, row_comp, source_comp, col_comp
+        company_data_cache = sheet.values().get(
+            spreadsheetId=SPREADSHEET_ID4,
+            range='会社情報!A:Z'
+        ).execute().get("values", [])
+        score_comp, row_comp, source_comp, col_comp = search_best_match(company_data_cache, "会社情報", keywords, target_attr)
+        if score_comp > best_score:
+            best_score, best_row, best_source, best_column = score_comp, row_comp, source_comp, col_comp
 
-    if best_score > 0.5 and best_row:
-        if best_column >= 0 and best_column < len(best_row):
-            attr_value = best_row[best_column]
-            reply_text = f"社内情報（{best_source}）から、「{best_row[1]}」の{target_attr}は「{attr_value}」です。"
+        if best_score > 0.5 and best_row:
+            if best_column >= 0 and best_column < len(best_row):
+                attr_value = best_row[best_column]
+                reply_text = f"社内情報（{best_source}）から、「{best_row[1]}」の{target_attr}は「{attr_value}」です。"
+            else:
+                reply_text = f"社内情報（{best_source}）から、該当データは「{best_row[1]}」です。関連情報: {'、'.join(best_row[2:5])}"
         else:
-            reply_text = f"社内情報（{best_source}）から、該当データは「{best_row[1]}」です。関連情報: {'、'.join(best_row[2:5])}"
-    else:
-        reply_text = (
-            "質問の意味がわかんない。別の言い方にして、そしたら探す"
-        )
+            reply_text = (
+                "質問の意味がわかんない。別の言い方にして、そしたら探す"
+            )
 
-except Exception as e:
-    traceback.print_exc()
-    reply_text = "エラーが発生したよ。政美さんに連絡して"
+    except Exception as e:
+        traceback.print_exc()
+        reply_text = "エラーが発生したよ。政美さんに連絡して"
 
-reply_text = shorten_reply(reply_text)
+    reply_text = shorten_reply(reply_text)
 
-def personalized_prefix(name):
-    if name.startswith("未登録"):
-        return ""
-    now_jst = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
-    current_hour = now_jst.hour
-    if current_hour < 5:
-        greeting = "もう眠いよ〜"
-    elif current_hour < 11:
-        greeting = "おっはー"
-    elif current_hour < 17:
-        greeting = "こんにちは"
-    elif current_hour < 22:
-        greeting = "残業がんば"
-    else:
-        greeting = "夜遅くまでお疲れです"
-    return f"{name}、{greeting}。"
+    def personalized_prefix(name):
+        if name.startswith("未登録"):
+            return ""
+        now_jst = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
+        current_hour = now_jst.hour
+        if current_hour < 5:
+            greeting = "もう眠いよ〜"
+        elif current_hour < 11:
+            greeting = "おっはー"
+        elif current_hour < 17:
+            greeting = "こんにちは"
+        elif current_hour < 22:
+            greeting = "残業がんば"
+        else:
+            greeting = "夜遅くまでお疲れです"
+        return f"{name}、{greeting}。"
 
-prefix = personalized_prefix(user_name)
+    prefix = personalized_prefix(user_name)
 
-# 会話履歴から最終ユーザー発言時刻を取得
-last_user_time = None
-try:
-    rows = sheet.values().get(spreadsheetId=SPREADSHEET_ID1, range='会話ログ!A:J').execute().get("values", [])[1:]
-    for row in reversed(rows):
-        if len(row) >= 5 and row[2] == user_name and row[3] == "user":
-            last_user_time = datetime.datetime.fromisoformat(row[0])
-            break
-except Exception as e:
-    logging.warning("[愛子] 最終会話時間取得失敗: %s", e)
+    # 会話履歴から最終ユーザー発言時刻を取得
+    last_user_time = None
+    try:
+        rows = sheet.values().get(spreadsheetId=SPREADSHEET_ID1, range='会話ログ!A:J').execute().get("values", [])[1:]
+        for row in reversed(rows):
+            if len(row) >= 5 and row[2] == user_name and row[3] == "user":
+                last_user_time = datetime.datetime.fromisoformat(row[0])
+                break
+    except Exception as e:
+        logging.warning("[愛子] 最終会話時間取得失敗: %s", e)
 
-now = datetime.datetime.now()
-show_greeting = True
-if last_user_time:
-    elapsed = now - last_user_time
-    if elapsed.total_seconds() < 10800:  # 3時間未満なら挨拶しない
-        show_greeting = False
-
-if show_greeting and not reply_text.startswith(prefix):
-    reply_text = prefix + reply_text
-
-save_conversation_log(user_id, user_name, "user", user_message)
-save_conversation_log(user_id, user_name, "assistant", reply_text)
-
-line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
-
-if show_greeting:
-    logging.info("[愛子] 挨拶を追加（%s）: %s", user_name, prefix.strip())
-else:
+    now = datetime.datetime.now()
+    show_greeting = True
     if last_user_time:
-        elapsed_hours = (now - last_user_time).total_seconds() / 3600
-        logging.info("[愛子] 挨拶スキップ（%s）: %.2f時間ぶりの発言", user_name, elapsed_hours)
-    else:
-        logging.info("[愛子] 挨拶スキップ（%s）: 会話履歴なし", user_name)
+        elapsed = now - last_user_time
+        if elapsed.total_seconds() < 10800:  # 3時間未満なら挨拶しない
+            show_greeting = False
 
-logging.info("[愛子] 最終応答（%s）→ %s", user_name, reply_text)
+    if show_greeting and not reply_text.startswith(prefix):
+        reply_text = prefix + reply_text
+
+    save_conversation_log(user_id, user_name, "user", user_message)
+    save_conversation_log(user_id, user_name, "assistant", reply_text)
+
+    line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
+
+    if show_greeting:
+        logging.info("[愛子] 挨拶を追加（%s）: %s", user_name, prefix.strip())
+    else:
+        if last_user_time:
+            elapsed_hours = (now - last_user_time).total_seconds() / 3600
+            logging.info("[愛子] 挨拶スキップ（%s）: %.2f時間ぶりの発言", user_name, elapsed_hours)
+        else:
+            logging.info("[愛子] 挨拶スキップ（%s）: 会話履歴なし", user_name)
+
+    logging.info("[愛子] 最終応答（%s）→ %s", user_name, reply_text)
 
 @app.route("/push", methods=["POST"])
 def push_message():
@@ -517,6 +520,10 @@ def push_message():
         return jsonify({"error": "Missing 'target_uid' or 'message'"}), 400
     line_bot_api.push_message(user_id, TextSendMessage(text=message))
     return jsonify({"status": "success", "to": user_id}), 200
+
+configuration = Configuration(access_token=os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
+line_bot_api = MessagingApi(configuration)
+handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
