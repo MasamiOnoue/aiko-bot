@@ -19,6 +19,7 @@ import googleapiclient.discovery
 from linebot.v3.messaging import MessagingApi, Configuration   #LINE botをV3に
 from linebot.v3.messaging.models import TextMessage   #LINE botをV3に
 from linebot.v3.webhooks import MessageEvent    #LINE botをV3に
+from linebot.v3.webhooks.models import FollowEvent    #LINE botをV3に
 from linebot.v3.webhook import WebhookHandler    #LINE botをV3に
 
 app = Flask(__name__)
