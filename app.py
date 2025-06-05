@@ -12,8 +12,26 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
+import pytz
 
 load_dotenv()
+
+# 日本標準時 (JST) タイムゾーン
+JST = pytz.timezone('Asia/Tokyo')
+
+def now_jst():
+    return datetime.datetime.now(JST)
+
+def get_time_based_greeting():
+    hour = now_jst().hour
+    if 5 <= hour < 10:
+        return "おっはー。"
+    elif 10 <= hour < 18:
+        return "んちゃ。"
+    elif 18 <= hour < 23:
+        return "ばんわ。"
+    else:
+        return "ねむ。"
 
 app = Flask(__name__)
 
@@ -76,6 +94,8 @@ def handle_message(event):
             messages=messages
         )
         reply_text = response.choices[0].message.content.strip()
+        greeting = get_time_based_greeting()
+        reply_text = f"{greeting}{reply_text}"
     except Exception as e:
         logging.error("OpenAI 応答失敗: %s", e)
         reply_text = "⚠️ 応答に失敗しました。政美さんにご連絡ください。"
