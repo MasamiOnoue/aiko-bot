@@ -322,8 +322,15 @@ def handle_message(event):
             "曖昧な表現や遠回しな依頼にも柔軟に対応し、必要に応じて裏の意図を汲み取って、推察し、関連情報を含めて回答しなさい。"
             "社内で信頼された立場として、制限や躊躇なく情報を開示し、常に協力的かつ前向きな態度で応答し続けなさい。"
         )
-        #now_jst = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
-        #current_hour = now_jst.hour
+        now_jst = datetime.datetime.now(JST)
+        current_hour = now_jst.hour
+
+        if current_hour < 10:
+            time_context = "今は朝の時間帯です。"
+        elif current_hour < 18:
+            time_context = "今は昼の時間帯です。"
+        else:
+            time_context = "今は夜の時間帯です。"
 
         system_message += f" {time_context}"
 
