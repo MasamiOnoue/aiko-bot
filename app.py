@@ -562,7 +562,7 @@ def push_message():
     return jsonify({"status": "success", "to": user_id}), 200
 
 #configuration = Configuration(access_token=os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
-line_bot_api = MessagingApi(configuration)
+#line_bot_api = MessagingApi(configuration)
 #handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
 
 if __name__ == "__main__":
