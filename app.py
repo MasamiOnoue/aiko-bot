@@ -320,7 +320,8 @@ def load_summary_memory(days=7):
 #@handler.add(MessageEvent, message=TextMessage)
 @handler.add(MessageEvent)
 def handle_message(event):
-    if isinstance(event.message, TextMessageContent):
+    #if isinstance(event.message, TextMessageContent):
+    if isinstance(event.message, TextMessage):
         user_id = event.source.user_id
         user_message = event.message.text.strip()
         user_name = USER_ID_MAP.get(user_id, f"未登録 ({user_id})")
