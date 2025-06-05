@@ -166,6 +166,23 @@ def handle_message(event):
     tags = re.findall(r"#(\w+)", user_message)
     tag_str = ", ".join(tags) if tags else "未分類"
 
+    # 会社ノウハウへの書き込み時にタグも追加：
+    if is_important:
+      try:
+        knowledge_values = [[
+            timestamp.isoformat(),
+            user_id,
+            user_name,
+            user_message,
+            tag_str  # ★追加すべき列
+        ]]
+        sheet.values().append(
+            spreadsheetId=SPREADSHEET_ID4,
+            range='会社ノウハウ!A:E',
+            valueInputOption='USER_ENTERED',
+            body={'values': knowledge_values}
+        ).execute()
+          
     # ノウハウ確認要求があるかチェック
     confirm_knowledge_keywords = ["覚えた内容を確認", "ノウハウを確認", "記録した内容を見せて"]
     if any(k in user_message for k in confirm_knowledge_keywords):
