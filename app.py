@@ -27,11 +27,11 @@ def get_time_based_greeting():
     if 5 <= hour < 10:
         return "おっはー。"
     elif 10 <= hour < 18:
-        return "んちゃ。"
+        return "やっはろー。"
     elif 18 <= hour < 23:
-        return "ばんわ。"
+        return "おっつ〜。"
     else:
-        return "ねむ。"
+        return "ねむねむ。"
 
 app = Flask(__name__)
 
@@ -83,6 +83,9 @@ def handle_follow(event):
 def handle_message(event):
     user_message = event.message.text.strip()
 
+    greeting = get_time_based_greeting()
+    greeting_keywords = ["おっはー", "やっはろー", "ばんわ", "ねむ"]
+
     messages = [
         {"role": "system", "content": "あなたは社内アシスタントAI『愛子』です。以下のメッセージに丁寧に回答してください。"},
         {"role": "user", "content": user_message}
@@ -94,8 +97,10 @@ def handle_message(event):
             messages=messages
         )
         reply_text = response.choices[0].message.content.strip()
-        greeting = get_time_based_greeting()
-        reply_text = f"{greeting}{reply_text}"
+
+        # OpenAIの応答に挨拶を重ねないようチェック
+        if not any(reply_text.startswith(g) for g in greeting_keywords):
+            reply_text = f"{greeting}{reply_text}"
     except Exception as e:
         logging.error("OpenAI 応答失敗: %s", e)
         reply_text = "⚠️ 応答に失敗しました。政美さんにご連絡ください。"
