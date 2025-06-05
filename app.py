@@ -17,7 +17,7 @@ from googleapiclient.discovery import build
 from googleapiclient.http import set_user_agent
 import googleapiclient.discovery
 from linebot.v3.messaging import MessagingApi, Configuration   #LINE botをV3に
-from linebot.v3.messaging.models import TextMessage   #LINE botをV3に
+#from linebot.v3.messaging.models import TextMessage   #LINE botをV3に
 from linebot.v3.webhooks import MessageEvent    #LINE botをV3に
 
 app = Flask(__name__)
