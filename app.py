@@ -533,7 +533,7 @@ def search_best_match(data_cache, label, keywords, target_attr):
         )
     )
     
-    line_bot_api.reply_message(event.reply_token, TextMessage(text=reply_text))
+    #line_bot_api.reply_message(event.reply_token, TextMessage(text=reply_text))
 
     if show_greeting:
         logging.info("[愛子] 挨拶を追加（%s）: %s", user_name, prefix.strip())
