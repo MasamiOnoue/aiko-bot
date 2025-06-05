@@ -500,8 +500,7 @@ def search_best_match(data_cache, label, keywords, target_attr):
     now = datetime.datetime.now(JST)
     show_greeting = True
     if last_user_time:
-    
-    elapsed = now - last_user_time
+        elapsed = now - last_user_time
         if elapsed.total_seconds() < 10800:  # 3時間未満なら挨拶しない
             show_greeting = False
 
