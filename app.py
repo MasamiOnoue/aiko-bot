@@ -90,8 +90,8 @@ sheet = sheets_service.spreadsheets()
 line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
 handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
 
-configuration = Configuration(access_token=os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
-line_bot_api = MessagingApi(configuration)
+#configuration = Configuration(access_token=os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
+#line_bot_api = MessagingApi(configuration)
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
