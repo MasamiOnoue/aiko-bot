@@ -20,7 +20,7 @@ import googleapiclient.discovery
 from linebot.v3.messaging import MessagingApi, Configuration   #LINE botをV3に
 from linebot.v3.messaging.models import TextMessage   #LINE botをV3に
 from linebot.v3.webhooks import MessageEvent    #LINE botをV3に
-from linebot.v3.webhooks.models import FollowEvent, TextMessageContent    #LINE botをV3に
+from linebot.v3.webhooks.models import FollowEvent, TextMessageContent, ReplyMessageRequest    #LINE botをV3に
 from linebot.v3.webhook import WebhookHandler    #LINE botをV3に
 from zoneinfo import ZoneInfo  # ← Python 3.9以降
 JST = ZoneInfo("Asia/Tokyo")  # 時間を日本時間に設定
@@ -526,6 +526,13 @@ def search_best_match(data_cache, label, keywords, target_attr):
     save_conversation_log(user_id, user_name, "user", user_message)
     save_conversation_log(user_id, user_name, "assistant", reply_text)
 
+    line_bot_api.reply_message(
+        ReplyMessageRequest(
+            reply_token=event.reply_token,
+            messages=[TextMessage(text=reply_text)]
+        )
+    )
+    
     line_bot_api.reply_message(event.reply_token, TextMessage(text=reply_text))
 
     if show_greeting:
