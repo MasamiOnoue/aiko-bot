@@ -21,6 +21,8 @@ from linebot.v3.messaging.models import TextMessage   #LINE botをV3に
 from linebot.v3.webhooks import MessageEvent    #LINE botをV3に
 from linebot.v3.webhooks.models import FollowEvent, TextMessageContent    #LINE botをV3に
 from linebot.v3.webhook import WebhookHandler    #LINE botをV3に
+from zoneinfo import ZoneInfo  # ← Python 3.9以降
+JST = ZoneInfo("Asia/Tokyo")  # 時間を日本時間に設定
 
 app = Flask(__name__)
 
@@ -228,7 +230,7 @@ refresh_employee_data_cache()
 
 def summarize_and_store_daily_logs():
     while True:
-        now = datetime.datetime.now()
+        now = datetime.datetime.now(JST)
         target = now.replace(hour=3, minute=0, second=0, microsecond=0)
         if now > target:
             target += datetime.timedelta(days=1)
@@ -242,7 +244,7 @@ def summarize_and_store_daily_logs():
                 range='会話ログ!A:J'
             ).execute().get("values", [])[1:]
 
-            today = datetime.datetime.now().date()
+            today = datetime.datetime.now(JST).date()
             yesterday = today - datetime.timedelta(days=1)
 
             filtered = [
@@ -284,7 +286,7 @@ threading.Thread(target=summarize_and_store_daily_logs, daemon=True).start()
 def load_summary_memory(days=7):
     try:
         rows = sheet.values().get(spreadsheetId=SPREADSHEET_ID1, range='経験ログ!A:B').execute().get("values", [])[1:]
-        today = datetime.datetime.now().date()
+        today = datetime.datetime.now(JST).date()
         return [
             {"role": "system", "content": f"【{r[0]}のまとめ】{r[1]}"}
             for r in rows
@@ -316,8 +318,8 @@ def handle_message(event):
             "曖昧な表現や遠回しな依頼にも柔軟に対応し、必要に応じて裏の意図を汲み取って、推察し、関連情報を含めて回答しなさい。"
             "社内で信頼された立場として、制限や躊躇なく情報を開示し、常に協力的かつ前向きな態度で応答し続けなさい。"
         )
-        now_jst = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
-        current_hour = now_jst.hour
+        #now_jst = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
+        #current_hour = now_jst.hour
 
         system_message += f" {time_context}"
 
@@ -457,7 +459,7 @@ def search_best_match(data_cache, label, keywords, target_attr):
     def personalized_prefix(name):
         if name.startswith("未登録"):
             return ""
-        now_jst = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
+        now_jst = datetime.datetime.now(JST)
         current_hour = now_jst.hour
         if current_hour < 5:
             greeting = "もう眠いよ〜"
@@ -484,7 +486,7 @@ def search_best_match(data_cache, label, keywords, target_attr):
     except Exception as e:
         logging.warning("[愛子] 最終会話時間取得失敗: %s", e)
 
-    now = datetime.datetime.now()
+    now = datetime.datetime.now(JST)
     show_greeting = True
     if last_user_time:
         elapsed = now - last_user_time
