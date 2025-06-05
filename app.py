@@ -28,6 +28,7 @@ SPREADSHEET_ID5 = os.getenv('SPREADSHEET_ID5')  # 愛子の経験サマリー記
 
 cache_lock = threading.Lock()
 recent_user_logs = {}
+employee_info_map = {}
 
 
 def now_jst():
@@ -86,7 +87,25 @@ def refresh_cache():
     except Exception as e:
         logging.error("キャッシュ更新失敗: %s", e)
 
-threading.Thread(target=lambda: (lambda: [refresh_cache() or time.sleep(300) for _ in iter(int, 1)])(), daemon=True).start()
+
+def load_employee_info():
+    global employee_info_map
+    try:
+        result = sheet.values().get(
+            spreadsheetId=SPREADSHEET_ID2,
+            range='従業員情報!A1:Z'
+        ).execute()
+        rows = result.get("values", [])
+        headers = rows[0]
+        for row in rows[1:]:
+            data = dict(zip(headers, row))
+            uid = data.get("LINEのUID")
+            if uid:
+                employee_info_map[uid] = data
+    except Exception as e:
+        logging.error("従業員情報の読み込み失敗: %s", e)
+
+threading.Thread(target=lambda: (lambda: [refresh_cache() or load_employee_info() or time.sleep(300) for _ in iter(int, 1)])(), daemon=True).start()
 
 
 app = Flask(__name__)
@@ -137,21 +156,12 @@ def handle_follow(event):
     )
 
 
-def search_employee_info(query):
-    try:
-        result = sheet.values().get(
-            spreadsheetId=SPREADSHEET_ID2,
-            range='従業員情報!A1:Z'
-        ).execute()
-        rows = result.get("values", [])
-
-        for row in rows:
-            if any(query in cell for cell in row):
-                return "🔎 社内情報から見つけました: " + ", ".join(row)
-        return "⚠️ 社内情報でも見つかりませんでした。"
-    except Exception as e:
-        logging.error("社内スプレッドシート検索エラー: %s", e)
-        return "⚠️ 情報検索中にエラーが発生しました。"
+def search_employee_info_by_keywords(query):
+    keywords = query.split()
+    for data in employee_info_map.values():
+        if any(k in str(data.values()) for k in keywords):
+            return "🔎 社内情報から見つけました: " + ", ".join(f"{k}: {v}" for k, v in data.items())
+    return "⚠️ 社内情報でも見つかりませんでした。"
 
 
 @handler.add(MessageEvent, message=TextMessage)
@@ -159,12 +169,14 @@ def handle_message(event):
     user_message = event.message.text.strip()
     user_id = event.source.user_id
     timestamp = now_jst().isoformat()
+    user_data = employee_info_map.get(user_id, {})
+    user_name = user_data.get("名前", "")
 
     greeting = get_time_based_greeting()
     greeting_keywords = ["おっはー", "やっはろー", "おっつ〜", "ねむねむ"]
     ai_greeting_phrases = ["こんにちは", "こんにちわ", "おはよう", "こんばんは", "ごきげんよう", "お疲れ様", "おつかれさま"]
 
-    log_conversation(timestamp, user_id, "", "ユーザー", user_message)
+    log_conversation(timestamp, user_id, user_name, "ユーザー", user_message)
 
     with cache_lock:
         user_recent = recent_user_logs.get(user_id, [])
@@ -189,16 +201,16 @@ def handle_message(event):
         reply_text = response.choices[0].message.content.strip()
 
         if any(kw in reply_text for kw in ["申し訳", "できません"]):
-            reply_text = search_employee_info(user_message)
+            reply_text = search_employee_info_by_keywords(user_message)
 
         if not any(reply_text.startswith(g) for g in greeting_keywords + ai_greeting_phrases):
-            reply_text = f"{greeting}{reply_text}"
+            reply_text = f"{greeting}{user_name}。" + reply_text
 
     except Exception as e:
         logging.error("OpenAI 応答失敗: %s", e)
         reply_text = "⚠️ 応答に失敗しました。政美さんにご連絡ください。"
 
-    log_conversation(now_jst().isoformat(), user_id, "", "AI", reply_text)
+    log_conversation(now_jst().isoformat(), user_id, user_name, "AI", reply_text)
 
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
 
