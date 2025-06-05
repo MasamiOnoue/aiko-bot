@@ -79,12 +79,28 @@ def handle_follow(event):
         TextSendMessage(text="愛子です。お友だち登録ありがとうございます。")
     )
 
+def search_employee_info(query):
+    try:
+        result = sheet.values().get(
+            spreadsheetId=SPREADSHEET_IDS[0],  # 従業員情報
+            range='従業員情報!A1:Z'
+        ).execute()
+        rows = result.get("values", [])
+
+        for row in rows:
+            if any(query in cell for cell in row):
+                return "🔎 社内情報から見つけました: " + ", ".join(row)
+        return "⚠️ 社内情報でも見つかりませんでした。"
+    except Exception as e:
+        logging.error("社内スプレッドシート検索エラー: %s", e)
+        return "⚠️ 情報検索中にエラーが発生しました。"
+
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     user_message = event.message.text.strip()
 
     greeting = get_time_based_greeting()
-    greeting_keywords = ["おっはー", "やっはろー", "ばんわ", "ねむ"]
+    greeting_keywords = ["おっはー", "やっはろー", "おっつ〜", "ねむねむ"]
 
     messages = [
         {"role": "system", "content": "あなたは社内アシスタントAI『愛子』です。以下のメッセージに丁寧に回答してください。"},
@@ -98,9 +114,12 @@ def handle_message(event):
         )
         reply_text = response.choices[0].message.content.strip()
 
-        # OpenAIの応答に挨拶を重ねないようチェック
+        if any(kw in reply_text for kw in ["申し訳", "できません"]):
+            reply_text = search_employee_info(user_message)
+
         if not any(reply_text.startswith(g) for g in greeting_keywords):
             reply_text = f"{greeting}{reply_text}"
+
     except Exception as e:
         logging.error("OpenAI 応答失敗: %s", e)
         reply_text = "⚠️ 応答に失敗しました。政美さんにご連絡ください。"
