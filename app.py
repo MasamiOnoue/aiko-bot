@@ -16,8 +16,8 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import set_user_agent
 import googleapiclient.discovery
-from linebot.v3.messaging import MessagingApi, Configuration, TextMessage   #LINE botをV3に
-from linebot.v3.messaging.models import TextSendMessage    #LINE botをV3に
+from linebot.v3.messaging import MessagingApi, Configuration   #LINE botをV3に
+from linebot.v3.messaging.models import TextMessage   #LINE botをV3に
 from linebot.v3.webhooks import MessageEvent    #LINE botをV3に
 
 app = Flask(__name__)
@@ -136,7 +136,7 @@ def callback():
 def handle_follow(event):
     user_id = event.source.user_id
     logging.info("✅ 友だち追加: %s", user_id)
-    line_bot_api.reply_message(event.reply_token, TextSendMessage(text="愛子です。お友だち登録ありがとうございます。"))
+    line_bot_api.reply_message(event.reply_token, TextMessage(text="愛子です。お友だち登録ありがとうございます。"))
 
 def load_user_id_map():
     try:
@@ -162,7 +162,7 @@ def refresh_user_id_map():#5分ごとにUSER_ID_MAPをリロードして更新
 USER_ID_MAP = load_user_id_map()
 
 def save_conversation_log(user_id, user_name, speaker, message):
-    timestamp = datetime.datetime.now().isoformat()
+    timestamp = datetime.datetime.now(JST).isoformat()
     values = [[timestamp, user_id, user_name, speaker, message, '', '', '', '', '']]
     try:
         sheet.values().append(
@@ -499,7 +499,7 @@ def search_best_match(data_cache, label, keywords, target_attr):
     save_conversation_log(user_id, user_name, "user", user_message)
     save_conversation_log(user_id, user_name, "assistant", reply_text)
 
-    line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
+    line_bot_api.reply_message(event.reply_token, TextMessage(text=reply_text))
 
     if show_greeting:
         logging.info("[愛子] 挨拶を追加（%s）: %s", user_name, prefix.strip())
@@ -519,7 +519,7 @@ def push_message():
     message = data.get("message")
     if not user_id or not message:
         return jsonify({"error": "Missing 'target_uid' or 'message'"}), 400
-    line_bot_api.push_message(user_id, TextSendMessage(text=message))
+    line_bot_api.push_message(user_id, TextMessage(text=message))
     return jsonify({"status": "success", "to": user_id}), 200
 
 configuration = Configuration(access_token=os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
