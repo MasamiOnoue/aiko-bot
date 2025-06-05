@@ -158,13 +158,34 @@ def handle_message(event):
     timestamp = now_jst()
     user_data = employee_info_map.get(user_id, {})
     user_name = user_data.get("名前", "")
+    important_keywords = ["覚えておいて", "おぼえておいて", "覚えてね"]
+    is_important = any(kw in user_message for kw in important_keywords)
 
     greeting = get_time_based_greeting()
     greeting_keywords = ["おっはー", "やっはろー", "おっつ〜", "ねむねむ"]
     ai_greeting_phrases = ["こんにちは", "こんにちわ", "おはよう", "こんばんは", "ごきげんよう", "お疲れ様", "おつかれさま"]
 
-    log_conversation(timestamp.isoformat(), user_id, user_name, "ユーザー", user_message)
+    # ログ保存：status="重要" を渡す
+    log_conversation(timestamp.isoformat(), user_id, user_name, "ユーザー", user_message, status="重要" if is_important else "OK")
 
+    #ノウハウ記録：重要なメッセージは会社ノウハウへも保存
+    if is_important:
+        try:
+            knowledge_values = [[
+                timestamp.isoformat(),
+                user_id,
+                user_name,
+                user_message
+            ]]
+            sheet.values().append(
+                spreadsheetId=SPREADSHEET_ID4,
+                range='会社ノウハウ!A:D',
+                valueInputOption='USER_ENTERED',
+                body={'values': knowledge_values}
+            ).execute()
+        except Exception as e:
+            logging.error("ノウハウ記録失敗: %s", e)
+            
     with cache_lock:
         user_recent = recent_user_logs.get(user_id, [])
 
