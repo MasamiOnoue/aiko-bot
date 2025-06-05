@@ -68,7 +68,21 @@ def get_user_summary(user_id):
     except Exception as e:
         logging.error(f"{user_id} の経験ログ取得失敗: {e}")
     return ""
-
+    
+# 愛子の経験ログ＝つまり日記の情報を読み込む
+def get_recent_summaries(count=5):
+    try:
+        result = sheet.values().get(
+            spreadsheetId=SPREADSHEET_ID5,
+            range='経験ログ!A2:C'
+        ).execute()
+        rows = result.get("values", [])[-count:]
+        return "\n".join(f"【{r[2]}】{r[3]}" for r in rows if len(r) >= 4)
+    except Exception as e:
+        logging.error(f"全体の経験ログ取得失敗: {e}")
+        return ""
+        
+# 会話ログの情報を保存する関数       
 def log_conversation(timestamp, user_id, user_name, speaker, message, status="OK"):
     try:
         values = [[
