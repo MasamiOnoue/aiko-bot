@@ -158,7 +158,7 @@ def handle_message(event):
     user_id = event.source.user_id
     timestamp = now_jst()
     user_data = employee_info_map.get(user_id, {})
-    user_name = user_data.get("名前", "")
+    user_name = user_data.get("愛子ちゃんからの呼ばれ方", user_data.get("名前", ""))
     important_keywords = ["覚えておいて", "おぼえておいて", "覚えてね", "記録して", "メモして"]
     is_important = any(kw in user_message for kw in important_keywords)
 
