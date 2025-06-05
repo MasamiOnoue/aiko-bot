@@ -324,9 +324,6 @@ def handle_message(event):
         if is_ambiguous(user_message):
             system_message += " 曖昧な質問には、過去の会話内容などから理由を推測し、丁寧に答えなさい。"
 
-        if is_ambiguous(user_message):
-            system_message += " 曖昧な質問には、過去の会話内容などから理由を推測し、丁寧に答えなさい。"
-
         summary_log = load_summary_memory(days=7)  # ← 🆕 経験ログからの7日間サマリー読み込み
 
         messages = [
