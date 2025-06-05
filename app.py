@@ -373,34 +373,34 @@ def handle_message(event):
     #    template_reply = get_template_response(user_message)
     #    template_prefix = template_reply + " " if template_reply else ""
 
-        try:
-            response = client.chat.completions.create(
-                model="gpt-4o",
-                messages=messages
-            )
-            reply_text = response.choices[0].message.content.strip()
+    #    try:
+    #        response = client.chat.completions.create(
+    #            model="gpt-4o",
+    #            messages=messages
+    #        )
+    #        reply_text = response.choices[0].message.content.strip()
 
-            if template_reply:
-                if not reply_text or len(reply_text) < 10:
-                    reply_text = template_reply
-                else:
-                    reply_text = template_reply + " " + reply_text
+    #        if template_reply:
+    #            if not reply_text or len(reply_text) < 10:
+    #                reply_text = template_reply
+    #            else:
+    #                reply_text = template_reply + " " + reply_text
 
-        except Exception as e:
-            logging.error("[愛子] OpenAI応答失敗: %s", e)
-            reply_text = template_reply or "⚠️ OpenAIエラーが発生しました。政美さんにご連絡ください。"
+    #    except Exception as e:
+    #        logging.error("[愛子] OpenAI応答失敗: %s", e)
+    #        reply_text = template_reply or "⚠️ OpenAIエラーが発生しました。政美さんにご連絡ください。"
 
-        if "申し訳" in reply_text or "できません" in reply_text or "お答えできません" in reply_text:
-            # OpenAIが拒否した場合、LINE Botが社内スプレッドシートから自力で探す
-            try:
-                import difflib
-                #import re
+    #    if "申し訳" in reply_text or "できません" in reply_text or "お答えできません" in reply_text:
+    #        # OpenAIが拒否した場合、LINE Botが社内スプレッドシートから自力で探す
+    #        try:
+    #            import difflib
+    #            #import re
 
-                #def clean_text(text):
-                    #return re.sub(r"[\s　・、。！？｡､,\-]", "", text)
-            except Exception as e:
-                logging.error("OpenAI応答失敗: %s", e)
-                reply_text = "⚠️ エラーが発生しました。"
+    #            #def clean_text(text):
+    #                #return re.sub(r"[\s　・、。！？｡､,\-]", "", text)
+    #        except Exception as e:
+    #            logging.error("OpenAI応答失敗: %s", e)
+    #            reply_text = "⚠️ エラーが発生しました。"
 
 # 関数定義
 def extract_keywords_and_attribute(message):
