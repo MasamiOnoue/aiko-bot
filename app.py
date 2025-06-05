@@ -24,8 +24,8 @@ SERVICE_ACCOUNT_FILE = 'aiko-bot-log-cfbf23e039fd.json'
 SPREADSHEET_ID1 = os.getenv('SPREADSHEET_ID1')  # 会話ログ
 SPREADSHEET_ID2 = os.getenv('SPREADSHEET_ID2')  # 従業員情報
 SPREADSHEET_ID3 = os.getenv('SPREADSHEET_ID3')  # 取引先情報
-SPREADSHEET_ID4 = os.getenv('SPREADSHEET_ID4')  # 会社ノウハウ情報
-SPREADSHEET_ID5 = os.getenv('SPREADSHEET_ID5')  # 愛子の経験サマリー記録
+SPREADSHEET_ID4 = os.getenv('SPREADSHEET_ID4')  # 会社情報
+SPREADSHEET_ID5 = os.getenv('SPREADSHEET_ID5')  # 愛子の経験ログ
 
 cache_lock = threading.Lock()
 recent_user_logs = {}
