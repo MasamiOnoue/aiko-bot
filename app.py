@@ -168,21 +168,21 @@ def handle_message(event):
 
     # ノウハウ記録：重要なメッセージは会社ノウハウへも保存
     if is_important:
-      try:
-        knowledge_values = [[
-            timestamp.isoformat(),
-            user_id,
-            user_name,
-            user_message,
-            tag_str  #情報タグ
-        ]]
-        sheet.values().append(
-            spreadsheetId=SPREADSHEET_ID4,
-            range='会社ノウハウ!A:E',
-            valueInputOption='USER_ENTERED',
-            body={'values': knowledge_values}
-        ).execute()
-     except Exception as e:
+        try:
+            knowledge_values = [[
+                timestamp.isoformat(),
+                user_id,
+                user_name,
+                user_message,
+                tag_str  #情報タグ
+            ]]
+            sheet.values().append(
+                spreadsheetId=SPREADSHEET_ID4,
+                range='会社ノウハウ!A:E',
+                valueInputOption='USER_ENTERED',
+                body={'values': knowledge_values}
+            ).execute()
+         except Exception as e:
             logging.error("ノウハウ記録失敗: %s", e)
 
     # ノウハウ確認要求があるかチェック
