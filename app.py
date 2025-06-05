@@ -200,8 +200,10 @@ def handle_message(event):
         )
         reply_text = response.choices[0].message.content.strip()
 
-        if any(kw in reply_text for kw in ["申し訳", "できません"]):
-            reply_text = search_employee_info_by_keywords(user_message)
+        if reply_text.startswith("申し訳") or reply_text.startswith("できません"):
+            fallback = search_employee_info_by_keywords(user_message)
+            if "見つかりました" in fallback:
+                reply_text += "\n\n" + fallback
 
         if show_greeting and not any(reply_text.startswith(g) for g in greeting_keywords + ai_greeting_phrases):
             reply_text = f"{greeting}{user_name}。" + reply_text
