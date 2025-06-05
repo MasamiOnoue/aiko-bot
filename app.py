@@ -55,6 +55,20 @@ def get_time_based_greeting():
     else:
         return "ねむねむ。"
 
+def get_user_summary(user_id):
+    try:
+        result = sheet.values().get(
+            spreadsheetId=SPREADSHEET_ID5,
+            range='経験ログ!A2:D'
+        ).execute()
+        rows = result.get("values", [])
+        for row in reversed(rows):
+            if row[1] == user_id and len(row) >= 4:
+                return row[3]  # 要約内容
+    except Exception as e:
+        logging.error(f"{user_id} の経験ログ取得失敗: {e}")
+    return ""
+
 def log_conversation(timestamp, user_id, user_name, speaker, message, status="OK"):
     try:
         values = [[
@@ -318,6 +332,11 @@ def handle_message(event):
         user_recent = recent_user_logs.get(user_id, [])
 
     context = "\n".join(row[4] for row in user_recent if len(row) >= 5)
+   
+    # 経験ログ要約を文脈に加える
+    user_summary = get_user_summary(user_id)
+    if user_summary:
+        context = f"【このユーザーの過去の要約情報】\n{user_summary}\n\n" + context
 
     # 最後の挨拶から2時間以内なら greeting を削除
     show_greeting = True
@@ -341,7 +360,6 @@ def handle_message(event):
         )},
         {"role": "user", "content": context + "\n" + user_message}
     ]
-
     try:
         response = client.chat.completions.create(
             model="gpt-4o",
