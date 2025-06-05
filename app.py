@@ -166,7 +166,7 @@ def handle_message(event):
     tags = re.findall(r"#(\w+)", user_message)
     tag_str = ", ".join(tags) if tags else "未分類"
 
-    # 会社ノウハウへの書き込み時にタグも追加：
+    # ノウハウ記録：重要なメッセージは会社ノウハウへも保存
     if is_important:
       try:
         knowledge_values = [[
@@ -174,7 +174,7 @@ def handle_message(event):
             user_id,
             user_name,
             user_message,
-            tag_str  # ★追加すべき列
+            tag_str  #情報タグ
         ]]
         sheet.values().append(
             spreadsheetId=SPREADSHEET_ID4,
@@ -182,7 +182,9 @@ def handle_message(event):
             valueInputOption='USER_ENTERED',
             body={'values': knowledge_values}
         ).execute()
-          
+     except Exception as e:
+            logging.error("ノウハウ記録失敗: %s", e)
+
     # ノウハウ確認要求があるかチェック
     confirm_knowledge_keywords = ["覚えた内容を確認", "ノウハウを確認", "記録した内容を見せて"]
     if any(k in user_message for k in confirm_knowledge_keywords):
@@ -209,24 +211,6 @@ def handle_message(event):
 
     # ログ保存：status="重要" を渡す
     log_conversation(timestamp.isoformat(), user_id, user_name, "ユーザー", user_message, status="重要" if is_important else "OK")
-
-    #ノウハウ記録：重要なメッセージは会社ノウハウへも保存
-    if is_important:
-        try:
-            knowledge_values = [[
-                timestamp.isoformat(),
-                user_id,
-                user_name,
-                user_message
-            ]]
-            sheet.values().append(
-                spreadsheetId=SPREADSHEET_ID4,
-                range='会社ノウハウ!A:D',
-                valueInputOption='USER_ENTERED',
-                body={'values': knowledge_values}
-            ).execute()
-        except Exception as e:
-            logging.error("ノウハウ記録失敗: %s", e)
             
     with cache_lock:
         user_recent = recent_user_logs.get(user_id, [])
