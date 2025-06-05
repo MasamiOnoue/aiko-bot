@@ -275,7 +275,7 @@ def summarize_and_store_daily_logs():
                 )
                 summary = response.choices[0].message.content.strip()
 
-                # 保存
+                # 保存（2025/6/5一時的にコメントアウト）
                 #summary_row = [[yesterday.isoformat(), summary]]
                 #sheet.values().append(
                 #    spreadsheetId=SPREADSHEET_ID5,
