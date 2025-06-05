@@ -182,7 +182,7 @@ def handle_message(event):
                 valueInputOption='USER_ENTERED',
                 body={'values': knowledge_values}
             ).execute()
-         except Exception as e:
+        except Exception as e:
             logging.error("ノウハウ記録失敗: %s", e)
 
     # ノウハウ確認要求があるかチェック
