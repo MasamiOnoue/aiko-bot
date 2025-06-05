@@ -101,6 +101,9 @@ def load_employee_info():
     except Exception as e:
         logging.error("従業員情報の読み込み失敗: %s", e)
 
+sheets_service = build('sheets', 'v4', credentials=creds)
+sheet = sheets_service.spreadsheets()
+
 threading.Thread(target=lambda: (lambda: [refresh_cache() or load_employee_info() or time.sleep(300) for _ in iter(int, 1)])(), daemon=True).start()
 
 app = Flask(__name__)
@@ -113,8 +116,6 @@ SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 creds = service_account.Credentials.from_service_account_file(
     SERVICE_ACCOUNT_FILE, scopes=SCOPES
 )
-sheets_service = build('sheets', 'v4', credentials=creds)
-sheet = sheets_service.spreadsheets()
 
 SPREADSHEET_IDS = [
     SPREADSHEET_ID1,
