@@ -282,6 +282,7 @@ def daily_summary_scheduler():
             time.sleep(300)  # 5分待機（再実行防止）
         time.sleep(60)  # 1分ごとにチェック
 
+# メインのLINEから受信が来た時のメッセージ処理のメインルーチン
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     user_message = event.message.text.strip()
@@ -346,8 +347,13 @@ def handle_message(event):
         user_recent = recent_user_logs.get(user_id, [])
 
     context = "\n".join(row[4] for row in user_recent if len(row) >= 5)
+
+    # 経験ログ要約を文脈に加えOpenAIに伝える
+    shared_summaries = get_recent_summaries()
+    if shared_summaries:
+        context = f"【愛子が学習した最近の知識】\n{shared_summaries}\n\n" + context
    
-    # 経験ログ要約を文脈に加える
+    # ユーザーの個別のログ要約を文脈に加えOpenAIに伝える
     user_summary = get_user_summary(user_id)
     if user_summary:
         context = f"【このユーザーの過去の要約情報】\n{user_summary}\n\n" + context
