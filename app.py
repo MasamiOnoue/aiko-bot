@@ -295,11 +295,14 @@ threading.Thread(target=summarize_and_store_daily_logs, daemon=True).start()
 def load_summary_memory(days=7):
     try:
         #一時的にコメントアウト
-        #rows = sheet.values().get(
-        #    spreadsheetId=SPREADSHEET_ID5,
-        #    range='経験ログ!A2:B'
-        #).execute().get("values", [])[1:]
-
+        rows = sheet.values().get(
+            spreadsheetId=SPREADSHEET_ID5,
+            range='経験ログ!A2:B'
+        ).execute().get("values", [])[1:]
+        
+        elapsed = time.time() - start_time
+        print(f"[Google Sheets 読み込み時間]: {elapsed:.2f}秒")#Google Sheetsの応答速度をログ出力で確認
+      
         today = datetime.datetime.now(JST).date()
         summaries = []
 
