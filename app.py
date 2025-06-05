@@ -154,6 +154,87 @@ def search_employee_info_by_keywords(query):
             return "🔎 社内情報から見つけました: " + ", ".join(f"{k}: {v}" for k, v in data.items())
     return "⚠️ 社内情報でも見つかりませんでした。"
 
+# ==== 自動日記要約（毎日3時に実行） ====
+def summarize_daily_conversations():
+    try:
+        start_time = (now_jst() - datetime.timedelta(days=1)).replace(hour=3, minute=0, second=0, microsecond=0)
+        end_time = start_time + datetime.timedelta(hours=24)
+        logging.info(f"要約対象期間: {start_time} 〜 {end_time}")
+
+        result = sheet.values().get(
+            spreadsheetId=SPREADSHEET_ID1,
+            range='会話ログ!A2:J'
+        ).execute()
+        rows = result.get("values", [])
+
+        filtered = [r for r in rows if len(r) >= 5 and start_time <= datetime.datetime.fromisoformat(r[0]).astimezone(JST) < end_time]
+
+        if not filtered:
+            logging.info("対象期間の会話ログがありません。")
+            return
+
+        logs_by_user = {}
+        important_entries = []
+        for row in filtered:
+            uid = row[1]
+            name = row[2]
+            message = row[4]
+            status = row[9] if len(row) > 9 else ""
+            logs_by_user.setdefault((uid, name), []).append(message)
+            if status == "重要":
+                important_entries.append((uid, name, message))
+
+        # 要約生成
+        for (uid, name), messages in logs_by_user.items():
+            context = "\n".join(messages)
+            prompt = [
+                {"role": "system", "content": "以下はある社員との1日の会話記録です。相手の感情・思考・行動・課題・印象を含めて、2000文字以内で要約してください。"},
+                {"role": "user", "content": context}
+            ]
+            try:
+                response = client.chat.completions.create(
+                    model="gpt-4o",
+                    messages=prompt,
+                    max_tokens=2000
+                )
+                summary = response.choices[0].message.content.strip()
+                sheet.values().append(
+                    spreadsheetId=SPREADSHEET_ID5,
+                    range='経験ログ!A:D',
+                    valueInputOption='USER_ENTERED',
+                    body={'values': [[now_jst().isoformat(), uid, name, summary]]}
+                ).execute()
+                logging.info(f"{name} の要約を保存しました")
+            except Exception as e:
+                logging.error(f"{name} の要約失敗: {e}")
+
+        # 重要情報を会社情報に記録
+        for uid, name, msg in important_entries:
+            try:
+                values = [[
+                    "会話メモ",   # カテゴリ
+                    "なし",       # キーワード
+                    msg[:20],    # 質問例（20文字程度）
+                    msg,         # 回答内容
+                    msg[:50],    # 回答要約（50文字程度）
+                    "LINE会話ログより自動登録",  # 補足情報
+                    now_jst().strftime("%Y-%m-%d"),  # 最終更新日
+                    name,        # 登録者名
+                    0,           # 使用回数
+                    "愛子",      # 担当者
+                ] + [""] * 16]  # 残りの予備1〜予備16を空で埋める
+                sheet.values().append(
+                    spreadsheetId=SPREADSHEET_ID4,
+                    range='会社ノウハウ!A:AF',
+                    valueInputOption='USER_ENTERED',
+                    body={'values': values}
+                ).execute()
+                logging.info(f"{name} の重要情報を会社ノウハウに保存しました")
+            except Exception as e:
+                logging.error(f"{name} の会社情報登録失敗: {e}")
+    except Exception as e:
+        logging.error(f"日記集計エラー: {e}")
+
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     user_message = event.message.text.strip()
