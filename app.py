@@ -60,7 +60,7 @@ def log_conversation(timestamp, user_id, user_name, speaker, message, status="OK
             user_name or "不明",
             speaker,
             message,
-            "未分類",
+            "重要" if status == "重要" else "未分類",  # ← ここで重要を反映
             "text",
             "",
             status,
@@ -74,7 +74,7 @@ def log_conversation(timestamp, user_id, user_name, speaker, message, status="OK
         ).execute()
     except Exception as e:
         logging.error("ログ保存失敗: %s", e)
-
+        
 def refresh_cache():
     global recent_user_logs
     try:
@@ -234,7 +234,7 @@ def handle_message(event):
         reply_text = "⚠️ 応答に失敗しました。政美さんにご連絡ください。"
 
     log_conversation(now_jst().isoformat(), user_id, user_name, "AI", reply_text)
-
+    
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
 
 if __name__ == "__main__":
