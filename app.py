@@ -19,7 +19,7 @@ import googleapiclient.discovery
 from linebot.v3.messaging import MessagingApi, Configuration   #LINE botをV3に
 from linebot.v3.messaging.models import TextMessage   #LINE botをV3に
 from linebot.v3.webhooks import MessageEvent    #LINE botをV3に
-from linebot.v3.webhooks.models import FollowEvent    #LINE botをV3に
+from linebot.v3.webhooks.models import FollowEvent, TextMessageContent    #LINE botをV3に
 from linebot.v3.webhook import WebhookHandler    #LINE botをV3に
 
 app = Flask(__name__)
@@ -31,8 +31,8 @@ attribute_keywords = {
     "入社年": ["入社年", "入社", "最初の年"],
     "生年月日": ["生年月日", "生まれ", "誕生日", "バースデー"],
     "メールアドレス": ["メールアドレス", "メール", "e-mail", "連絡", "アドレス", "メアド"],
-    "携帯電話番号": ["携帯電話番号", "携帯", "携帯番号", "携帯電話", "電話番号", "携帯は", "携帯番号は", "携帯電話番号は"],
-    "自宅電話": ["自宅電話", "電話", "連絡先", "番号", "電話番号", "自宅の電"],
+    "携帯電話番号": ["携帯電話番号", "携帯", "携帯番号", "携帯電話", "電話番号", "携帯は", "携帯番号は", "携帯電話番号は", "連絡先"],
+    "自宅電話": ["自宅電話", "電話", "番号", "電話番号", "自宅の電"],
     "住所": ["住所", "所在地", "場所", "どこ"],
     "郵便番号": ["郵便番号", "〒", "郵便"],
     "緊急連絡先": ["緊急連絡先", "緊急", "問い合わせ先", "至急連絡"],
@@ -292,10 +292,12 @@ def load_summary_memory(days=7):
         ]
     except Exception as e:
         logging.warning("[愛子] 経験ログ読み込み失敗: %s", e)
-        return []
-
-@handler.add(MessageEvent, message=TextMessage)
+        return []  
+        
+#@handler.add(MessageEvent, message=TextMessage)
+@handler.add(MessageEvent)
 def handle_message(event):
+    if isinstance(event.message, TextMessageContent):
     user_id = event.source.user_id
     user_message = event.message.text.strip()
     user_name = USER_ID_MAP.get(user_id, f"未登録 ({user_id})")
