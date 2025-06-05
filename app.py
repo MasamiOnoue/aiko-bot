@@ -505,8 +505,10 @@ def search_best_match(data_cache, label, keywords, target_attr):
             show_greeting = False
 
     if show_greeting:
-    if not reply_text.startswith(prefix) and not any(g in reply_text[:10] for g in ["おっはー", "こんにちは", "こんばんは", "残業", "お疲れ"]):
-        reply_text = prefix + reply_text
+    if show_greeting and not reply_text.startswith(prefix) and not any(
+        g in reply_text[:10] for g in ["おっはー", "こんにちは", "こんばんは", "残業", "お疲れ"]
+    ):
+    reply_text = prefix + reply_text
     #if show_greeting and not reply_text.startswith(prefix):
         #reply_text = prefix + reply_text
 
