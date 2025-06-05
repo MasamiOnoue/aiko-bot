@@ -80,7 +80,10 @@ sheets_service = build(
 sheet = sheets_service.spreadsheets()
 
 #line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
+configuration = Configuration(access_token=os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
+line_bot_api = MessagingApi(configuration)
 handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
+
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 employee_data_cache = []
@@ -126,8 +129,6 @@ def callback():
     body = request.get_data(as_text=True)
     try:
         handler.handle(body, signature)
-    except InvalidSignatureError:
-        abort(400)
     except Exception:
         traceback.print_exc()
         abort(500)
@@ -525,7 +526,7 @@ def push_message():
 
 configuration = Configuration(access_token=os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
 line_bot_api = MessagingApi(configuration)
-handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
+#handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
