@@ -18,10 +18,10 @@ from googleapiclient.discovery import build
 from googleapiclient.http import set_user_agent
 import googleapiclient.discovery
 from linebot.v3.messaging import MessagingApi, Configuration   #LINE botをV3に
-from linebot.v3.messaging.models import TextMessage   #LINE botをV3に
+from linebot.v3.messaging.models import TextMessage, ReplyMessageRequest   #LINE botをV3に
 from linebot.v3.webhooks import MessageEvent    #LINE botをV3に
-from linebot.v3.webhooks.models import FollowEvent, TextMessageContent, ReplyMessageRequest    #LINE botをV3に
 from linebot.v3.webhook import WebhookHandler    #LINE botをV3に
+from linebot.v3.webhooks.models import FollowEvent, TextMessageContent    #LINE botをV3に
 from zoneinfo import ZoneInfo  # ← Python 3.9以降
 JST = ZoneInfo("Asia/Tokyo")  # 時間を日本時間に設定
 
