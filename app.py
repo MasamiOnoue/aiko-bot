@@ -31,6 +31,13 @@ recent_user_logs = {}
 employee_info_map = {}
 last_greeting_time = {}
 
+SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
+creds = service_account.Credentials.from_service_account_file(
+    SERVICE_ACCOUNT_FILE, scopes=SCOPES
+)
+sheets_service = build('sheets', 'v4', credentials=creds)
+sheet = sheets_service.spreadsheets()
+
 def now_jst():
     return datetime.datetime.now(JST)
 
@@ -100,14 +107,6 @@ def load_employee_info():
                 employee_info_map[uid] = data
     except Exception as e:
         logging.error("従業員情報の読み込み失敗: %s", e)
-
-SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
-creds = service_account.Credentials.from_service_account_file(
-    SERVICE_ACCOUNT_FILE, scopes=SCOPES
-)
-
-sheets_service = build('sheets', 'v4', credentials=creds)
-sheet = sheets_service.spreadsheets()
 
 threading.Thread(target=lambda: (lambda: [refresh_cache() or load_employee_info() or time.sleep(300) for _ in iter(int, 1)])(), daemon=True).start()
 
@@ -179,6 +178,10 @@ def handle_message(event):
             show_greeting = False
     if show_greeting:
         last_greeting_time[user_id] = timestamp
+
+    # ユーザーの発言にすでに挨拶が含まれているかチェック
+    if any(g in user_message for g in greeting_keywords + ai_greeting_phrases):
+        show_greeting = False
 
     messages = [
         {"role": "system", "content": (
