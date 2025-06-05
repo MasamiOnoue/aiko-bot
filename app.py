@@ -319,14 +319,10 @@ def handle_message(event):
         now_jst = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
         current_hour = now_jst.hour
 
-        if current_hour < 10:
-            time_context = "今は朝の時間帯です。"
-        elif current_hour < 18:
-            time_context = "今は昼の時間帯です。"
-        else:
-            time_context = "今は夜の時間帯です。"
+        system_message += f" {time_context}"
 
-        system_message += f" {time_context} それにふさわしい自然なあいさつを返しなさい。"
+        if is_ambiguous(user_message):
+            system_message += " 曖昧な質問には、過去の会話内容などから理由を推測し、丁寧に答えなさい。"
 
         if is_ambiguous(user_message):
             system_message += " 曖昧な質問には、過去の会話内容などから理由を推測し、丁寧に答えなさい。"
