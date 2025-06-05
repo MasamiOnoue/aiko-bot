@@ -101,6 +101,11 @@ def load_employee_info():
     except Exception as e:
         logging.error("従業員情報の読み込み失敗: %s", e)
 
+SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
+creds = service_account.Credentials.from_service_account_file(
+    SERVICE_ACCOUNT_FILE, scopes=SCOPES
+)
+
 sheets_service = build('sheets', 'v4', credentials=creds)
 sheet = sheets_service.spreadsheets()
 
@@ -111,11 +116,6 @@ app = Flask(__name__)
 line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
 handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
-SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
-creds = service_account.Credentials.from_service_account_file(
-    SERVICE_ACCOUNT_FILE, scopes=SCOPES
-)
 
 SPREADSHEET_IDS = [
     SPREADSHEET_ID1,
