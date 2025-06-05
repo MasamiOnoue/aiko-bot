@@ -39,11 +39,11 @@ creds = service_account.Credentials.from_service_account_file(
 sheets_service = build('sheets', 'v4', credentials=creds)
 sheet = sheets_service.spreadsheets()
 
-def now_jst():
+def now_jst(JST):
     return datetime.datetime.now(JST)
 
 def get_time_based_greeting():
-    hour = now_jst().hour
+    hour = now_jst(JST).hour
     if 5 <= hour < 10:
         return "おっはー。"
     elif 10 <= hour < 18:
@@ -156,7 +156,7 @@ def search_employee_info_by_keywords(query):
 def handle_message(event):
     user_message = event.message.text.strip()
     user_id = event.source.user_id
-    timestamp = now_jst()
+    timestamp = now_jst(JST)
     user_data = employee_info_map.get(user_id, {})
     user_name = user_data.get("名前", "")
     important_keywords = ["覚えておいて", "おぼえておいて", "覚えてね", "記録して", "メモして"]
@@ -259,7 +259,7 @@ def handle_message(event):
         logging.error("OpenAI 応答失敗: %s", e)
         reply_text = "⚠️ 応答に失敗しました。政美さんにご連絡ください。"
 
-    log_conversation(now_jst().isoformat(), user_id, user_name, "AI", reply_text)
+    log_conversation(now_jst(JST).isoformat(), user_id, user_name, "AI", reply_text)
     
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
 
