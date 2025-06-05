@@ -43,7 +43,7 @@ def now_jst():
     return datetime.datetime.now(datetime.timezone.utc).astimezone(JST)
 
 def get_time_based_greeting():
-    current_time = now_jst(JST)
+    current_time = now_jst()
     logging.info(f"現在のJST時刻: {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
     hour = now_jst().hour
     if 5 <= hour < 10:
