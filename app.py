@@ -5,6 +5,7 @@ import datetime
 import threading
 import time
 import requests
+import re
 import json
 from flask import Flask, request, abort, jsonify
 #from linebot import LineBotApi, WebhookHandler
@@ -108,6 +109,9 @@ def get_template_response(text):
             return TEMPLATE_RESPONSES[key]
     return None
 
+def clean_text(text):
+    return re.sub(r"[\s　・、。！？｡､,\-]", "", text)
+        
 def shorten_reply(reply_text, simple_limit=30, detailed_limit=100):
     if "。" in reply_text:
         first_sentence = reply_text.split("。")[0] + "。"
@@ -360,10 +364,10 @@ def handle_message(event):
             # OpenAIが拒否した場合、LINE Botが社内スプレッドシートから自力で探す
             try:
                 import difflib
-                import re
+                #import re
 
-                def clean_text(text):
-                    return re.sub(r"[\s　・、。！？｡､,\-]", "", text)
+                #def clean_text(text):
+                    #return re.sub(r"[\s　・、。！？｡､,\-]", "", text)
             except Exception as e:
                 logging.error("OpenAI応答失敗: %s", e)
                 reply_text = "⚠️ エラーが発生しました。"
