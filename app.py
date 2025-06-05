@@ -246,10 +246,6 @@ def handle_message(event):
         TextSendMessage(text=reply_text)
     )
 
-
-
-    )
-
 # Flaskアプリ起動判定（この中には実処理を置かない）
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
