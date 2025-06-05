@@ -113,9 +113,6 @@ def load_employee_info():
 
 threading.Thread(target=lambda: (lambda: [refresh_cache() or load_employee_info() or time.sleep(300) for _ in iter(int, 1)])(), daemon=True).start()
 
-# Flask起動直前にこの行を追加
-threading.Thread(target=daily_summary_scheduler, daemon=True).start()
-
 app = Flask(__name__)
 
 line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
@@ -366,6 +363,9 @@ def handle_message(event):
     log_conversation(now_jst().isoformat(), user_id, user_name, "AI", reply_text)
     
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
+
+# Flask起動直前にこの行を追加
+threading.Thread(target=daily_summary_scheduler, daemon=True).start()
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
