@@ -500,16 +500,17 @@ def search_best_match(data_cache, label, keywords, target_attr):
     now = datetime.datetime.now(JST)
     show_greeting = True
     if last_user_time:
-        elapsed = now - last_user_time
+    
+    elapsed = now - last_user_time
         if elapsed.total_seconds() < 10800:  # 3時間未満なら挨拶しない
             show_greeting = False
 
     if show_greeting and not reply_text.startswith(prefix) and not any(
-        g in reply_text[:10] for g in ["おっはー", "こんにちは", "こんばんは", "残業", "お疲れ"]
+        g in reply_text[:10] for g in [
+            "おっはー", "こんにちは", "こんばんは", "残業", "お疲れ"
+        ]
     ):
-    reply_text = prefix + reply_text
-    #if show_greeting and not reply_text.startswith(prefix):
-        #reply_text = prefix + reply_text
+        reply_text = prefix + reply_text
 
     save_conversation_log(user_id, user_name, "user", user_message)
     save_conversation_log(user_id, user_name, "assistant", reply_text)
