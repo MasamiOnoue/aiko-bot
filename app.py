@@ -19,8 +19,20 @@ load_dotenv()
 # 日本標準時 (JST) タイムゾーン
 JST = pytz.timezone('Asia/Tokyo')
 
+SERVICE_ACCOUNT_FILE = 'aiko-bot-log-cfbf23e039fd.json'
+SPREADSHEET_ID1 = os.getenv('SPREADSHEET_ID1')  # 会話ログ
+SPREADSHEET_ID2 = os.getenv('SPREADSHEET_ID2')  # 従業員情報
+SPREADSHEET_ID3 = os.getenv('SPREADSHEET_ID3')  # 取引先情報
+SPREADSHEET_ID4 = os.getenv('SPREADSHEET_ID4')  # 会社ノウハウ情報
+SPREADSHEET_ID5 = os.getenv('SPREADSHEET_ID5')  # 愛子の経験サマリー記録
+
+cache_lock = threading.Lock()
+recent_user_logs = {}
+
+
 def now_jst():
     return datetime.datetime.now(JST)
+
 
 def get_time_based_greeting():
     hour = now_jst().hour
@@ -33,6 +45,50 @@ def get_time_based_greeting():
     else:
         return "ねむねむ。"
 
+
+def log_conversation(timestamp, user_id, user_name, speaker, message, status="OK"):
+    try:
+        values = [[
+            timestamp,
+            user_id,
+            user_name or "不明",
+            speaker,
+            message,
+            "未分類",
+            "text",
+            "",
+            status,
+            ""
+        ]]
+        sheet.values().append(
+            spreadsheetId=SPREADSHEET_ID1,
+            range='会話ログ!A:J',
+            valueInputOption='USER_ENTERED',
+            body={'values': values}
+        ).execute()
+    except Exception as e:
+        logging.error("ログ保存失敗: %s", e)
+
+
+def refresh_cache():
+    global recent_user_logs
+    try:
+        result = sheet.values().get(
+            spreadsheetId=SPREADSHEET_ID1,
+            range='会話ログ!A2:J'
+        ).execute()
+        rows = result.get("values", [])[-100:]
+        with cache_lock:
+            recent_user_logs = {
+                row[1]: [r for r in rows if r[1] == row[1] and r[3] == "ユーザー"][-10:]
+                for row in rows if len(row) >= 4
+            }
+    except Exception as e:
+        logging.error("キャッシュ更新失敗: %s", e)
+
+threading.Thread(target=lambda: (lambda: [refresh_cache() or time.sleep(300) for _ in iter(int, 1)])(), daemon=True).start()
+
+
 app = Flask(__name__)
 
 # LINE Bot設定
@@ -43,7 +99,6 @@ handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Google Sheets設定
-SERVICE_ACCOUNT_FILE = 'aiko-bot-log-cfbf23e039fd.json'
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 creds = service_account.Credentials.from_service_account_file(
     SERVICE_ACCOUNT_FILE, scopes=SCOPES
@@ -52,12 +107,13 @@ sheets_service = build('sheets', 'v4', credentials=creds)
 sheet = sheets_service.spreadsheets()
 
 SPREADSHEET_IDS = [
-    os.getenv('SPREADSHEET_ID1'),
-    os.getenv('SPREADSHEET_ID2'),
-    os.getenv('SPREADSHEET_ID3'),
-    os.getenv('SPREADSHEET_ID4'),
-    os.getenv('SPREADSHEET_ID5')
+    SPREADSHEET_ID1,
+    SPREADSHEET_ID2,
+    SPREADSHEET_ID3,
+    SPREADSHEET_ID4,
+    SPREADSHEET_ID5
 ]
+
 
 @app.route("/callback", methods=["POST"])
 def callback():
@@ -72,6 +128,7 @@ def callback():
         abort(500)
     return "OK", 200
 
+
 @handler.add(FollowEvent)
 def handle_follow(event):
     line_bot_api.reply_message(
@@ -79,10 +136,11 @@ def handle_follow(event):
         TextSendMessage(text="愛子です。お友だち登録ありがとうございます。")
     )
 
+
 def search_employee_info(query):
     try:
         result = sheet.values().get(
-            spreadsheetId=SPREADSHEET_IDS[0],  # 従業員情報
+            spreadsheetId=SPREADSHEET_ID2,
             range='従業員情報!A1:Z'
         ).execute()
         rows = result.get("values", [])
@@ -95,13 +153,23 @@ def search_employee_info(query):
         logging.error("社内スプレッドシート検索エラー: %s", e)
         return "⚠️ 情報検索中にエラーが発生しました。"
 
+
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     user_message = event.message.text.strip()
+    user_id = event.source.user_id
+    timestamp = now_jst().isoformat()
 
     greeting = get_time_based_greeting()
     greeting_keywords = ["おっはー", "やっはろー", "おっつ〜", "ねむねむ"]
-    ai_greeting_phrases = ["こんにちは", "おはよう", "こんばんは", "ごきげんよう", "お疲れ様", "おつかれさま"]
+    ai_greeting_phrases = ["こんにちは", "こんにちわ", "おはよう", "こんばんは", "ごきげんよう", "お疲れ様", "おつかれさま"]
+
+    log_conversation(timestamp, user_id, "", "ユーザー", user_message)
+
+    with cache_lock:
+        user_recent = recent_user_logs.get(user_id, [])
+
+    context = "\n".join(row[4] for row in user_recent if len(row) >= 5)
 
     messages = [
         {"role": "system", "content": (
@@ -110,7 +178,7 @@ def handle_message(event):
             "・挨拶メッセージ（例:やっはろー）は30文字以内に。\n"
             "・質問回答などは丁寧に100文字程度で。"
         )},
-        {"role": "user", "content": user_message}
+        {"role": "user", "content": context + "\n" + user_message}
     ]
 
     try:
@@ -130,7 +198,10 @@ def handle_message(event):
         logging.error("OpenAI 応答失敗: %s", e)
         reply_text = "⚠️ 応答に失敗しました。政美さんにご連絡ください。"
 
+    log_conversation(now_jst().isoformat(), user_id, "", "AI", reply_text)
+
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
