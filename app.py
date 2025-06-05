@@ -303,14 +303,14 @@ def load_summary_memory(days=7):
         today = datetime.datetime.now(JST).date()
         summaries = []
 
-        for r in rows:
-            try:
-                date_obj = datetime.datetime.strptime(r[0], "%Y/%m/%d").date()  # ← 修正点
-                if date_obj >= (today - datetime.timedelta(days=days)):
-                    summaries.append({"role": "system", "content": f"【{r[0]}のまとめ】{r[1]}"})
-            except Exception as e:
-                logging.warning("[愛子] 日付形式エラー: %s", e)
-                continue
+        #for r in rows:一時的にコメントアウト
+        #    try:
+        #        date_obj = datetime.datetime.strptime(r[0], "%Y/%m/%d").date()  # ← 修正点
+        #        if date_obj >= (today - datetime.timedelta(days=days)):
+        #            summaries.append({"role": "system", "content": f"【{r[0]}のまとめ】{r[1]}"})
+        #    except Exception as e:
+        #        logging.warning("[愛子] 日付形式エラー: %s", e)
+        #        continue
 
         return summaries
 
