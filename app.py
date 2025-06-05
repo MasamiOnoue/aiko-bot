@@ -161,6 +161,26 @@ def handle_message(event):
     important_keywords = ["覚えておいて", "おぼえておいて", "覚えてね", "記録して", "メモして"]]
     is_important = any(kw in user_message for kw in important_keywords)
 
+    # ノウハウ確認要求があるかチェック
+    confirm_knowledge_keywords = ["覚えた内容を確認", "ノウハウを確認", "記録した内容を見せて"]
+    if any(k in user_message for k in confirm_knowledge_keywords):
+        try:
+            result = sheet.values().get(
+                spreadsheetId=SPREADSHEET_ID4,
+                range='会社ノウハウ!A2:D'
+            ).execute()
+            rows = result.get("values", [])[-5:]  # 最新5件のみ
+            if rows:
+                reply_text = "📘最近の記録内容:\n" + "\n".join(f"・{r[3]} ({r[2]})" for r in rows if len(r) >= 4)
+            else:
+                reply_text = "📘まだノウハウは記録されていません。"
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
+            return
+        except Exception as e:
+            logging.error("ノウハウ取得失敗: %s", e)
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text="⚠️ ノウハウの取得に失敗しました。"))
+            return
+
     greeting = get_time_based_greeting()
     greeting_keywords = ["おっはー", "やっはろー", "おっつ〜", "ねむねむ"]
     ai_greeting_phrases = ["こんにちは", "こんにちわ", "おはよう", "こんばんは", "ごきげんよう", "お疲れ様", "おつかれさま"]
