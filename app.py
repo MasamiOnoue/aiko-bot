@@ -16,7 +16,12 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
+import logging  #通信ログをRenderに出力するようにする
 
+logging.basicConfig(
+    level=logging.INFO,  # ← INFO レベル以上を表示に設定
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 load_dotenv()
 
 # 日本標準時 (JST) タイムゾーン
