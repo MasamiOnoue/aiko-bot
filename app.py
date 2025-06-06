@@ -139,6 +139,7 @@ def log_conversation(timestamp, user_id, user_name, speaker, message, status="OK
 - ネットからの情報
 - 愛子botから社内情報報告
 - 重要
+- エラー
 
 発言:
 「{message}」
@@ -154,14 +155,14 @@ def log_conversation(timestamp, user_id, user_name, speaker, message, status="OK
                 return response["choices"][0]["message"]["content"].strip()
             except Exception as e:
                 logging.warning(f"分類失敗: {e}")
-                return "未分類"
+                return "エラー"
 
         category = classify_message_context(message)
 
         values = [[
             timestamp,
             user_id,
-            nickname,  # ← C列に「政美さん」などの呼ばれ方を入れる
+            nickname,  # C列
             speaker,
             message,
             category,  # F列に分類（例：あいさつ）
