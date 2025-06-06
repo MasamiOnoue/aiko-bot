@@ -122,18 +122,49 @@ def get_recent_summaries(count=5):
         
 # 会話ログの情報を保存する関数
 # 会話ログC列に従業員情報の「愛子ちゃんからの呼ばれ方」を記録
+# 会話ログの情報を保存する関数
+# 会話ログC列に従業員情報の「愛子ちゃんからの呼ばれ方」を記録し、F列にメッセージ分類を記録
+
 def log_conversation(timestamp, user_id, user_name, speaker, message, status="OK"):
     try:
         # 従業員情報マップから「愛子ちゃんからの呼ばれ方」を取得
         nickname = employee_info_map.get(user_id, {}).get("愛子ちゃんからの呼ばれ方", user_name or "不明")
 
+        # メッセージ分類（OpenAIに送信）
+        def classify_message_context(message):
+            prompt = f"""次の発言の種類を、以下の分類から1つ選んでください。
+- 業務連絡
+- あいさつ
+- 日常会話
+- ネットからの情報
+- 愛子botから社内情報報告
+- 重要
+
+発言:
+「{message}」
+
+分類:"""
+            try:
+                response = openai.ChatCompletion.create(
+                    model="gpt-4",
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0,
+                    max_tokens=20
+                )
+                return response["choices"][0]["message"]["content"].strip()
+            except Exception as e:
+                logging.warning(f"分類失敗: {e}")
+                return "未分類"
+
+        category = classify_message_context(message)
+
         values = [[
             timestamp,
             user_id,
-            nickname,  # ← C列には「政美さん」などの呼ばれ方を入れる
+            nickname,  # ← C列に「政美さん」などの呼ばれ方を入れる
             speaker,
             message,
-            "重要" if status == "重要" else "未分類",
+            category,  # F列に分類（例：あいさつ）
             "text",
             "",
             status,
@@ -147,7 +178,35 @@ def log_conversation(timestamp, user_id, user_name, speaker, message, status="OK
         ).execute()
     except Exception as e:
         logging.error("ログ保存失敗: %s", e)
-        
+
+# 会話ログのF列（カテゴリー）をOpenAIに判定させる
+def classify_message_context(message, context_log=""):
+    prompt = f"""次の発言の種類を、以下の分類から1つ選んでください。
+- 業務連絡
+- あいさつ
+- 日常会話
+- ネットからの情報
+- 愛子botから社内情報報告
+- 重要
+
+発言:
+「{message}」
+
+分類:"""
+
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0,
+            max_tokens=20
+        )
+        return response["choices"][0]["message"]["content"].strip()
+    except Exception as e:
+        logging.warning(f"分類失敗: {e}")
+        return "未分類"
+
+# キャッシュをリフレッシュする
 def refresh_cache():
     global recent_user_logs
     try:
