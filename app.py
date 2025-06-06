@@ -40,6 +40,26 @@ creds = service_account.Credentials.from_service_account_file(
 sheets_service = build('sheets', 'v4', credentials=creds)
 sheet = sheets_service.spreadsheets()
 
+# ==== 会社情報スプレッドシートの列構成定義 ====
+COMPANY_INFO_COLUMNS = {
+    "カテゴリ": 0,
+    "キーワード": 1,
+    "質問例": 2,
+    "回答内容": 3,
+    "回答要約": 4,
+    "補足情報": 5,
+    "最終更新日": 6,
+    "登録者名": 7,
+    "使用回数": 8,
+    "担当者": 9,
+    "予備1": 10,
+    "予備2": 11,
+    "予備3": 12,
+    "予備4": 13,
+    "予備5": 14,
+    "予備6": 15
+}
+
 def now_jst():
     return datetime.datetime.now(pytz.timezone("Asia/Tokyo"))
 
