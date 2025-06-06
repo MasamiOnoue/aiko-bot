@@ -513,46 +513,63 @@ def get_user_aliases(user_data):
     return aliases
 
 #LINE愛子botの返答を自然な日本語にするようにOpenAIに依頼
-def ask_openai_with_restore(original_text, model="gpt-4o", temperature=0.7, max_tokens=800):
-    """
-    個人情報をマスクしてOpenAIに送信し、応答後に復元して返す。
-    """
-    masked_text = mask_personal_info(original_text)
+#個人情報と思われるパターンをマスクする（氏名・メール・電話番号など）
+def mask_personal_info(text):
+    text = re.sub(r'[\w.-]+@[\w.-]+', '[メールアドレス]', text)
+    text = re.sub(r'\b\d{2,4}-\d{2,4}-\d{3,4}\b', '[電話番号]', text)
+    text = re.sub(r'(さん|君|様)?[ \u4E00-\u9FFF]{2,4}(さん|君|様)?', '[氏名]', text)
+    return text
+    
+#元の文章から、氏名・メール・電話番号を抽出し、マスク復元のための辞書を作成
+def extract_original_terms(original_text):
+    terms = {}
+    name_match = re.search(r'[\u4E00-\u9FFF]{2,4}', original_text)
+    if name_match:
+        terms['[氏名]'] = name_match.group(0)
+    email_match = re.search(r'[\w.-]+@[\w.-]+', original_text)
+    if email_match:
+        terms['[メールアドレス]'] = email_match.group(0)
+    phone_match = re.search(r'\b\d{2,4}-\d{2,4}-\d{3,4}\b', original_text)
+    if phone_match:
+        terms['[電話番号]'] = phone_match.group(0)
+    return terms
 
+#OpenAIの返答に含まれるマスク語を、元の具体的な情報で置換して復元する
+def restore_masked_terms(text, original_text):
+    terms = extract_original_terms(original_text)
+    for masked, real in terms.items():
+        text = text.replace(masked, real)
+    return text
+
+# 個人情報は送らず、内容の要旨だけをOpenAIに伝えて丁寧で自然な日本語に整形された表現を取得する。
+# その後、マスクされた語句を元の文から復元する。
+def ask_openai_polite_rephrase(original_text, model="gpt-4o", temperature=0.5, max_tokens=100):
     try:
+        prompt = (
+            "以下のような内容を、丁寧で自然な日本語に言い換えてください。\n"
+            "内容は伏せられています。主旨だけを整形してください。"
+        )
+
         response = client.chat.completions.create(
             model=model,
-            messages=[{"role": "user", "content": masked_text}],
+            messages=[{"role": "user", "content": prompt}],
             temperature=temperature,
             max_tokens=max_tokens
         )
         reply = response.choices[0].message.content.strip()
 
-        # 簡易復元（氏名などマスクパターンに対応）
-        reply = reply.replace("[氏名]", extract_name(original_text))
-        reply = reply.replace("[メールアドレス]", extract_email(original_text))
-        reply = reply.replace("[電話番号]", extract_phone(original_text))
+        # マスクされた語句を復元
+        return restore_masked_terms(reply, original_text)
+
+    except Exception as e:
+        logging.error(f"OpenAI 応答失敗: {e}")
+        return "⚠️ 応答に失敗しました。しばらくしてからもう一度お試しください。"
 
         return reply
 
     except Exception as e:
         logging.error(f"OpenAI 応答失敗: {e}")
         return "⚠️ 応答に失敗しました。しばらくしてからもう一度お試しください。"
-        
-#LINE愛子botの渡すときにマスクする言葉１        
-def extract_name(text):
-    match = re.search(r'[\u4E00-\u9FFF]{2,4}', text)
-    return match.group(0) if match else "[氏名]"
-    
-#LINE愛子botの渡すときにマスクする言葉２
-def extract_email(text):
-    match = re.search(r'[\w.-]+@[\w.-]+', text)
-    return match.group(0) if match else "[メールアドレス]"
-    
-#LINE愛子botの渡すときにマスクする言葉３
-def extract_phone(text):
-    match = re.search(r'\b\d{2,4}-\d{2,4}-\d{3,4}\b', text)
-    return match.group(0) if match else "[電話番号]"
         
 #  ==== メインのLINEから受信が来た時のメッセージ処理のメインルーチン ==== 
 @handler.add(MessageEvent, message=TextMessage)
