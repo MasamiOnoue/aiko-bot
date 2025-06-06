@@ -723,8 +723,8 @@ def handle_message(event):
     # 5. OpenAI に送信
     #messages = build_openai_messages(user_id, user_message) #OpenAIへのメッセージ
     logging.info("OpenAI送信メッセージ:\n%s", user_message)
-    ai_reply = ask_openai_polite_rephrase(user_message)  # ← この行を追加
-    line_bot_api.reply_message(event.reply_token, TextSendMessage(text=ai_reply))
+    #ai_reply = ask_openai_polite_rephrase(user_message)  # ← この行を追加
+    #line_bot_api.reply_message(event.reply_token, TextSendMessage(text=ai_reply))
     log_conversation(timestamp.isoformat(), user_id, user_name, "AI", ai_reply)
     return
 
