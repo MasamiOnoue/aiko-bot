@@ -675,6 +675,10 @@ def handle_message(event):
     if user_summary:
         context = f"【このユーザーの過去の要約情報】\n{user_summary}\n\n" + context
 
+    company_info_snippet = search_company_info_by_keywords(user_message, user_name, user_data)
+    if company_info_snippet:
+        context += f"\n\n【会社情報データベースの参考回答】\n{company_info_snippet}\n"
+    
     # 最後の挨拶から2時間以内なら greeting を削除
     show_greeting = True    # 最初に show_greeting フラグを True にしておく
 
