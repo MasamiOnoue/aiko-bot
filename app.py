@@ -702,7 +702,7 @@ def handle_message(event):
         ai_reply = ask_openai_polite_rephrase(prompt)
         #ai_reply = ask_openai_polite_rephrase(original_text, model="gpt-4o", temperature=0.5, max_tokens=100):
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=ai_reply))
-        log_conversation(timestamp.isoformat(), user_id, user_name, "AI", ai_reply)
+        log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
         return
 
     # 3. 従業員情報もチェック
@@ -711,7 +711,7 @@ def handle_message(event):
         prompt = f"従業員情報に基づいて、質問『{user_message}』に答えてください。\n\n従業員情報:\n{employee_info_reply}"
         ai_reply = ask_openai_polite_rephrase(prompt)
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=ai_reply))
-        log_conversation(timestamp.isoformat(), user_id, user_name, "AI", ai_reply)
+        log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
         return
 
     # 4. ユーザー発言をログ（SPREADSHEETの会話ログ）に保存
@@ -737,7 +737,7 @@ def handle_message(event):
     #logging.info("OpenAI送信メッセージ:\n%s", user_message)
     #ai_reply = ask_openai_polite_rephrase(user_message)  # ← この行を追加
     #line_bot_api.reply_message(event.reply_token, TextSendMessage(text=ai_reply))
-    #log_conversation(timestamp.isoformat(), user_id, user_name, "AI", ai_reply)
+    #log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
     #return
 
     # 5. AI応答のログ（SPREADSHEETの会話ログ）に保存
