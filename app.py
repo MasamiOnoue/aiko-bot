@@ -330,7 +330,7 @@ def summarize_daily_conversations():
                     now_jst().strftime("%Y-%m-%d"),  # 最終更新日
                     "愛子",        # 登録者名
                     0,           # 使用回数
-                    user_name,      # 担当者
+                    name,      # 担当者
                     "社内"   # 開示範囲
                 ] + [""] * 16]  # 残りの予備2〜予備16を空で埋める
                 
