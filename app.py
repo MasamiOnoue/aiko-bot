@@ -722,7 +722,7 @@ def handle_message(event):
     log_conversation(timestamp.isoformat(), user_id, user_name, "AI", ai_reply)
     return
 
-    # 4. AI応答のログ（ここも追記）
+    # 5. AI応答のログ（SPREADSHEETの会話ログ）に保存
     log_conversation(
         timestamp=timestamp.isoformat(),
         user_id=user_id,
