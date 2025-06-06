@@ -353,6 +353,52 @@ def get_recent_experience_summary(sheet, user_name):
         logging.error(f"経験ログの読み込み失敗: {e}")
         return ""
 
+# ==== 会社情報スプレッドシートからキーワードで検索し、該当内容を返す関数 ====
+def search_company_info_by_keywords(user_message):
+    try:
+        result = sheet.values().get(
+            spreadsheetId=SPREADSHEET_ID4,
+            range='会社情報!A2:Z'
+        ).execute()
+        rows = result.get("values", [])
+        lowered_query = user_message.lower()
+        matched_rows = []
+
+        for idx, row in enumerate(rows):
+            searchable_text = " ".join(row[:5]).lower()  # カテゴリ〜要約まで
+            if any(k in searchable_text for k in lowered_query.split()):
+                matched_rows.append((idx, row))
+
+        if not matched_rows:
+            return None
+
+        reply_text = "📘会社情報より:"
+        for idx, row in matched_rows[:3]:  # 最大3件まで
+            question = row[2] if len(row) > 2 else "(例なし)"
+            answer = row[3] if len(row) > 3 else "(内容なし)"
+            registered_by = row[7] if len(row) > 7 else "(不明)"
+            reply_text += f"・{question} → {answer}（登録者: {registered_by}）\n"
+
+            # 使用回数を+1して更新
+            try:
+                count_cell = f'I{idx + 2}'
+                current_count = row[8] if len(row) > 8 else "0"
+                new_count = str(int(current_count) + 1)
+                sheet.values().update(
+                    spreadsheetId=SPREADSHEET_ID4,
+                    range=f'会社情報!{count_cell}',
+                    valueInputOption='USER_ENTERED',
+                    body={'values': [[new_count]]}
+                ).execute()
+            except Exception as update_error:
+                logging.warning(f"使用回数更新失敗: {update_error}")
+
+        return reply_text.strip()
+
+    except Exception as e:
+        logging.error(f"会社情報の検索失敗: {e}")
+        return None
+
 # ==== 自動実行スレッド ====
 def daily_summary_scheduler():
     while True:
@@ -443,7 +489,7 @@ def handle_message(event):
     important_keywords = ["覚えておいて", "おぼえておいて", "覚えてね", "記録して", "メモして"]
     is_important = any(kw in user_message for kw in important_keywords)
     experience_context = get_recent_experience_summary(sheet, user_name)
-    
+
     # タグ分類の簡易抽出（#タグ名形式を想定）
     tags = re.findall(r"#(\w+)", user_message)
     tag_str = ", ".join(tags) if tags else "未分類"
@@ -572,7 +618,13 @@ def handle_message(event):
             model="gpt-4o",
             messages=messages
         )
+        # AIによる返答取得
         reply_text = response.choices[0].message.content.strip()
+
+        # ここで会社情報からの追記を実施
+        company_info_reply = search_company_info_by_keywords(user_message)
+        if company_info_reply:
+            reply_text += f"\n\n{company_info_reply}"
 
         rejection_phrases = ["申し訳", "できません", "わかりません", "お答えできません", "個人情報", "開示できません"]
         if any(phrase in reply_text for phrase in rejection_phrases):
@@ -587,7 +639,8 @@ def handle_message(event):
         reply_text = "⚠️ 応答に失敗しました。政美さんにご連絡ください。"
 
     log_conversation(now_jst().isoformat(), user_id, user_name, "AI", reply_text)
-    
+
+    # LINEへ返信
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
 
 # Flask起動直前にこの行を追加
