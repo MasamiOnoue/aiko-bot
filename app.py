@@ -155,7 +155,7 @@ def load_employee_info():
     try:
         result = sheet.values().get(
             spreadsheetId=SPREADSHEET_ID2,
-            range='従業員情報!A1:Z'
+            range='従業員情報!A2:Z'
         ).execute()
         rows = result.get("values", [])
         headers = rows[0]
