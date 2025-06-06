@@ -371,7 +371,7 @@ def search_company_info_by_keywords(user_message, user_name, user_data):
             if any(k in searchable_text for k in lowered_query.split()):
                 # ▼▼▼ 開示範囲チェックを追加 ▼▼▼
                 user_aliases = get_user_aliases(user_data)
-                #disclosure = row[10] if len(row) > 10 else ""
+                disclosure = row[10] if len(row) > 10 else ""  # これがないと検索が止まる！
                 if disclosure in ["", "全員", "社内", "個人"]:
                     matched_rows.append((idx, row))
                 elif any(alias in disclosure for alias in user_aliases):
