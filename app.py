@@ -634,6 +634,11 @@ def ask_openai_polite_rephrase(prompt):
         logging.warning(f"丁寧語変換失敗: {e}")
         return "すみません、言い換えに失敗しました。"
 
+# 個人情報っぽいデータを全て抽出する。
+def contains_personal_info(text):
+    keywords = ["誕生日", "入社", "住所", "電話", "家族", "名前", "氏名", "読み", "ふりがな"]
+    return any(keyword in text for keyword in keywords)
+
 # 通常の会話はOpenAIにそのまま渡す。
 def ask_openai_free_response(prompt):
     try:
