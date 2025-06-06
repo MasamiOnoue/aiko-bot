@@ -120,16 +120,20 @@ def get_recent_summaries(count=5):
         logging.error(f"全体の経験ログ取得失敗: {e}")
         return ""
         
-# 会話ログの情報を保存する関数       
+# 会話ログの情報を保存する関数
+# 会話ログC列に従業員情報の「愛子ちゃんからの呼ばれ方」を記録
 def log_conversation(timestamp, user_id, user_name, speaker, message, status="OK"):
     try:
+        # 従業員情報マップから「愛子ちゃんからの呼ばれ方」を取得
+        nickname = employee_info_map.get(user_id, {}).get("愛子ちゃんからの呼ばれ方", user_name or "不明")
+
         values = [[
             timestamp,
             user_id,
-            user_name or "不明",
+            nickname,  # ← C列には「政美さん」などの呼ばれ方を入れる
             speaker,
             message,
-            "重要" if status == "重要" else "未分類",  # ← ここで重要を反映
+            "重要" if status == "重要" else "未分類",
             "text",
             "",
             status,
