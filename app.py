@@ -693,7 +693,7 @@ def handle_message(event):
                 now_jst().strftime("%Y-%m-%d"),     # G: 最終更新日
                 "愛子",                             # H: 登録者名
                 0,                                  # I: 使用回数
-                user_name,                               # J: 担当者
+                name,                               # J: 担当者
                 "社内"                             # K: 開示範囲
             ] + [""] * 6]  # K〜P: 予備を空で埋める（列Zまで14列必要）
 
