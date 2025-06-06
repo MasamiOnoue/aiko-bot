@@ -237,7 +237,7 @@ def search_employee_info_by_keywords(query):
                     if attr not in data:
                         continue  # 無効なキーが含まれている場合もスキップ
                     result_texts.append(f"📌 {data.get('名前', '不明')}の{attr}は「{value}」です。")
-        return "\n".join(result_texts) if result_texts else "⚠️ 社内情報でも見つかりませんでした。"
+    return "\n".join(result_texts) if result_texts else "⚠️ 社内情報でも見つかりませんでした。"
 
     keywords = query.split()
     for data in employee_info_map.values():
