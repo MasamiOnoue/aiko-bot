@@ -730,6 +730,7 @@ def handle_message(event):
         speaker="AI",
         message=ai_reply,
         status="愛子botから社内情報報告"
+    )
     
     # デバッグ用。employee_info_mapをRenderログに出力
     #logging.info("🔥 employee_info_map の内容確認開始")
