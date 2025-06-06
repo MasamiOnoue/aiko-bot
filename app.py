@@ -549,10 +549,11 @@ def handle_message(event):
                 user_message[:50],                  # E: 回答要約（50文字程度）
                 "LINEから記録",                     # F: 補足情報
                 now_jst().strftime("%Y-%m-%d"),     # G: 最終更新日
-    user_name,                          # H: 登録者名
-    0,                                  # I: 使用回数
-    "愛子"                               # J: 担当者
-] + [""] * 6]  # K〜P: 予備を空で埋める（列Zまで14列必要）
+                user_name,                          # H: 登録者名
+                0,                                  # I: 使用回数
+                "愛子"                               # J: 担当者
+                "社内"                               # K: 開示範囲
+            ] + [""] * 6]  # K〜P: 予備を空で埋める（列Zまで14列必要）
 
             ]]
             sheet.values().append(
