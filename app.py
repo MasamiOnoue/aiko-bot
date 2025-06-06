@@ -699,7 +699,7 @@ def handle_message(event):
     company_info_reply = search_company_info_by_keywords(user_message, user_name, user_data)
     if company_info_reply:
         prompt = f"社内情報に基づいて、質問『{user_message}』に丁寧に日本語で答えてください。\n\n社内情報:\n{company_info_reply}"
-        ai_reply = ask_openai_polite_rephrase(prompt)
+        reply_text = ask_openai_polite_rephrase(prompt)
         #ai_reply = ask_openai_polite_rephrase(original_text, model="gpt-4o", temperature=0.5, max_tokens=100):
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
         log_conversation(timestamp.isoformat(), user_id, user_name, "AI", message=reply_text)
@@ -709,8 +709,8 @@ def handle_message(event):
     employee_info_reply = search_employee_info_by_keywords(user_message)
     if "📌" in employee_info_reply:
         prompt = f"従業員情報に基づいて、質問『{user_message}』に答えてください。\n\n従業員情報:\n{employee_info_reply}"
-        ai_reply = ask_openai_polite_rephrase(prompt)
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=ai_reply))
+        reply_text = ask_openai_polite_rephrase(prompt)
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
         log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
         return
 
@@ -746,7 +746,7 @@ def handle_message(event):
         user_id=user_id,
         user_name=user_name,
         speaker="AI",
-        message=ai_reply,
+        message=reply_text,
         status="愛子botから社内情報報告"
     )
     
