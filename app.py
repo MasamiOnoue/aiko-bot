@@ -247,12 +247,16 @@ def search_employee_info_by_keywords(query):
                     if attr not in data:
                         continue  # 無効なキーが含まれている場合もスキップ
                     result_texts.append(f"📌 {data.get('名前', '不明')}の{attr}は「{value}」です。")
-    return "\n".join(result_texts) if result_texts else "⚠️ 社内情報でも見つかりませんでした。"
+    # 🔁 fallback検索のため、result_textsが空でもreturnしない
+    if result_texts:
+        return "\n".join(result_texts)
 
+    # fallback検索（曖昧一致）
     keywords = query.split()
     for data in employee_info_map.values():
         if any(k in str(data.values()) for k in keywords):
             return "🔎 社内情報から見つけました: " + ", ".join(f"{k}: {v}" for k, v in data.items())
+
     return "⚠️ 社内情報でも見つかりませんでした。"
 
 # ==== 自動日記をOpenAIにやらせる関数（毎日3時に呼び出す） ====
