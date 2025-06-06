@@ -283,7 +283,7 @@ def generate_daily_summaries(logs_by_user, sheet, client, SPREADSHEET_ID5):
             summary = response.choices[0].message.content.strip().replace("\n", " ")  # 改行除去
             sheet.values().append(
                 spreadsheetId=SPREADSHEET_ID5,
-                range='経験ログ!A:B',
+                range='経験ログ!A2:B',
                 valueInputOption='USER_ENTERED',
                 body={'values': [[now_jst().isoformat(), summary]]}
             ).execute()
@@ -368,7 +368,7 @@ def get_recent_experience_summary(sheet, user_name):
     try:
         result = sheet.values().get(
             spreadsheetId=SPREADSHEET_ID5,
-            range='経験ログ!A:B'
+            range='経験ログ!A2:B'
         ).execute().get("values", [])
         # 最新の5件を逆順でフィルタ
         recent_summaries = [
