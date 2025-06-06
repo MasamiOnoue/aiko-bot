@@ -319,7 +319,7 @@ def handle_message(event):
     user_name = user_data.get("愛子ちゃんからの呼ばれ方", user_data.get("名前", ""))
     important_keywords = ["覚えておいて", "おぼえておいて", "覚えてね", "記録して", "メモして"]
     is_important = any(kw in user_message for kw in important_keywords)
-    experience_context = get_recent_experience_summary(sheet, name)
+    experience_context = get_recent_experience_summary(sheet, user_name)
     
     # タグ分類の簡易抽出（#タグ名形式を想定）
     tags = re.findall(r"#(\w+)", user_message)
