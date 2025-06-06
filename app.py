@@ -983,7 +983,6 @@ def handle_message(event):
 
     # LINEへ返信
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
-    return
     
     # ログ記録（AI応答）
     log_conversation(now_jst().isoformat(), user_id, user_name, "AI", reply_text)
