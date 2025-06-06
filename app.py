@@ -617,9 +617,9 @@ def handle_message(event):
         try:
             profile = line_bot_api.get_profile(user_id)
             user_name = profile.display_name
-    except Exception as e:
-        logging.warning(f"ユーザー名の取得に失敗しました: {e}")
-        user_name = "未登録ユーザー"
+        except Exception as e:
+            logging.warning(f"ユーザー名の取得に失敗しました: {e}")
+            user_name = "未登録ユーザー"
 
     # 2. 会社情報を優先してチェック
     company_info_reply = search_company_info_by_keywords(user_message, user_name, user_data)
