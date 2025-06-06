@@ -324,7 +324,7 @@ def summarize_daily_conversations():
                     name,        # 登録者名
                     0,           # 使用回数
                     "愛子",      # 担当者
-                    "社内",   # 開示範囲
+                    "社内"   # 開示範囲
                 ] + [""] * 16]  # 残りの予備2〜予備16を空で埋める
                 
                 sheet.values().append(
@@ -552,10 +552,9 @@ def handle_message(event):
                 user_name,                          # H: 登録者名
                 0,                                  # I: 使用回数
                 "愛子",                             # J: 担当者
-                "社内",                             # K: 開示範囲
+                "社内"                             # K: 開示範囲
             ] + [""] * 6]  # K〜P: 予備を空で埋める（列Zまで14列必要）
 
-            ]]
             sheet.values().append(
                 spreadsheetId=SPREADSHEET_ID4,
                 range='会社情報!A:Z',
