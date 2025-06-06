@@ -19,9 +19,10 @@ from googleapiclient.discovery import build
 import logging  #通信ログをRenderに出力するようにする
 
 logging.basicConfig(
-    level=logging.INFO,  # ← INFO レベル以上を表示に設定
+    level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
+
 load_dotenv()
 
 # 日本標準時 (JST) タイムゾーン
@@ -524,8 +525,12 @@ def handle_message(event):
     experience_context = get_recent_experience_summary(sheet, user_name)
 
     # デバッグ用。employee_info_mapをRenderログに出力
-    logging.info("【employee_info_map 内容】:\n%s", json.dumps(employee_info_map, ensure_ascii=False, indent=2))
-
+    logging.info("🔥 employee_info_map の内容確認開始")
+    try:
+        logging.info("employee_info_map:\n%s", json.dumps(employee_info_map, ensure_ascii=False, indent=2))
+    except Exception as e:
+        logging.warning("employee_info_map のログ出力に失敗しました: %s", str(e))
+    
     #メッセージから「他の人に伝える」意図があるか判定。対象が「全員」か「特定の相手」かを確認。対象に通知を送信
     bridge_keywords = ["伝えて", "知らせて", "連絡して", "お知らせして", "休みます", "遅れます"]
     #if any(kw in user_message for kw in bridge_keywords):
