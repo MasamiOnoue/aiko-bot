@@ -336,7 +336,7 @@ def summarize_daily_conversations():
                 
                 sheet.values().append(
                     spreadsheetId=SPREADSHEET_ID4,
-                    range='会社情報!A:Z',
+                    range='会社情報!A2:Z',
                     valueInputOption='USER_ENTERED',
                     body={'values': values}
                 ).execute()
@@ -475,7 +475,7 @@ def register_blog_to_sheet(entry):
 
         sheet.values().append(
             spreadsheetId=SPREADSHEET_ID4,
-            range='会社情報!A:Z',
+            range='会社情報!A2:Z',
             valueInputOption='USER_ENTERED',
             body={'values': values}
         ).execute()
@@ -699,7 +699,7 @@ def handle_message(event):
 
             sheet.values().append(
                 spreadsheetId=SPREADSHEET_ID4,
-                range='会社情報!A:Z',
+                range='会社情報!A2:Z',
                 valueInputOption='USER_ENTERED',
                 body={'values': knowledge_values}
             ).execute()
@@ -712,7 +712,7 @@ def handle_message(event):
         try:
             result = sheet.values().get(
                 spreadsheetId=SPREADSHEET_ID4,
-                range='会社情報!A:Z'
+                range='会社情報!A2:Z'
             ).execute()
             rows = result.get("values", [])[-5:]  # 最新5件のみ
             if rows:
