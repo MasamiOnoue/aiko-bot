@@ -519,12 +519,17 @@ def handle_message(event):
 
     #メッセージから「他の人に伝える」意図があるか判定。対象が「全員」か「特定の相手」かを確認。対象に通知を送信
     bridge_keywords = ["伝えて", "知らせて", "連絡して", "お知らせして", "休みます", "遅れます"]
-    if any(kw in user_message for kw in bridge_keywords):
-        ask_text = "この内容を全員にお知らせしますか？それとも、誰か特定の方にだけ伝えますか？"
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=ask_text))
-        log_conversation(timestamp.isoformat(), user_id, user_name, "AI", ask_text)
-        return
+    #if any(kw in user_message for kw in bridge_keywords):
+    #    ask_text = "この内容を全員にお知らせしますか？それとも、誰か特定の方にだけ伝えますか？"
+    #    line_bot_api.reply_message(event.reply_token, TextSendMessage(text=ask_text))
+    #    log_conversation(timestamp.isoformat(), user_id, user_name, "AI", ask_text)
 
+    # ↓ このように常時 company_info_reply を試行するように変更
+    company_info_reply = search_company_info_by_keywords(user_message, user_name, user_data)
+    reply_text = ""
+    if company_info_reply:
+        reply_text += f"\n\n{company_info_reply}"
+        
     if "全員に" in user_message:
         notify_text = f"📢 {user_name}さんよりご連絡です：『{user_message}』"
         for uid, data in employee_info_map.items():
