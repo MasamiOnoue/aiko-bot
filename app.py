@@ -321,9 +321,9 @@ def summarize_daily_conversations():
                     msg[:100],    # 回答要約（100文字程度）
                     "LINE会話ログより自動登録",  # 補足情報
                     now_jst().strftime("%Y-%m-%d"),  # 最終更新日
-                    name,        # 登録者名
+                    "愛子",        # 登録者名
                     0,           # 使用回数
-                    "愛子",      # 担当者
+                    user_name,      # 担当者
                     "社内"   # 開示範囲
                 ] + [""] * 16]  # 残りの予備2〜予備16を空で埋める
                 
@@ -579,9 +579,9 @@ def handle_message(event):
                 user_message[:50],                  # E: 回答要約（50文字程度）
                 "LINEから記録",                     # F: 補足情報
                 now_jst().strftime("%Y-%m-%d"),     # G: 最終更新日
-                user_name,                          # H: 登録者名
+                "愛子",                             # H: 登録者名
                 0,                                  # I: 使用回数
-                "愛子",                             # J: 担当者
+                user_name,                         # J: 担当者
                 "社内"                             # K: 開示範囲
             ] + [""] * 6]  # K〜P: 予備を空で埋める（列Zまで14列必要）
 
