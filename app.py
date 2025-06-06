@@ -545,9 +545,9 @@ def restore_masked_terms(text, original_text):
 # その後、マスクされた語句を元の文から復元する。
 def ask_openai_polite_rephrase(original_text, model="gpt-4o", temperature=0.5, max_tokens=100):
     try:
+        masked_text = mask_personal_info(original_text)
         prompt = (
-            "以下のような内容を、丁寧で自然な日本語に言い換えてください。\n"
-            "内容は伏せられています。主旨だけを整形してください。"
+            f"以下の内容を、丁寧で自然な日本語に言い換えてください：\n\n{masked_text}"
         )
 
         response = client.chat.completions.create(
@@ -557,15 +557,9 @@ def ask_openai_polite_rephrase(original_text, model="gpt-4o", temperature=0.5, m
             max_tokens=max_tokens
         )
         reply = response.choices[0].message.content.strip()
-
+        
         # マスクされた語句を復元
         return restore_masked_terms(reply, original_text)
-
-    except Exception as e:
-        logging.error(f"OpenAI 応答失敗: {e}")
-        return "⚠️ 応答に失敗しました。しばらくしてからもう一度お試しください。"
-
-        return reply
 
     except Exception as e:
         logging.error(f"OpenAI 応答失敗: {e}")
@@ -588,6 +582,7 @@ def handle_message(event):
     if company_info_reply:
         prompt = f"以下の社内情報に基づいて、質問『{user_message}』に丁寧に日本語で答えてください。\n\n社内情報:\n{company_info_reply}"
         ai_reply = ask_openai(messages=[{"role": "user", "content": prompt}])
+        #ai_reply = ask_openai_polite_rephrase(original_text, model="gpt-4o", temperature=0.5, max_tokens=100):
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=ai_reply))
         log_conversation(timestamp.isoformat(), user_id, user_name, "AI", ai_reply)
         return
