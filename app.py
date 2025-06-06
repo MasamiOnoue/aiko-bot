@@ -704,13 +704,32 @@ def handle_message(event):
         log_conversation(timestamp.isoformat(), user_id, user_name, "AI", ai_reply)
         return
 
-    # 4. OpenAI に送信
+    # 4. ユーザー発言をログ（SPREADSHEETの会話ログ）に保存
+    log_conversation(
+        timestamp=timestamp.isoformat(),
+        user_id=user_id,
+        user_name=user_name,
+        speaker="ユーザー",
+        message=user_message,
+        status="OK"
+    )
+
+    # 5. OpenAI に送信
     #messages = build_openai_messages(user_id, user_message) #OpenAIへのメッセージ
     logging.info("OpenAI送信メッセージ:\n%s", user_message)
     ai_reply = ask_openai_polite_rephrase(user_message)  # ← この行を追加
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=ai_reply))
     log_conversation(timestamp.isoformat(), user_id, user_name, "AI", ai_reply)
     return
+
+    # 4. AI応答のログ（ここも追記）
+    log_conversation(
+        timestamp=timestamp.isoformat(),
+        user_id=user_id,
+        user_name=user_name,
+        speaker="AI",
+        message=ai_reply,
+        status="愛子botから社内情報報告"
     
     # デバッグ用。employee_info_mapをRenderログに出力
     #logging.info("🔥 employee_info_map の内容確認開始")
