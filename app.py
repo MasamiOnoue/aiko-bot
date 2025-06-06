@@ -52,7 +52,7 @@ COMPANY_INFO_COLUMNS = {
     "登録者名": 7,
     "使用回数": 8,
     "担当者": 9,
-    "予備1": 10,
+    "開示範囲": 10,
     "予備2": 11,
     "予備3": 12,
     "予備4": 13,
@@ -316,15 +316,17 @@ def summarize_daily_conversations():
                 values = [[
                     "会話メモ",   # カテゴリ
                     "なし",       # キーワード
-                    msg[:20],    # 質問例（20文字程度）
+                    msg[:30],    # 質問例（30文字程度）
                     msg,         # 回答内容
-                    msg[:50],    # 回答要約（50文字程度）
+                    msg[:100],    # 回答要約（100文字程度）
                     "LINE会話ログより自動登録",  # 補足情報
                     now_jst().strftime("%Y-%m-%d"),  # 最終更新日
                     name,        # 登録者名
                     0,           # 使用回数
                     "愛子",      # 担当者
-                ] + [""] * 16]  # 残りの予備1〜予備16を空で埋める
+                    "社内",   # 開示範囲
+                ] + [""] * 16]  # 残りの予備2〜予備16を空で埋める
+                
                 sheet.values().append(
                     spreadsheetId=SPREADSHEET_ID4,
                     range='会社情報!A:Z',
@@ -540,11 +542,18 @@ def handle_message(event):
     if is_important:
         try:
             knowledge_values = [[
-                timestamp.isoformat(),
-                user_id,
-                user_name,
-                user_message,
-                tag_str  #情報タグ
+                "会話メモ",                          # A: カテゴリ
+                "なし",                              # B: キーワード
+                user_message[:20],                  # C: 質問例（20文字程度）
+                user_message,                       # D: 回答内容
+                user_message[:50],                  # E: 回答要約（50文字程度）
+                "LINEから記録",                     # F: 補足情報
+                now_jst().strftime("%Y-%m-%d"),     # G: 最終更新日
+    user_name,                          # H: 登録者名
+    0,                                  # I: 使用回数
+    "愛子"                               # J: 担当者
+] + [""] * 6]  # K〜P: 予備を空で埋める（列Zまで14列必要）
+
             ]]
             sheet.values().append(
                 spreadsheetId=SPREADSHEET_ID4,
