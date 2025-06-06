@@ -256,28 +256,6 @@ def summarize_daily_conversations():
 
         # 要約生成
         generate_daily_summaries(logs_by_user, sheet, client, SPREADSHEET_ID5)
-        #for (uid, name), messages in logs_by_user.items():
-        #    context = "\n".join(messages)
-        #    prompt = [
-        #        {"role": "system", "content": "以下はある社員との1日の会話記録です。相手の感情・思考・行動・課題・印象を含めて、2000文字以内で要約してください。"},
-        #        {"role": "user", "content": context}
-        #    ]
-        #    try:
-        #        response = client.chat.completions.create(
-        #           model="gpt-4o",
-        #           messages=prompt,
-        #           max_tokens=800  # 約2000文字程度相当
-        #       )
-        #       summary = response.choices[0].message.content.strip()
-        #       sheet.values().append(
-        #           spreadsheetId=SPREADSHEET_ID5,
-        #           range='経験ログ!A:C',
-        #           valueInputOption='USER_ENTERED',
-        #           body={'values': [[now_jst().isoformat(), "全体", summary]]}
-        #       ).execute()
-        #       logging.info(f"{name} の要約を保存しました")
-        #   except Exception as e:
-        #       logging.error(f"{name} の要約失敗: {e}")
 
         # 重要情報を会社情報に記録
         for uid, name, msg in important_entries:
@@ -306,6 +284,22 @@ def summarize_daily_conversations():
     except Exception as e:
         logging.error(f"日記集計エラー: {e}")
 
+# ==== 愛子日記から毎日の回答を参照とする ====
+def get_recent_experience_summary(sheet, user_name):
+    try:
+        result = sheet.values().get(
+            spreadsheetId=SPREADSHEET_ID5,
+            range='経験ログ!A:B'
+        ).execute().get("values", [])
+        # 最新の5件を逆順でフィルタ
+        recent_summaries = [
+            row[1] for row in reversed(result[-50:]) if user_name in row[1]
+        ][:5]
+        return " ".join(recent_summaries)
+    except Exception as e:
+        logging.error(f"経験ログの読み込み失敗: {e}")
+        return ""
+
 # ==== 自動実行スレッド ====
 def daily_summary_scheduler():
     while True:
@@ -325,7 +319,8 @@ def handle_message(event):
     user_name = user_data.get("愛子ちゃんからの呼ばれ方", user_data.get("名前", ""))
     important_keywords = ["覚えておいて", "おぼえておいて", "覚えてね", "記録して", "メモして"]
     is_important = any(kw in user_message for kw in important_keywords)
-
+    experience_context = get_recent_experience_summary(sheet, name)
+    
     # タグ分類の簡易抽出（#タグ名形式を想定）
     tags = re.findall(r"#(\w+)", user_message)
     tag_str = ", ".join(tags) if tags else "未分類"
@@ -406,7 +401,9 @@ def handle_message(event):
 
     messages = [
         {"role": "system", "content": (
-            "あなたは社内アシスタントAI『愛子』です。次のルールを守ってください。\n"
+            "あなたは社内アシスタントAI『愛子』です。
+            "過去の経験も踏まえて、親しみやすく丁寧な口調で答えてください。\n"
+            "次のルールを守ってください。\n"
             "・最初の挨拶はユーザーがしていれば繰り返さない。\n"
             "・挨拶メッセージ（例:やっはろー）は30文字以内に。\n"
             "・質問回答などは丁寧に100文字程度で。"
