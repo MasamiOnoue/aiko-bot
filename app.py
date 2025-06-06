@@ -511,6 +511,24 @@ def get_user_aliases(user_data):
         aliases.add(nickname)
         aliases.add(nickname.replace("さん", ""))
     return aliases
+
+#LINE愛子botの返答を自然な日本語にするようにOpenAIに依頼
+def ask_openai(messages, model="gpt-4o", temperature=0.7, max_tokens=800):
+    """
+    社内データや会話ログから生成されたプロンプトをもとに、
+    自然で丁寧な日本語の文章として整えるためのOpenAIラッパー関数。
+    """
+    try:
+        response = client.chat.completions.create(
+            model=model,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        logging.error(f"OpenAI 応答失敗: {e}")
+        return "⚠️ 応答に失敗しました。しばらくしてからもう一度お試しください。"
         
 #  ==== メインのLINEから受信が来た時のメッセージ処理のメインルーチン ==== 
 @handler.add(MessageEvent, message=TextMessage)
