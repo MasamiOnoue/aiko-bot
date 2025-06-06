@@ -612,7 +612,16 @@ def handle_message(event):
     is_important = any(kw in user_message for kw in important_keywords)
     experience_context = get_recent_experience_summary(sheet, user_name)
 
-    # 1. 会社情報を優先してチェック
+    # 1. user_name空文字だった場合、LINEのプロフィールから取得
+    if not user_name:
+    try:
+        profile = line_bot_api.get_profile(user_id)
+        user_name = profile.display_name
+    except Exception as e:
+        logging.warning(f"ユーザー名の取得に失敗しました: {e}")
+        user_name = "未登録ユーザー"
+
+    # 2. 会社情報を優先してチェック
     company_info_reply = search_company_info_by_keywords(user_message, user_name, user_data)
     if company_info_reply:
         prompt = f"社内情報に基づいて、質問『{user_message}』に丁寧に日本語で答えてください。\n\n社内情報:\n{company_info_reply}"
@@ -622,7 +631,7 @@ def handle_message(event):
         log_conversation(timestamp.isoformat(), user_id, user_name, "AI", ai_reply)
         return
 
-    # 2. 従業員情報もチェック
+    # 3. 従業員情報もチェック
     employee_info_reply = search_employee_info_by_keywords(user_message)
     if "📌" in employee_info_reply:
         prompt = f"従業員情報に基づいて、質問『{user_message}』に答えてください。\n\n従業員情報:\n{employee_info_reply}"
@@ -631,7 +640,7 @@ def handle_message(event):
         log_conversation(timestamp.isoformat(), user_id, user_name, "AI", ai_reply)
         return
 
-    # OpenAI に送信
+    # 4. OpenAI に送信
     #messages = build_openai_messages(user_id, user_message) #OpenAIへのメッセージ
     logging.info("OpenAI送信メッセージ:\n%s", user_message)
     ai_reply = ask_openai_polite_rephrase(user_message)  # ← この行を追加
@@ -645,14 +654,15 @@ def handle_message(event):
     #except Exception as e:
     #    logging.warning("employee_info_map のログ出力に失敗しました: %s", str(e))
     
-    #メッセージから「他の人に伝える」意図があるか判定。対象が「全員」か「特定の相手」かを確認。対象に通知を送信
+    # 5. メッセージから「他の人に伝える」意図があるか判定。対象が「全員」か「特定の相手」かを確認。対象に通知を送信
     bridge_keywords = ["伝えて", "知らせて", "連絡して", "お知らせして", "休みます", "遅れます"]
+    
     #if any(kw in user_message for kw in bridge_keywords):
     #    ask_text = "この内容を全員にお知らせしますか？それとも、誰か特定の方にだけ伝えますか？"
     #    line_bot_api.reply_message(event.reply_token, TextSendMessage(text=ask_text))
     #    log_conversation(timestamp.isoformat(), user_id, user_name, "AI", ask_text)
 
-    # 社内情報は常時、先にキーワードを探すようする
+    # 6. 社内情報は常時、先にキーワードを探すようする
     company_info_reply = search_company_info_by_keywords(user_message, user_name, user_data)
     reply_text = ""
     if company_info_reply:
