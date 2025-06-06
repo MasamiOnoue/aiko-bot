@@ -646,7 +646,8 @@ def handle_message(event):
     ai_reply = ask_openai_polite_rephrase(user_message)  # ← この行を追加
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=ai_reply))
     log_conversation(timestamp.isoformat(), user_id, user_name, "AI", ai_reply)
-        
+    return
+    
     # デバッグ用。employee_info_mapをRenderログに出力
     #logging.info("🔥 employee_info_map の内容確認開始")
     #try:
@@ -882,7 +883,8 @@ def handle_message(event):
 
     # LINEへ返信
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
-
+    return
+    
 # Flask起動直前にこの行を追加
 threading.Thread(target=daily_summary_scheduler, daemon=True).start()
 
