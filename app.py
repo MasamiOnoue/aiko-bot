@@ -367,9 +367,17 @@ def search_company_info_by_keywords(user_message):
         matched_rows = []
 
         for idx, row in enumerate(rows):
-            searchable_text = " ".join(row[:5]).lower()  # カテゴリ〜要約まで
+            searchable_text = " ".join(row[:5]).lower()
             if any(k in searchable_text for k in lowered_query.split()):
-                matched_rows.append((idx, row))
+                # ▼▼▼ 開示範囲チェックを追加 ▼▼▼
+                disclosure = row[10] if len(row) > 10 else ""
+                if disclosure in ["", "全員", "社内", "個人"]:
+                    matched_rows.append((idx, row))
+                elif disclosure in user_name:
+                    matched_rows.append((idx, row))
+                elif user_name in disclosure:
+                    matched_rows.append((idx, row))
+                # ▲▲▲ この部分がなければ、個別制限が効かない ▲▲▲
 
         if not matched_rows:
             return None
