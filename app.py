@@ -722,12 +722,12 @@ def handle_message(event):
         {"role": "user", "content": context + "\n\n---ここから新しい質問です---\n\n" + user_message}
     ]
     try:
-        logging.info("OpenAI送信メッセージ:\n%s", messages)  # ロギング用
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=messages
         )
         # AIによる返答取得
+        logging.info("OpenAI送信メッセージ:\n%s", messages)  # ロギング用
         reply_text = response.choices[0].message.content.strip()
 
         # ここで会社情報からの追記を実施
