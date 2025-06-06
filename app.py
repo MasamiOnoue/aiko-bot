@@ -182,6 +182,38 @@ def search_employee_info_by_keywords(query):
             return "🔎 社内情報から見つけました: " + ", ".join(f"{k}: {v}" for k, v in data.items())
     return "⚠️ 社内情報でも見つかりませんでした。"
 
+# ==== 自動日記をOpenAIにやらせる関数（毎日3時に呼び出す） ====
+def generate_daily_summaries(logs_by_user, sheet, client, SPREADSHEET_ID5):
+    for (uid, name), messages in logs_by_user.items():
+        context = "\n".join(messages)
+        prompt = [
+            {"role": "system", "content": (
+                "あなたはLINEで社員と日々会話しているAIアシスタント『愛子』です。"
+                "以下はあなたが昨日、社員と交わした会話の記録です。"
+                "感情・思考・行動・課題・印象などを踏まえ、社員とのやり取りを振り返る日記として"
+                "自分の目線で2000文字以内で自然に要約してください。"
+                "主語は『私』を用い、社員を『○○さん』などと呼び、第三者視点ではなく主観的に書いてください。"
+                "また、要約文中に改行は使用せず、すべての内容を削除せずに情報を圧縮して簡潔に記述してください。"
+            )},
+            {"role": "user", "content": context}
+        ]
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=prompt,
+                max_tokens=800
+            )
+            summary = response.choices[0].message.content.strip().replace("\n", " ")  # 改行除去
+            sheet.values().append(
+                spreadsheetId=SPREADSHEET_ID5,
+                range='経験ログ!A:B',
+                valueInputOption='USER_ENTERED',
+                body={'values': [[now_jst().isoformat(), summary]]}
+            ).execute()
+            logging.info(f"{name} の要約を保存しました")
+        except Exception as e:
+            logging.error(f"{name} の要約失敗: {e}")
+
 # ==== 自動日記要約（毎日3時に実行） ====
 def summarize_daily_conversations():
     try:
@@ -223,28 +255,29 @@ def summarize_daily_conversations():
                 important_entries.append((uid, name, message))
 
         # 要約生成
-        for (uid, name), messages in logs_by_user.items():
-            context = "\n".join(messages)
-            prompt = [
-                {"role": "system", "content": "以下はある社員との1日の会話記録です。相手の感情・思考・行動・課題・印象を含めて、2000文字以内で要約してください。"},
-                {"role": "user", "content": context}
-            ]
-            try:
-                response = client.chat.completions.create(
-                    model="gpt-4o",
-                    messages=prompt,
-                    max_tokens=800  # 約2000文字程度相当
-                )
-                summary = response.choices[0].message.content.strip()
-                sheet.values().append(
-                    spreadsheetId=SPREADSHEET_ID5,
-                    range='経験ログ!A:C',
-                    valueInputOption='USER_ENTERED',
-                    body={'values': [[now_jst().isoformat(), "全体", summary]]}
-                ).execute()
-                logging.info(f"{name} の要約を保存しました")
-            except Exception as e:
-                logging.error(f"{name} の要約失敗: {e}")
+        generate_daily_summaries(logs_by_user, sheet, client, SPREADSHEET_ID5)
+        #for (uid, name), messages in logs_by_user.items():
+        #    context = "\n".join(messages)
+        #    prompt = [
+        #        {"role": "system", "content": "以下はある社員との1日の会話記録です。相手の感情・思考・行動・課題・印象を含めて、2000文字以内で要約してください。"},
+        #        {"role": "user", "content": context}
+        #    ]
+        #    try:
+        #        response = client.chat.completions.create(
+        #           model="gpt-4o",
+        #           messages=prompt,
+        #           max_tokens=800  # 約2000文字程度相当
+        #       )
+        #       summary = response.choices[0].message.content.strip()
+        #       sheet.values().append(
+        #           spreadsheetId=SPREADSHEET_ID5,
+        #           range='経験ログ!A:C',
+        #           valueInputOption='USER_ENTERED',
+        #           body={'values': [[now_jst().isoformat(), "全体", summary]]}
+        #       ).execute()
+        #       logging.info(f"{name} の要約を保存しました")
+        #   except Exception as e:
+        #       logging.error(f"{name} の要約失敗: {e}")
 
         # 重要情報を会社情報に記録
         for uid, name, msg in important_entries:
