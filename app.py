@@ -490,6 +490,48 @@ def handle_message(event):
     is_important = any(kw in user_message for kw in important_keywords)
     experience_context = get_recent_experience_summary(sheet, user_name)
 
+    #メッセージから「他の人に伝える」意図があるか判定。対象が「全員」か「特定の相手」かを確認。対象に通知を送信
+    bridge_keywords = ["伝えて", "知らせて", "連絡して", "お知らせして", "休みます", "遅れます"]
+    if any(kw in user_message for kw in bridge_keywords):
+        ask_text = "この内容を全員にお知らせしますか？それとも、誰か特定の方にだけ伝えますか？"
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=ask_text))
+        log_conversation(timestamp.isoformat(), user_id, user_name, "AI", ask_text)
+        return
+
+    if "全員に" in user_message:
+        notify_text = f"📢 {user_name}さんよりご連絡です：『{user_message}』"
+        for uid, data in employee_info_map.items():
+            if uid != user_id:
+                try:
+                    line_bot_api.push_message(uid, TextSendMessage(text=notify_text))
+                except Exception as e:
+                    logging.error(f"通知失敗: {uid} - {e}")
+        reply_text = "みなさんにお知らせしました。"
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
+        log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
+        return
+
+    match = re.search(r"(\S+?)(?:さん)?だけに伝えて", user_message)
+    if match:
+        target_name = match.group(1)
+        notify_text = f"📢 {user_name}さんよりご連絡です：『{user_message}』"
+        for uid, data in employee_info_map.items():
+            if data.get("名前") == target_name or data.get("愛子ちゃんからの呼ばれ方") == target_name:
+                try:
+                    line_bot_api.push_message(uid, TextSendMessage(text=notify_text))
+                    reply_text = f"{target_name}にだけお伝えしました。"
+                    break
+                except Exception as e:
+                    logging.error(f"通知失敗: {uid} - {e}")
+                    reply_text = f"⚠️ {target_name}への通知に失敗しました。"
+                    break
+        else:
+            reply_text = f"⚠️ お名前が『{target_name}』の方が見つかりませんでした。"
+
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
+        log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
+        return
+        
     # タグ分類の簡易抽出（#タグ名形式を想定）
     tags = re.findall(r"#(\w+)", user_message)
     tag_str = ", ".join(tags) if tags else "未分類"
@@ -622,9 +664,15 @@ def handle_message(event):
         reply_text = response.choices[0].message.content.strip()
 
         # ここで会社情報からの追記を実施
-        company_info_reply = search_company_info_by_keywords(user_message)
-        if company_info_reply:
-            reply_text += f"\n\n{company_info_reply}"
+        #company_info_reply = search_company_info_by_keywords(user_message)
+        #if company_info_reply:
+        #    reply_text += f"\n\n{company_info_reply}"
+
+        # 「会社情報」「社内情報」など明示キーワードが含まれるときのみ実行
+        if any(kw in user_message for kw in ["会社情報", "社内情報", "情報検索"]):
+            company_info_reply = search_company_info_by_keywords(user_message)
+            if company_info_reply:
+                reply_text += f"\n\n{company_info_reply}"
 
         rejection_phrases = ["申し訳", "できません", "わかりません", "お答えできません", "個人情報", "開示できません"]
         if any(phrase in reply_text for phrase in rejection_phrases):
