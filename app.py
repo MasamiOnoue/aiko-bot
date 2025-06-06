@@ -428,6 +428,7 @@ def daily_summary_scheduler():
             time.sleep(300)  # 5分待機（再実行防止）
         time.sleep(60)  # 1分ごとにチェック
 
+# ==== 6時間ごとにブログの更新をチェック（ブログのタイトルが更新されていたら）してサマリーを記録する ====
 def check_blog_updates():
     try:
         feed_url = "https://sun-name.com/bloglist/feed"  # RSSフィードURL
@@ -461,6 +462,7 @@ def get_read_titles_from_sheet():
         logging.error(f"既読タイトルの取得失敗: {e}")
         return []
 
+# ==== ブログの内容を要約して会社情報に更新する ====
 def register_blog_to_sheet(entry):
     try:
         values = [[
