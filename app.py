@@ -434,7 +434,7 @@ def handle_message(event):
             "・ユーザーが「はい」と答えたら回答し、「いいえ」と答えたらその話題には触れず、\n"
             "別の話題にしてください。"
         )},
-        {"role": "user", "content": context + "\n" + user_message}
+        {"role": "user", "content": context + "\n\n---ここから新しい質問です---\n\n" + user_message}
     ]
     try:
         response = client.chat.completions.create(
