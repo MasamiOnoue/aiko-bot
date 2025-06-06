@@ -356,7 +356,7 @@ def get_recent_experience_summary(sheet, user_name):
         return ""
 
 # ==== 会社情報スプレッドシートからキーワードで検索し、該当内容を返す関数 ====
-def search_company_info_by_keywords(user_message):
+def search_company_info_by_keywords(user_message, user_name, user_data):
     try:
         result = sheet.values().get(
             spreadsheetId=SPREADSHEET_ID4,
@@ -370,15 +370,15 @@ def search_company_info_by_keywords(user_message):
             searchable_text = " ".join(row[:5]).lower()
             if any(k in searchable_text for k in lowered_query.split()):
                 # ▼▼▼ 開示範囲チェックを追加 ▼▼▼
-                disclosure = row[10] if len(row) > 10 else ""
+                user_aliases = get_user_aliases(user_data)
+                #disclosure = row[10] if len(row) > 10 else ""
                 if disclosure in ["", "全員", "社内", "個人"]:
                     matched_rows.append((idx, row))
-                elif disclosure in user_name:
+                elif any(alias in disclosure for alias in user_aliases):
                     matched_rows.append((idx, row))
-                elif user_name in disclosure:
+                elif any(disclosure in alias for alias in user_aliases):
                     matched_rows.append((idx, row))
                 # ▲▲▲ この部分がなければ、個別制限が効かない ▲▲▲
-
         if not matched_rows:
             return None
 
@@ -487,6 +487,23 @@ def daily_summary_scheduler():
             check_blog_updates()
             time.sleep(300)
         time.sleep(60)
+        
+#  ==== ユーザー名の曖昧さ解決 ==== 
+def get_user_aliases(user_data):
+    aliases = set()
+    if not user_data:
+        return aliases
+    full_name = user_data.get("名前", "")
+    nickname = user_data.get("愛子ちゃんからの呼ばれ方", "")
+    if full_name:
+        aliases.add(full_name)
+        if len(full_name) >= 2:
+            aliases.add(full_name[:2])  # 姓だけ
+            aliases.add(full_name[-2:])  # 名だけ
+    if nickname:
+        aliases.add(nickname)
+        aliases.add(nickname.replace("さん", ""))
+    return aliases
         
 #  ==== メインのLINEから受信が来た時のメッセージ処理のメインルーチン ==== 
 @handler.add(MessageEvent, message=TextMessage)
@@ -687,7 +704,7 @@ def handle_message(event):
 
         # 「会社情報」「社内情報」など明示キーワードが含まれるときのみ実行
         if any(kw in user_message for kw in ["会社情報", "社内情報", "情報検索"]):
-            company_info_reply = search_company_info_by_keywords(user_message)
+            company_info_reply = search_company_info_by_keywords(user_message, user_name, user_data)
             if company_info_reply:
                 reply_text += f"\n\n{company_info_reply}"
 
