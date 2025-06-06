@@ -332,7 +332,7 @@ def summarize_daily_conversations():
                     0,           # 使用回数
                     name,      # 担当者
                     "社内"   # 開示範囲
-                ] + [""] * 16]  # 残りの予備2〜予備16を空で埋める
+                ] + [""] * 14]  # 残りの予備2〜予備16を空で埋める
                 
                 sheet.values().append(
                     spreadsheetId=SPREADSHEET_ID4,
@@ -695,7 +695,7 @@ def handle_message(event):
                 0,                                  # I: 使用回数
                 name,                               # J: 担当者
                 "社内"                             # K: 開示範囲
-            ] + [""] * 6]  # K〜P: 予備を空で埋める（列Zまで14列必要）
+            ] + [""] * 15]  # K〜Z: 予備を空で埋める（列Zまで14列必要）
 
             sheet.values().append(
                 spreadsheetId=SPREADSHEET_ID4,
