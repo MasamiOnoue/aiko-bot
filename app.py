@@ -323,9 +323,9 @@ def summarize_daily_conversations():
                 values = [[
                     "会話メモ",   # カテゴリ
                     "なし",       # キーワード
-                    msg[:30],    # 質問例（30文字程度）
-                    msg,         # 回答内容
-                    msg[:100],    # 回答要約（100文字程度）
+                    clean_log_message(msg[:30]),    # 質問例（30文字程度）
+                    clean_log_message(msg),         # 回答内容
+                    clean_log_message(msg[:100],    # 回答要約（100文字程度）
                     "LINE会話ログより自動登録",  # 補足情報
                     now_jst().strftime("%Y-%m-%d"),  # 最終更新日
                     "愛子",        # 登録者名
