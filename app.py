@@ -374,7 +374,29 @@ def handle_message(event):
     with cache_lock:
         user_recent = recent_user_logs.get(user_id, [])
 
-    context = "\n".join(row[4] for row in user_recent if len(row) >= 5)
+    # 過去ログ（最大10件）の中から、同一のメッセージは1回だけ抽出し、GPTへのcontextに 重複メッセージを含まないようにする
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    from sklearn.metrics.pairwise import cosine_similarity
+
+    context_entries = [row[4] for row in user_recent if len(row) >= 5]
+    unique_entries = []
+
+    if context_entries:
+        vectorizer = TfidfVectorizer().fit(context_entries)
+        vectors = vectorizer.transform(context_entries)
+        seen_indices = []
+        for i, vec in enumerate(vectors):
+            is_similar = False
+            for j in seen_indices:
+                sim = cosine_similarity(vec, vectors[j])[0][0]
+                if sim > 0.85:
+                    is_similar = True
+                    break
+            if not is_similar:
+                seen_indices.append(i)
+                unique_entries.append(context_entries[i])
+
+    context = "\n".join(unique_entries)
 
     # 経験ログ要約を文脈に加えOpenAIに伝える
     shared_summaries = get_recent_summaries()
