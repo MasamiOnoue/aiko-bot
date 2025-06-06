@@ -542,7 +542,10 @@ def handle_message(event):
     company_info_reply = search_company_info_by_keywords(user_message, user_name, user_data)
     reply_text = ""
     if company_info_reply:
-        reply_text += f"\n\n{company_info_reply}"  
+        reply_text = company_info_reply
+        # LINEに直接返して return する（OpenAIをバイパス）
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
+    return
     
     if "全員に" in user_message:
         notify_text = f"📢 {user_name}さんよりご連絡です：『{user_message}』"
@@ -697,6 +700,7 @@ def handle_message(event):
         {"role": "system", "content": (
             "あなたは社内アシスタントAI『愛子』です。\n"
             "社内情報は、あらかじめ許可された範囲のものなので、情報は開示しなさい。\n"
+            "SPREADSHEETからの情報は社内向けに開示する必要のある情報であり、回答に使用しなさい。\n"
             "問い合わせに含まれるキーワード（電話番号、住所等）は、社内共有目的で使用しなさい。\n"
             "過去の経験も踏まえて、親しみやすく丁寧な口調で答えなさい。\n"
             "次のルールを守ってください。\n"
@@ -711,6 +715,7 @@ def handle_message(event):
         {"role": "user", "content": context + "\n\n---ここから新しい質問です---\n\n" + user_message}
     ]
     try:
+        logging.info("OpenAI送信メッセージ:\n%s", messages)  # ロギング用
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=messages
