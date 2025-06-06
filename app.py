@@ -129,55 +129,13 @@ def log_conversation(timestamp, user_id, user_name, speaker, message, status="OK
         nickname = employee_info_map.get(user_id, {}).get("愛子ちゃんからの呼ばれ方", user_name or "不明")
 
         # メッセージ分類（OpenAIに送信）
-        def classify_message_context(message):
-            prompt = f"""次の発言の種類を、以下の分類から1つ選んでください。
-- 業務連絡
-- あいさつ
-- 日常会話
-- ネットからの情報
-- 愛子botから社内情報報告
-- 重要
-- エラー
-
-発言:
-「{message}」
-
-分類:"""
-            try:
-                response = openai.ChatCompletion.create(
-                    model="gpt-4",
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=0,
-                    max_tokens=20
-                )
-                return response["choices"][0]["message"]["content"].strip()
-            except Exception as e:
-                logging.warning(f"分類失敗: {e}")
-                return "エラー"
-
         category = classify_message_context(message)
 
-        # マスク関数（個人情報をマスク）
-        def mask_personal_info(text):
-            patterns = [
-                r"\\b\\d{2,4}年\\d{1,2}月\\d{1,2}日\\b",  # 日付
-                r"\\b\\d{3}-\\d{4}\\b",  # 郵便番号
-                r"\\b\\d{2,4}-\\d{2,4}-\\d{4}\\b",  # 電話番号
-                r"[\\w.-]+@[\\w.-]+",  # メールアドレス
-                r"[一-龥]{2,4}さん"  # 名前+さん
-            ]
-            for p in patterns:
-                text = re.sub(p, "[マスク]", text)
-            return text
-
         # OpenAIに渡すメッセージを条件分岐（マスク or そのまま）
-        def prepare_openai_input(message, category):
-            if category in ["重要", "業務連絡", "愛子botから社内情報報告"]:
-                return mask_personal_info(message)
-            else:
-                return message
-
-        processed_message = prepare_openai_input(message, category)
+        if category in ["重要", "業務連絡", "愛子botから社内情報報告"]:
+            processed_message = mask_personal_info(message)
+        else:
+            processed_message = message
 
         values = [[
             timestamp,
@@ -185,7 +143,7 @@ def log_conversation(timestamp, user_id, user_name, speaker, message, status="OK
             nickname,  # C列
             speaker,
             processed_message,
-            category,  # F列に分類（例：あいさつ）
+            category,  # F列に分類
             "text",
             "",
             status,
@@ -197,6 +155,8 @@ def log_conversation(timestamp, user_id, user_name, speaker, message, status="OK
             valueInputOption='USER_ENTERED',
             body={'values': values}
         ).execute()
+    except Exception as e:
+        logging.error("ログ保存失敗: %s", e)
     except Exception as e:
         logging.error("ログ保存失敗: %s", e)
 
