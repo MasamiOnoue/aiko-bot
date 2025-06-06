@@ -121,8 +121,6 @@ def get_recent_summaries(count=5):
         return ""
         
 # 会話ログの情報を保存する関数
-# 会話ログC列に従業員情報の「愛子ちゃんからの呼ばれ方」を記録
-# 会話ログの情報を保存する関数
 # 会話ログC列に従業員情報の「愛子ちゃんからの呼ばれ方」を記録し、F列にメッセージ分類を記録
 
 def log_conversation(timestamp, user_id, user_name, speaker, message, status="OK"):
@@ -159,12 +157,34 @@ def log_conversation(timestamp, user_id, user_name, speaker, message, status="OK
 
         category = classify_message_context(message)
 
+        # マスク関数（個人情報をマスク）
+        def mask_personal_info(text):
+            patterns = [
+                r"\\b\\d{2,4}年\\d{1,2}月\\d{1,2}日\\b",  # 日付
+                r"\\b\\d{3}-\\d{4}\\b",  # 郵便番号
+                r"\\b\\d{2,4}-\\d{2,4}-\\d{4}\\b",  # 電話番号
+                r"[\\w.-]+@[\\w.-]+",  # メールアドレス
+                r"[一-龥]{2,4}さん"  # 名前+さん
+            ]
+            for p in patterns:
+                text = re.sub(p, "[マスク]", text)
+            return text
+
+        # OpenAIに渡すメッセージを条件分岐（マスク or そのまま）
+        def prepare_openai_input(message, category):
+            if category in ["重要", "業務連絡", "愛子botから社内情報報告"]:
+                return mask_personal_info(message)
+            else:
+                return message
+
+        processed_message = prepare_openai_input(message, category)
+
         values = [[
             timestamp,
             user_id,
             nickname,  # C列
             speaker,
-            message,
+            processed_message,
             category,  # F列に分類（例：あいさつ）
             "text",
             "",
