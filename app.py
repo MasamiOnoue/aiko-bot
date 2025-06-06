@@ -164,7 +164,7 @@ def log_conversation(timestamp, user_id, user_name, speaker, message, status="OK
         logging.error("ログ保存失敗: %s", e)
 
 # 会話ログのF列（カテゴリー）をOpenAIに判定させる
-def classify_message_context(message, context_log=""):
+def classify_message_context(message):
     prompt = f"""次の発言の種類を、以下の分類から1つ選んでください。
 - 業務連絡
 - あいさつ
@@ -178,15 +178,18 @@ def classify_message_context(message, context_log=""):
 「{message}」
 
 分類:"""
-
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-4",
+            model="gpt-4o",
             messages=[{"role": "user", "content": prompt}],
             temperature=0,
             max_tokens=20
         )
-        return response["choices"][0]["message"]["content"].strip()
+        result = response["choices"][0]["message"]["content"].strip()
+        if result not in ["業務連絡", "あいさつ", "日常会話", "ネットからの情報", "愛子botから社内情報報告", "重要", "エラー"]:
+            logging.warning(f"不正な分類結果: {result} → 未分類に変更")
+            return "未分類"
+        return result
     except Exception as e:
         logging.warning(f"分類失敗: {e}")
         return "未分類"
