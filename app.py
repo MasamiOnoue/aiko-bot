@@ -732,13 +732,13 @@ def handle_message(event):
     else:
         reply_text = ask_openai_free_response(user_message)
         
-    # 5. OpenAI に送信
+    # 5. OpenAI に送信はしなくていい
     #messages = build_openai_messages(user_id, user_message) #OpenAIへのメッセージ
-    logging.info("OpenAI送信メッセージ:\n%s", user_message)
+    #logging.info("OpenAI送信メッセージ:\n%s", user_message)
     #ai_reply = ask_openai_polite_rephrase(user_message)  # ← この行を追加
     #line_bot_api.reply_message(event.reply_token, TextSendMessage(text=ai_reply))
-    log_conversation(timestamp.isoformat(), user_id, user_name, "AI", ai_reply)
-    return
+    #log_conversation(timestamp.isoformat(), user_id, user_name, "AI", ai_reply)
+    #return
 
     # 5. AI応答のログ（SPREADSHEETの会話ログ）に保存
     log_conversation(
@@ -786,7 +786,7 @@ def handle_message(event):
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
         log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
         return
-
+    
     match = re.search(r"(\S+?)(?:さん)?だけに伝えて", user_message)
     if match:
         target_name = match.group(1)
@@ -981,12 +981,13 @@ def handle_message(event):
         logging.error("OpenAI 応答失敗: %s", e)
         reply_text = "⚠️ 応答に失敗しました。政美さんにご連絡ください。"
 
-    log_conversation(now_jst().isoformat(), user_id, user_name, "AI", reply_text)
-
     # LINEへ返信
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
     return
     
+    # ログ記録（AI応答）
+    log_conversation(now_jst().isoformat(), user_id, user_name, "AI", reply_text)
+
 # Flask起動直前にこの行を追加
 threading.Thread(target=daily_summary_scheduler, daemon=True).start()
 
