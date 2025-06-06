@@ -618,32 +618,38 @@ def restore_masked_terms(text, original_text):
 
 # 個人情報は送らず、内容の要旨だけをOpenAIに伝えて丁寧で自然な日本語に整形された表現を取得する。
 # その後、マスクされた語句を元の文から復元する。
-def ask_openai_polite_rephrase(original_text, model="gpt-4o", temperature=0.5, max_tokens=100):
+def ask_openai_polite_rephrase(prompt):
     try:
-        masked_text = mask_personal_info(original_text)
-        prompt = (
-            f"丁寧で自然な日本語に言い換えてください：\n\n{masked_text}"
-        )
-
         response = client.chat.completions.create(
-            model=model,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=temperature,
-            max_tokens=max_tokens
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "次のユーザー発言を丁寧な言葉に言い換えてください。文意を変えずに敬語にしてください。30文字以内で返してください。"},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.5,
+            max_tokens=100
         )
-        reply = response.choices[0].message.content.strip()
-        
-        # 返答が不自然に重複していた場合、2行目以降を除去
-        lines = reply.split("\n")
-        if len(lines) > 1 and lines[0] == lines[1]:
-            reply = lines[0]
-            
-        # マスクされた語句を復元
-        return restore_masked_terms(reply, original_text)
-
+        return response.choices[0].message.content.strip()
     except Exception as e:
-        logging.error(f"OpenAI 応答失敗: {e}")
-        return "⚠️ 応答に失敗しました。しばらくしてからもう一度お試しください。"
+        logging.warning(f"丁寧語変換失敗: {e}")
+        return "すみません、言い換えに失敗しました。"
+
+# 通常の会話はOpenAIにそのまま渡す。
+def ask_openai_free_response(prompt):
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+            max_tokens=1000
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        logging.warning(f"OpenAI自由応答失敗: {e}")
+        return "すみません、ちょっと考えがまとまりませんでした。"
 
 # 削除対象の語句（すべて「覚えて系」）
 def clean_log_message(text):
@@ -706,6 +712,14 @@ def handle_message(event):
         status="OK"
     )
 
+    # 5. ユーザーの問いにマスクを付けてOpenAIに渡すかそのまま渡すかを分岐させ、マスクする場合はマスクしてOpenAIに丁寧語に変換する
+    if contains_personal_info(user_message):
+        masked_text = mask_personal_info(user_message)
+        reply_text = ask_openai_polite_rephrase(masked_text)
+        reply_text = restore_masked_info(reply_text, user_message)
+    else:
+        reply_text = ask_openai_free_response(user_message)
+        
     # 5. OpenAI に送信
     #messages = build_openai_messages(user_id, user_message) #OpenAIへのメッセージ
     logging.info("OpenAI送信メッセージ:\n%s", user_message)
