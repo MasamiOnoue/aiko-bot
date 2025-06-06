@@ -20,6 +20,9 @@ from googleapiclient.discovery import build
 import logging  #通信ログをRenderに出力するようにする
 from openai import OpenAI
 
+# 「冒頭」でOpenAIの役割を指定
+SYSTEM_PROMPT = "あなたは社内アシスタントAI『愛子』です。親しみやすく丁寧な口調で、社内の質問に答えてください。"
+
 client = OpenAI()
 
 logging.basicConfig(
