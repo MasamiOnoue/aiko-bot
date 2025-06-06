@@ -18,6 +18,9 @@ from openai import OpenAI
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 import logging  #通信ログをRenderに出力するようにする
+from openai import OpenAI
+
+client = OpenAI()
 
 logging.basicConfig(
     level=logging.INFO,
@@ -166,7 +169,7 @@ def log_conversation(timestamp, user_id, user_name, speaker, message, status="OK
 
 # 会話ログのF列（カテゴリー）をOpenAIに判定させる
 def classify_message_context(message):
-    prompt = f"""次の発言の種類を、以下の分類から1つ選んでください。
+    prompt = f"""次の発言を、以下の分類から最も近いもの1つを日本語で選んでください：
 - 業務連絡
 - あいさつ
 - 日常会話
@@ -180,19 +183,20 @@ def classify_message_context(message):
 
 分類:"""
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4o",
             messages=[{"role": "user", "content": prompt}],
             temperature=0,
             max_tokens=30
         )
-        result = response["choices"][0]["message"]["content"].strip()
+        result = response.choices[0].message.content.strip()
+
         if result not in ["業務連絡", "あいさつ", "日常会話", "ネットからの情報", "愛子botから社内情報報告", "重要", "エラー"]:
-            logging.warning(f"不正な分類結果: {result} → 未分類に変更")
+            logging.warning(f"分類結果が不正: {result}")
             return "未分類"
         return result
     except Exception as e:
-        logging.warning(f"分類失敗: {e}")
+        logging.warning(f"OpenAI分類失敗: {e}")
         return "未分類"
 
 # キャッシュをリフレッシュする
