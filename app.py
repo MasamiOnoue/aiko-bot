@@ -513,22 +513,46 @@ def get_user_aliases(user_data):
     return aliases
 
 #LINE愛子botの返答を自然な日本語にするようにOpenAIに依頼
-def ask_openai(messages, model="gpt-4o", temperature=0.7, max_tokens=800):
+def ask_openai_with_restore(original_text, model="gpt-4o", temperature=0.7, max_tokens=800):
     """
-    社内データや会話ログから生成されたプロンプトをもとに、
-    自然で丁寧な日本語の文章として整えるためのOpenAIラッパー関数。
+    個人情報をマスクしてOpenAIに送信し、応答後に復元して返す。
     """
+    masked_text = mask_personal_info(original_text)
+
     try:
         response = client.chat.completions.create(
             model=model,
-            messages=messages,
+            messages=[{"role": "user", "content": masked_text}],
             temperature=temperature,
             max_tokens=max_tokens
         )
-        return response.choices[0].message.content.strip()
+        reply = response.choices[0].message.content.strip()
+
+        # 簡易復元（氏名などマスクパターンに対応）
+        reply = reply.replace("[氏名]", extract_name(original_text))
+        reply = reply.replace("[メールアドレス]", extract_email(original_text))
+        reply = reply.replace("[電話番号]", extract_phone(original_text))
+
+        return reply
+
     except Exception as e:
         logging.error(f"OpenAI 応答失敗: {e}")
         return "⚠️ 応答に失敗しました。しばらくしてからもう一度お試しください。"
+        
+#LINE愛子botの渡すときにマスクする言葉１        
+def extract_name(text):
+    match = re.search(r'[\u4E00-\u9FFF]{2,4}', text)
+    return match.group(0) if match else "[氏名]"
+    
+#LINE愛子botの渡すときにマスクする言葉２
+def extract_email(text):
+    match = re.search(r'[\w.-]+@[\w.-]+', text)
+    return match.group(0) if match else "[メールアドレス]"
+    
+#LINE愛子botの渡すときにマスクする言葉３
+def extract_phone(text):
+    match = re.search(r'\b\d{2,4}-\d{2,4}-\d{3,4}\b', text)
+    return match.group(0) if match else "[電話番号]"
         
 #  ==== メインのLINEから受信が来た時のメッセージ処理のメインルーチン ==== 
 @handler.add(MessageEvent, message=TextMessage)
