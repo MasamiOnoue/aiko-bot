@@ -614,9 +614,9 @@ def handle_message(event):
 
     # 1. user_name空文字だった場合、LINEのプロフィールから取得
     if not user_name:
-    try:
-        profile = line_bot_api.get_profile(user_id)
-        user_name = profile.display_name
+        try:
+            profile = line_bot_api.get_profile(user_id)
+            user_name = profile.display_name
     except Exception as e:
         logging.warning(f"ユーザー名の取得に失敗しました: {e}")
         user_name = "未登録ユーザー"
