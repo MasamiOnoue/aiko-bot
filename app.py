@@ -727,9 +727,9 @@ def handle_message(event):
             messages=messages
         )
         # AIによる返答取得
-        logging.info("OpenAI送信メッセージ:\n%s", messages)  # ロギング用
         reply_text = response.choices[0].message.content.strip()
-
+        logging.info("OpenAI送信メッセージ:\n%s", messages)  # ロギング用
+        
         # ここで会社情報からの追記を実施
         #company_info_reply = search_company_info_by_keywords(user_message)
         #if company_info_reply:
