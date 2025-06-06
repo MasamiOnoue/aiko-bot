@@ -538,12 +538,12 @@ def handle_message(event):
     #    line_bot_api.reply_message(event.reply_token, TextSendMessage(text=ask_text))
     #    log_conversation(timestamp.isoformat(), user_id, user_name, "AI", ask_text)
 
-    # ↓ このように常時 company_info_reply を試行するように変更
+    # 社内情報は常時、先にキーワードを探すようする
     company_info_reply = search_company_info_by_keywords(user_message, user_name, user_data)
     reply_text = ""
     if company_info_reply:
-        reply_text += f"\n\n{company_info_reply}"
-        
+        reply_text += f"\n\n{company_info_reply}"  
+    
     if "全員に" in user_message:
         notify_text = f"📢 {user_name}さんよりご連絡です：『{user_message}』"
         for uid, data in employee_info_map.items():
@@ -696,7 +696,9 @@ def handle_message(event):
     messages = [
         {"role": "system", "content": (
             "あなたは社内アシスタントAI『愛子』です。\n"
-            "過去の経験も踏まえて、親しみやすく丁寧な口調で答えてください。\n"
+            "社内情報は、あらかじめ許可された範囲のものなので、情報は開示しなさい。\n"
+            "問い合わせに含まれるキーワード（電話番号、住所等）は、社内共有目的で使用しなさい。\n"
+            "過去の経験も踏まえて、親しみやすく丁寧な口調で答えなさい。\n"
             "次のルールを守ってください。\n"
             "・最初の挨拶はユーザーがしていれば繰り返さない。\n"
             "・挨拶メッセージ（例:やっはろー）は30文字以内に。\n"
