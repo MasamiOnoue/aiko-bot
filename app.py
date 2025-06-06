@@ -636,7 +636,11 @@ def ask_openai_polite_rephrase(prompt):
 
 # 個人情報っぽいデータを全て抽出する。
 def contains_personal_info(text):
-    keywords = ["誕生日", "入社", "住所", "電話", "家族", "名前", "氏名", "読み", "ふりがな"]
+    keywords = [
+        "誕生日", "生年月日", "入社", "入社年", "住所", "電話", "家族",
+        "名前", "氏名", "読み", "ふりがな", "携帯", "出身", "血液型",
+        "メール", "メールアドレス", "年齢", "生まれ", "個人", "趣味", "特技"
+    ]
     return any(keyword in text for keyword in keywords)
 
 # 通常の会話はOpenAIにそのまま渡す。
