@@ -475,12 +475,12 @@ def handle_message(event):
         )
         reply_text = response.choices[0].message.content.strip()
 
-        if any(reply_text.startswith(phrase) for phrase in ["申し訳", "できません", "わかりません", "お答えできません"]):
-        #if reply_text.startswith("申し訳") or reply_text.startswith("できません"):
+        rejection_phrases = ["申し訳", "できません", "わかりません", "お答えできません", "個人情報", "開示できません"]
+        if any(phrase in reply_text for phrase in rejection_phrases):
             fallback = search_employee_info_by_keywords(user_message)
-            if "見つかりました" in fallback:
+            if "📌" in fallback:  # 社内情報が見つかった場合のみ
                 reply_text += "\n\n" + fallback
-
+        
         if show_greeting and not any(reply_text.startswith(g) for g in greeting_keywords + ai_greeting_phrases):
             reply_text = f"{greeting}{user_name}。" + reply_text
     except Exception as e:
