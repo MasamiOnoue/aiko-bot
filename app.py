@@ -581,7 +581,7 @@ def handle_message(event):
     company_info_reply = search_company_info_by_keywords(user_message, user_name, user_data)
     if company_info_reply:
         prompt = f"以下の社内情報に基づいて、質問『{user_message}』に丁寧に日本語で答えてください。\n\n社内情報:\n{company_info_reply}"
-        ai_reply = ask_openai(messages=[{"role": "user", "content": prompt}])
+        ai_reply = ask_openai_polite_rephrase(prompt)
         #ai_reply = ask_openai_polite_rephrase(original_text, model="gpt-4o", temperature=0.5, max_tokens=100):
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=ai_reply))
         log_conversation(timestamp.isoformat(), user_id, user_name, "AI", ai_reply)
@@ -591,7 +591,7 @@ def handle_message(event):
     employee_info_reply = search_employee_info_by_keywords(user_message)
     if "📌" in employee_info_reply:
         prompt = f"以下の従業員情報に基づいて、質問『{user_message}』に答えてください。\n\n従業員情報:\n{employee_info_reply}"
-        ai_reply = ask_openai(messages=[{"role": "user", "content": prompt}])
+        ai_reply = ask_openai_polite_rephrase(prompt)
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=ai_reply))
         log_conversation(timestamp.isoformat(), user_id, user_name, "AI", ai_reply)
         return
@@ -599,7 +599,7 @@ def handle_message(event):
     # OpenAI に送信
     messages = build_openai_messages(user_id, user_message)
     logging.info("OpenAI送信メッセージ:\n%s", messages)
-    ai_reply = ask_openai(messages=messages)
+    ai_reply = ask_openai_polite_rephrase(prompt)
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=ai_reply))
     log_conversation(timestamp.isoformat(), user_id, user_name, "AI", ai_reply)
         
