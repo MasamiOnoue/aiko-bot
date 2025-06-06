@@ -700,7 +700,7 @@ def handle_message(event):
                 0,                                  # I: 使用回数
                 name,                               # J: 担当者
                 "社内"                             # K: 開示範囲
-            ] + [""] * 15]  # K〜Z: 予備を空で埋める（列Zまで14列必要）
+            ] + [""] * 14]  # K〜Z: 予備を空で埋める（列Zまで14列必要）
 
             sheet.values().append(
                 spreadsheetId=SPREADSHEET_ID4,
