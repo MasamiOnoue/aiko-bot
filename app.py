@@ -4,6 +4,7 @@ import logging
 import datetime
 import threading
 import time
+import json
 import re
 import feedparser #ブログチェック機能
 import pytz
