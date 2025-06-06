@@ -545,7 +545,7 @@ def handle_message(event):
         reply_text = company_info_reply
         # LINEに直接返して return する（OpenAIをバイパス）
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
-    return
+        return
     
     if "全員に" in user_message:
         notify_text = f"📢 {user_name}さんよりご連絡です：『{user_message}』"
