@@ -524,12 +524,26 @@ def handle_message(event):
     is_important = any(kw in user_message for kw in important_keywords)
     experience_context = get_recent_experience_summary(sheet, user_name)
 
+    # 1. 会社情報を優先してチェック
+    company_info_reply = search_company_info_by_keywords(user_message, user_name, user_data)
+    if company_info_reply:
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=company_info_reply))
+        log_conversation(timestamp.isoformat(), user_id, user_name, "AI", company_info_reply)
+        return
+
+    # 2. 従業員情報もチェック（会社情報で該当しなかった場合）
+    employee_info_reply = search_employee_info_by_keywords(user_message)
+    if "📌" in employee_info_reply:
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=employee_info_reply))
+        log_conversation(timestamp.isoformat(), user_id, user_name, "AI", employee_info_reply)
+        return
+        
     # デバッグ用。employee_info_mapをRenderログに出力
-    logging.info("🔥 employee_info_map の内容確認開始")
-    try:
-        logging.info("employee_info_map:\n%s", json.dumps(employee_info_map, ensure_ascii=False, indent=2))
-    except Exception as e:
-        logging.warning("employee_info_map のログ出力に失敗しました: %s", str(e))
+    #logging.info("🔥 employee_info_map の内容確認開始")
+    #try:
+    #    logging.info("employee_info_map:\n%s", json.dumps(employee_info_map, ensure_ascii=False, indent=2))
+    #except Exception as e:
+    #    logging.warning("employee_info_map のログ出力に失敗しました: %s", str(e))
     
     #メッセージから「他の人に伝える」意図があるか判定。対象が「全員」か「特定の相手」かを確認。対象に通知を送信
     bridge_keywords = ["伝えて", "知らせて", "連絡して", "お知らせして", "休みます", "遅れます"]
