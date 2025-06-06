@@ -128,10 +128,15 @@ def log_conversation(timestamp, user_id, user_name, speaker, message, status="OK
         # 従業員情報マップから「愛子ちゃんからの呼ばれ方」を取得
         nickname = employee_info_map.get(user_id, {}).get("愛子ちゃんからの呼ばれ方", user_name or "不明")
 
-        # メッセージ分類（OpenAIに送信）
+                # メッセージ分類（OpenAIに送信）
         category = classify_message_context(message)
+        
+        # 🔻 AI応答のときは分類せず固定カテゴリにする
+        if speaker == "AI":
+            category = "愛子botから社内情報報告"
+        else:
+            category = classify_message_context(message)
 
-        # OpenAIに渡すメッセージを条件分岐（マスク or そのまま）
         if category in ["重要", "業務連絡", "愛子botから社内情報報告"]:
             processed_message = mask_personal_info(message)
         else:
@@ -140,10 +145,10 @@ def log_conversation(timestamp, user_id, user_name, speaker, message, status="OK
         values = [[
             timestamp,
             user_id,
-            nickname,  # C列
+            nickname,
             speaker,
             processed_message,
-            category,  # F列に分類
+            category,    # F列にカテゴリされたものを入れる
             "text",
             "",
             status,
@@ -157,8 +162,6 @@ def log_conversation(timestamp, user_id, user_name, speaker, message, status="OK
         ).execute()
     except Exception as e:
         logging.error("ログ保存失敗: %s", e)
-    except Exception as e:
-        logging.error("ログ保存失敗: %s", e)
 
 # 会話ログのF列（カテゴリー）をOpenAIに判定させる
 def classify_message_context(message, context_log=""):
@@ -169,6 +172,7 @@ def classify_message_context(message, context_log=""):
 - ネットからの情報
 - 愛子botから社内情報報告
 - 重要
+- エラー
 
 発言:
 「{message}」
