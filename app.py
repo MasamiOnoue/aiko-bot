@@ -441,11 +441,19 @@ def handle_message(event):
         context = f"【このユーザーの過去の要約情報】\n{user_summary}\n\n" + context
 
     # 最後の挨拶から2時間以内なら greeting を削除
-    show_greeting = True
-    if user_id in last_greeting_time:
+    show_greeting = True    # 最初に show_greeting フラグを True にしておく
+
+    # 1. ユーザー発言にすでに挨拶が含まれていれば、挨拶しない
+    if any(g in user_message for g in greeting_keywords + ai_greeting_phrases):
+        show_greeting = False
+
+    # 2. 2時間以内に挨拶済みなら、挨拶しない
+    elif user_id in last_greeting_time:
         elapsed = (timestamp - last_greeting_time[user_id]).total_seconds()
         if elapsed < 7200:
             show_greeting = False
+
+    # 3. 挨拶する場合は、時刻を記録
     if show_greeting:
         last_greeting_time[user_id] = timestamp
 
