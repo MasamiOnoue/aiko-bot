@@ -545,9 +545,6 @@ def restore_masked_terms(text, original_text):
 # その後、マスクされた語句を元の文から復元する。
 def ask_openai_polite_rephrase(original_text, model="gpt-4o", temperature=0.5, max_tokens=100):
     try:
-        # 不要なフレーズを除去（例：「覚えてください」など）
-        cleaned_text = re.sub(r"覚えておいて", "おぼえておいて", "覚えてね", "記録して", "メモして", "覚えてください", "覚えて", "忘れないで", "記憶して", "保存して", "記録お願い", "記録をお願い", original_text, flags=re.IGNORECASE).strip()
-
         masked_text = mask_personal_info(original_text)
         prompt = (
             f"丁寧で自然な日本語に言い換えてください：\n\n{masked_text}"
@@ -572,6 +569,17 @@ def ask_openai_polite_rephrase(original_text, model="gpt-4o", temperature=0.5, m
     except Exception as e:
         logging.error(f"OpenAI 応答失敗: {e}")
         return "⚠️ 応答に失敗しました。しばらくしてからもう一度お試しください。"
+
+# 削除対象の語句（すべて「覚えて系」）
+def clean_log_message(text):
+    patterns = [
+        "覚えてください", "覚えて", "おぼえておいて", "覚えてね",
+        "記録して", "メモして", "忘れないで", "記憶して",
+        "保存して", "記録お願い", "記録をお願い"
+    ]
+    # パターンを1つの正規表現にまとめて削除（どれか1つにマッチすれば削除）
+    pattern = "|".join(map(re.escape, patterns))
+    return re.sub(pattern, "", text, flags=re.IGNORECASE).strip()
         
 #  ==== メインのLINEから受信が来た時のメッセージ処理のメインルーチン ==== 
 @handler.add(MessageEvent, message=TextMessage)
