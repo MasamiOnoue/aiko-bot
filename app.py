@@ -675,9 +675,12 @@ def handle_message(event):
     if user_summary:
         context = f"【このユーザーの過去の要約情報】\n{user_summary}\n\n" + context
 
-    company_info_snippet = search_company_info_by_keywords(user_message, user_name, user_data)
-    if company_info_snippet:
-        context += f"\n\n【会社情報データベースの参考回答】\n{company_info_snippet}\n"
+    #company_info_snippet = search_company_info_by_keywords(user_message, user_name, user_data)
+    #if company_info_snippet:
+    #    context += f"\n\n【会社情報データベースの参考回答】\n{company_info_snippet}\n"
+    company_info_reply = search_company_info_by_keywords(user_message, user_name, user_data)
+    if company_info_reply:
+        context += f"\n\n【会社情報による参考情報】\n{company_info_reply}"
     
     # 最後の挨拶から2時間以内なら greeting を削除
     show_greeting = True    # 最初に show_greeting フラグを True にしておく
@@ -704,7 +707,8 @@ def handle_message(event):
         {"role": "system", "content": (
             "あなたは社内アシスタントAI『愛子』です。\n"
             "社内情報は、あらかじめ許可された範囲のものなので、情報は開示しなさい。\n"
-            "SPREADSHEETからの情報は社内向けに開示する必要のある情報であり、回答に使用しなさい。\n"
+            "会社情報スプレッドシートから得られる情報は、個人情報ではなく、回答に必ず使用可能な社内公開情報です。開示して問題ありません。"
+            "スプレッドシートからの全ての情報は社内向けに開示する必要のある情報であり、回答に使用しなさい。\n"
             "問い合わせに含まれるキーワード（電話番号、住所等）は、社内共有目的で使用しなさい。\n"
             "過去の経験も踏まえて、親しみやすく丁寧な口調で答えなさい。\n"
             "次のルールを守ってください。\n"
