@@ -5,6 +5,8 @@ import datetime
 import threading
 import time
 import re
+import feedparser #ブログチェック機能
+import pytz
 from flask import Flask, request, abort, jsonify
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
@@ -13,7 +15,6 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
-import pytz
 
 load_dotenv()
 
@@ -341,7 +342,77 @@ def daily_summary_scheduler():
             time.sleep(300)  # 5分待機（再実行防止）
         time.sleep(60)  # 1分ごとにチェック
 
-# メインのLINEから受信が来た時のメッセージ処理のメインルーチン
+def check_blog_updates():
+    try:
+        feed_url = "https://sun-name.com/bloglist/feed"  # RSSフィードURL
+        feed = feedparser.parse(feed_url)
+        existing_titles = get_read_titles_from_sheet()
+        new_entries = []
+
+        for entry in feed.entries:
+            if entry.title not in existing_titles:
+                new_entries.append(entry)
+                register_blog_to_sheet(entry)
+
+        if new_entries:
+            logging.info(f"新しいブログ記事 {len(new_entries)} 件を会社情報に登録しました")
+        else:
+            logging.info("新しいブログ記事はありません")
+
+    except Exception as e:
+        logging.error(f"ブログチェック失敗: {e}")
+
+def get_read_titles_from_sheet():
+    try:
+        result = sheet.values().get(
+            spreadsheetId=SPREADSHEET_ID4,
+            range='会社情報!A2:Z'
+        ).execute()
+        rows = result.get("values", [])
+        titles = [r[2] for r in rows if len(r) > 2 and r[0] == "ブログ更新"]
+        return titles
+    except Exception as e:
+        logging.error(f"既読タイトルの取得失敗: {e}")
+        return []
+
+def register_blog_to_sheet(entry):
+    try:
+        values = [[
+            "ブログ更新",          # カテゴリ
+            entry.link,          # URL
+            entry.title,         # タイトル
+            entry.summary[:100],# 要約
+            entry.published,     # 日付
+            "自動取得",         # 補足情報
+            now_jst().strftime("%Y-%m-%d"),
+            "システム",
+            0,
+            "愛子"
+        ] + [""] * 16]
+
+        sheet.values().append(
+            spreadsheetId=SPREADSHEET_ID4,
+            range='会社情報!A:Z',
+            valueInputOption='USER_ENTERED',
+            body={'values': values}
+        ).execute()
+
+    except Exception as e:
+        logging.error(f"ブログ記事の登録失敗: {e}")
+
+# ==== 自動実行スレッドにブログチェック追加 ====
+def daily_summary_scheduler():
+    while True:
+        now = now_jst()
+        if now.hour == 3 and 0 <= now.minute < 5:
+            summarize_daily_conversations()
+            time.sleep(300)
+        if now.hour in [9, 13, 17, 21] and 0 <= now.minute < 5:
+            check_blog_updates()
+            time.sleep(300)
+        time.sleep(60)
+        
+#  ==== メインのLINEから受信が来た時のメッセージ処理のメインルーチン ==== 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     user_message = event.message.text.strip()
