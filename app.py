@@ -111,9 +111,6 @@ def get_user_summary(user_id):
     
 # 愛子の経験ログ＝つまり日記の情報を読み込む
 summaries = generate_daily_summaries(sheet, employee_info_map)
-        
-# 会話ログの情報を保存する関数で、会話ログC列に従業員情報の「愛子ちゃんからの呼ばれ方」を記録し、F列にメッセージ分類を記録
-append_conversation_log(sheet, user_id, user_name, message, timestamp)
 
 # 会話ログのF列（カテゴリー）をOpenAIに判定させる
 classify_message_context(message)
@@ -752,7 +749,8 @@ def handle_message(event):
         )
         reply_text = ask_openai_polite_rephrase(prompt)
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
-        log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
+        append_conversation_log(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
+        #log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
         return
 
     # 3. 従業員情報を回答前にチェック
