@@ -668,6 +668,10 @@ def clean_log_message(text):
 #  ==== メインのLINEから受信が来た時のメッセージ処理のメインルーチン ==== 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
+    line_bot_api.reply_message(                       #テスト
+        event.reply_token,                            #テスト
+        TextSendMessage(text="テストメッセージです。")  #テスト
+    )                                                 #テスト
     user_message = event.message.text.strip()
     user_id = event.source.user_id
     timestamp = now_jst()
