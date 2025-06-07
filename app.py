@@ -48,6 +48,15 @@ from company_info import (
 )
 from aiko_diary_report import generate_daily_summaries
 
+#googleのDriveファイルにアクセスする関数の定義
+def get_google_sheets_service():
+    service_account_info = json.loads(os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON"))
+    credentials = service_account.Credentials.from_service_account_info(
+        service_account_info,
+        scopes=["https://www.googleapis.com/auth/spreadsheets"]
+    )
+    return build("sheets", "v4", credentials=credentials).spreadsheets()
+    
 # 環境変数からサービスアカウントJSONを取得
 service_account_info = json.loads(os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON"))
 
