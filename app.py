@@ -111,8 +111,7 @@ def get_user_summary(user_id):
 # 愛子の経験ログ＝つまり日記の情報を読み込む
 summaries = generate_daily_summaries(sheet, employee_info_map)
         
-# 会話ログの情報を保存する関数
-# 会話ログC列に従業員情報の「愛子ちゃんからの呼ばれ方」を記録し、F列にメッセージ分類を記録
+# 会話ログの情報を保存する関数で、会話ログC列に従業員情報の「愛子ちゃんからの呼ばれ方」を記録し、F列にメッセージ分類を記録
 append_conversation_log(sheet, user_id, user_name, message, timestamp)
 
 # 会話ログのF列（カテゴリー）をOpenAIに判定させる
