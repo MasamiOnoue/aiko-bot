@@ -257,7 +257,7 @@ SPREADSHEET_IDS = [
     SPREADSHEET_ID5  # 愛子の経験ログ
 ]
 
-# === 全ユーザーIDの読み込み（従業員情報 M列） ===
+# === 全ユーザーのUIDの読み込み（従業員情報のM列にあるLINEのUID） ===
 def load_all_user_ids():
     try:
         result = sheet.values().get(
@@ -274,6 +274,21 @@ def load_all_user_ids():
     except Exception as e:
         logging.error(f"ユーザーIDリストの取得失敗: {e}")
         return []
+        
+# === 全ユーザーUIDから愛子ちゃんからの呼ばれ方を選ぶ関数（従業員情報のLINEのUIDはM列） ===
+def get_user_callname(user_id):
+    try:
+        result = sheet.values().get(
+            spreadsheetId=SPREADSHEET_ID2,
+            range="従業員情報!A2:W"
+        ).execute()
+        rows = result.get("values", [])
+        for row in rows:
+            if len(row) > 12 and row[12] == user_id:  # M列は12番目なので
+                return row[3] if len(row) > 3 else "LINEのIDが不明な方"  # D列の「愛子ちゃんからの呼ばれ方」は3番目なので
+    except Exception as e:
+        logging.error(f"ユーザー名取得失敗: {e}")
+    return "LINEのIDが不明な方"
         
 # グローバル定義
 all_user_ids = load_all_user_ids()
