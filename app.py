@@ -361,7 +361,7 @@ def search_employee_info_by_keywords(query):
     return "⚠️ 社内情報でも見つかりませんでした。"
 
 # ==== キーワードから取引先情報から情報を取ってくる ====
-def search_vendor_info_by_keywords(user_message):
+def search_partner_info_by_keywords(user_message):
     try:
         values = sheet.values().get(
             spreadsheetId=SPREADSHEET_ID3,  # 取引先情報
