@@ -750,7 +750,8 @@ def handle_message(event):
     user_id = event.source.user_id
     timestamp = now_jst()
     user_data = employee_info_map.get(user_id, {})
-    user_name = user_data.get("愛子ちゃんからの呼ばれ方", user_data.get("名前", ""))
+    user_name = get_user_callname(user_id)    # LINEのUIDから会話している人の名前をuser_nameに入れる
+    #user_name = user_data.get("愛子ちゃんからの呼ばれ方", user_data.get("名前", ""))
     important_keywords = ["覚えておいて", "おぼえておいて", "覚えてね", "記録して", "メモして", "覚えてください", "覚えて", "忘れないで", "記憶して", "保存して", "記録お願い", "記録をお願い"]
     is_important = any(kw in user_message for kw in important_keywords)
     experience_context = get_recent_experience_summary(sheet, user_name)
