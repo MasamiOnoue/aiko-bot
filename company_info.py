@@ -6,6 +6,9 @@ import os
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 import googleapiclient.discovery
+import openai
+
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 #from company_info import COMPANY_INFO_COLUMNS   #会社情報スプレッドシートの列構成定義の呼び出し
 # company_infoルーチンに必要なIDを宣言
