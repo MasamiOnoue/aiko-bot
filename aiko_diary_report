@@ -41,3 +41,25 @@ def write_daily_summary(sheet, summaries, spreadsheet_id):
     except Exception as e:
         logging.error(f"日報書き込みに失敗: {e}")
 
+# ==== 6時間ごとにブログの更新をチェック（ブログのタイトルが更新されていたら）してサマリーを記録する ====
+def check_blog_updates():
+    try:
+        feed_url = "https://sun-name.com/bloglist/feed"  # RSSフィードURL
+        feed = feedparser.parse(feed_url)
+        existing_titles = get_read_titles_from_sheet()
+        new_entries = []
+
+        for entry in feed.entries:
+            if entry.title not in existing_titles:
+                new_entries.append(entry)
+                register_blog_to_sheet(entry)
+
+        if new_entries:
+            logging.info(f"新しいブログ記事 {len(new_entries)} 件を会社情報に登録しました")
+        else:
+            logging.info("新しいブログ記事はありません")
+
+    except Exception as e:
+        logging.error(f"ブログチェック失敗: {e}")
+
+
