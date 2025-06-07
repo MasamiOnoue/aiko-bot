@@ -258,7 +258,7 @@ def load_all_user_ids():
     except Exception as e:
         logging.error(f"ユーザーIDリストの取得失敗: {e}")
         return []
-
+        
 # グローバル定義
 all_user_ids = load_all_user_ids()
 
