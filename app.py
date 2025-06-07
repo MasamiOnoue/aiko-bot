@@ -46,6 +46,7 @@ from company_info import (
     aiko_moods,
     classify_message_context
 )
+from aiko_diary_report import generate_daily_summaries
 
 # 環境変数からサービスアカウントJSONを取得
 service_account_info = json.loads(os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON"))
@@ -282,39 +283,6 @@ def search_experience_log_by_keywords(user_message):
         logging.error(f"経験ログ検索失敗: {e}")
         return ""
 
-# ==== 自動日記をOpenAIにやらせる関数（毎日3時に呼び出す） ====
-def generate_daily_summaries(logs_by_user, sheet, client, SPREADSHEET_ID5):
-    for (uid, name), messages in logs_by_user.items():
-        context = "\n".join(messages)
-        prompt = [
-            {"role": "system", "content": (
-                "あなたはLINEで社員と日々会話しているAIアシスタント『愛子』です。\n"
-                "以下はあなたが昨日、社員と交わした会話の記録です。\n"
-                "感情・思考・行動・課題・印象などを踏まえ、社員とのやり取りを振り返る日記として"
-                "自分の目線で2000文字以内で自然に要約してください。\n"
-                "主語は『私』を用い、社員を『○○さん』などと呼んでください。\n"
-                "第三者視点ではなく主観的に親しみやすく、丁寧かつ少しツンデレ気味の口調で書いてください。。\n"
-                "また、要約文中に改行は使用せず、すべての内容を削除せずに情報を圧縮して簡潔に記述してください。"
-            )},
-            {"role": "user", "content": context}
-        ]
-        try:
-            response = client.chat.completions.create(
-                model="gpt-4o",
-                messages=prompt,
-                max_tokens=800
-            )
-            summary = response.choices[0].message.content.strip().replace("\n", " ")  # 改行除去
-            sheet.values().append(
-                spreadsheetId=SPREADSHEET_ID5,
-                range='経験ログ!A2:B',
-                valueInputOption='USER_ENTERED',
-                body={'values': [[now_jst().isoformat(), summary]]}
-            ).execute()
-            logging.info(f"{name} の要約を保存しました")
-        except Exception as e:
-            logging.error(f"{name} の要約失敗: {e}")
-
 # ==== 自動サマリー保存関数（毎日3時に実行） ====
 def write_daily_summary():
     if not summary_log:
@@ -381,8 +349,8 @@ def summarize_daily_conversations():
                 important_entries.append((uid, name, message))
 
         # 要約生成
-        generate_daily_summaries(logs_by_user, sheet, client, SPREADSHEET_ID5)
-
+        summaries = generate_daily_summaries(sheet_service, employee_info_map)
+        
         # 重要情報を会社情報に記録
         for uid, name, msg in important_entries:
             try:
