@@ -683,6 +683,10 @@ def handle_message(event):
     important_keywords = ["覚えておいて", "おぼえておいて", "覚えてね", "記録して", "メモして", "覚えてください", "覚えて", "忘れないで", "記憶して", "保存して", "記録お願い", "記録をお願い"]
     is_important = any(kw in user_message for kw in important_keywords)
     experience_context = get_recent_experience_summary(sheet, user_name)
+    
+    employee_info_map = get_employee_info(sheet)   # 従業員情報を取得（キャッシュしてあればそれを使う）
+    employee_info_reply = search_employee_info_by_keywords(user_message, employee_info_map)    # メッセージ内のキーワードに応じて従業員情報を検索
+
     last_user_message[user_id] = user_message
 
     # 会話ログのF列（カテゴリー）をOpenAIに判定させる
