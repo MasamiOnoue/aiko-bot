@@ -836,14 +836,6 @@ def handle_message(event):
         reply_text = restore_masked_terms(reply_text, user_message)
     else:
         reply_text = ask_openai_free_response(user_message)
-        
-    # 5. OpenAI に送信はしなくていい
-    #messages = build_openai_messages(user_id, user_message) #OpenAIへのメッセージ
-    #logging.info("OpenAI送信メッセージ:\n%s", user_message)
-    #ai_reply = ask_openai_polite_rephrase(user_message)  # ← この行を追加
-    #line_bot_api.reply_message(event.reply_token, TextSendMessage(text=ai_reply))
-    #log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
-    #return
 
     # 5. AI応答のログ（SPREADSHEETの会話ログ）に保存
     append_log_conversation(
