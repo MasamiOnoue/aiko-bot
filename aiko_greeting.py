@@ -7,7 +7,6 @@ import time
 import json
 import openai
 import re
-import feedparser #ブログチェック機能
 import pytz
 import random
 from dotenv import load_dotenv
