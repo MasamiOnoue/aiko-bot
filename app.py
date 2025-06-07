@@ -936,7 +936,7 @@ def handle_message(event):
             if not any(keyword in user_message for keyword in ["はい", "いいえ"]):
                 user_expect_yes_no[user_id] = False
             else:
-                reply_text = "愛子わかんない、はいかいいえで答えてくれますか？"
+                reply_text = "愛子わかんないです…"はい"か"いいえ"で答えてくれますか？"
                 line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
                 log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
                 return
