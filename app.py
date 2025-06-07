@@ -112,9 +112,6 @@ def get_user_summary(user_id):
 # 愛子の経験ログ＝つまり日記の情報を読み込む
 summaries = generate_daily_summaries(sheet, employee_info_map)
 
-# 会話ログのF列（カテゴリー）をOpenAIに判定させる
-classify_message_context(message)
-
 # キャッシュをリフレッシュする
 def refresh_cache():
     global recent_user_logs
@@ -727,6 +724,9 @@ def handle_message(event):
     is_important = any(kw in user_message for kw in important_keywords)
     experience_context = get_recent_experience_summary(sheet, user_name)
     last_user_message[user_id] = user_message
+
+    # 会話ログのF列（カテゴリー）をOpenAIに判定させる
+    classify_message_context(user_message)
 
     # 1. user_name空文字だった場合、LINEのプロフィールから取得
     if not user_name:
