@@ -1006,8 +1006,7 @@ def handle_message(event):
             reply_text = f"{greeting}{user_name}。" + reply_text
         except Exception as e:
             logging.error("挨拶整形でエラー: %s", e)
-        
-    # 挨拶を省いて通常の応答だけを返す（reply_textはそのまま）
+            # ↑挨拶を省いて通常の応答だけを返す（reply_textはそのまま）
 
     messages = [
         {"role": "system", "content": (
