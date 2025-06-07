@@ -26,8 +26,6 @@ import logging  #通信ログをRenderに出力するようにする
 from openai import OpenAI
 import googleapiclient.discovery
 from company_info import COMPANY_INFO_COLUMNS   #会社情報スプレッドシートの列構成定義の呼び出し
-from employee_info import get_employee_info
-from sheets_service import get_google_sheets_service  # もし分離していれば
 
 # company_info.pyに会社の情報の読み込みや書き込み系の関数を移動したのでそれらを呼び出しておく
 from company_info import (
