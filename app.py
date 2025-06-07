@@ -917,6 +917,30 @@ def handle_message(event):
         return
 
     # === ユーザーからの「はい」「いいえ」応答で分岐 ===
+        # メッセージ中に「〜に伝えて」が含まれていた場合の即時代行送信機能
+    if "に伝えて" in user_message:
+        match = re.search(r'(.+?)に伝えて', user_message)
+        if match:
+            target_name = match.group(1).strip().replace("さん", "")
+            message_body = user_message.replace(match.group(0), "").strip()
+            matched_uid = None
+            for uid, data in employee_info_map.items():
+                if data.get("名前") == target_name or data.get("愛子ちゃんからの呼ばれ方") == target_name:
+                    matched_uid = uid
+                    break
+            if matched_uid:
+                notify_text = f"📢 {user_name}さんより伝言です：『{message_body}』"
+                try:
+                    line_bot_api.push_message(matched_uid, TextSendMessage(text=notify_text))
+                    reply_text = f"{target_name}さんに伝えておきました。"
+                except Exception as e:
+                    logging.error(f"通知失敗: {matched_uid} - {e}")
+                    reply_text = f"⚠️ {target_name}さんへの通知に失敗しました。"
+            else:
+                reply_text = f"⚠️ お名前が『{target_name}』の方が見つかりませんでした。"
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
+            log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
+            return
     if user_expect_yes_no.get(user_id) == "confirm_all":
         if user_message.strip() == "はい":
             message_to_all = f"{user_name}さんから「{last_user_message.get(user_id, '連絡があります')}」と連絡がありました。"
