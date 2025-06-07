@@ -21,16 +21,17 @@ SPREADSHEET_ID5 = os.getenv('SPREADSHEET_ID5')  # 愛子の経験ログ
 
 # ==== Googleのシート共有サービスを宣言 ====
 def get_google_sheets_service():
-    import json
-    from google.oauth2 import service_account
-    from googleapiclient.discovery import build
-
-    service_account_info = json.loads(os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON"))
-    credentials = service_account.Credentials.from_service_account_info(
-        service_account_info,
-        scopes=["https://www.googleapis.com/auth/spreadsheets"]
-    )
-    return build("sheets", "v4", credentials=credentials).spreadsheets()
+    try:
+        service_account_info = json.loads(os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON"))
+        credentials = service_account.Credentials.from_service_account_info(
+            service_account_info,
+            scopes=["https://www.googleapis.com/auth/spreadsheets"]
+        )
+        service = build("sheets", "v4", credentials=credentials)
+        return service
+    except Exception as e:
+        logging.error(f"Google Sheets Serviceの初期化に失敗: {e}")
+        return None
 
 # ==== 会社情報スプレッドシートの列構成定義 ====
 COMPANY_INFO_COLUMNS = {
