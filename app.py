@@ -21,6 +21,7 @@ from googleapiclient.discovery import build
 import logging  #通信ログをRenderに出力するようにする
 from openai import OpenAI
 import googleapiclient.discovery
+from company_info import COMPANY_INFO_COLUMNS   #会社情報スプレッドシートの列構成定義の呼び出し
 
 # company_info.pyに会社の情報の読み込みや書き込み系の関数を移動したのでそれらを呼び出しておく
 from company_info import (
@@ -38,8 +39,7 @@ from company_info import (
     find_employee_by_name_or_title,
     get_name_by_uid,
     get_employee_tags,
-    aiko_moods,
-    COMPANY_INFO_COLUMNS   #会社情報スプレッドシートの列構成定義の呼び出し
+    aiko_moods
 )
 
 # 「冒頭」でOpenAIの役割を指定
