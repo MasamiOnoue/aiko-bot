@@ -292,7 +292,7 @@ def get_user_callname(user_id):
         
 # グローバル定義
 all_user_ids = load_all_user_ids()
-user_callname = get_user_callname()
+user_callname = get_user_callname(user_id)
 
 @app.route("/callback", methods=["POST"])
 def callback():
