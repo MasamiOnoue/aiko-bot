@@ -116,36 +116,7 @@ summaries = generate_daily_summaries(sheet, employee_info_map)
 append_conversation_log(sheet, user_id, user_name, message, timestamp)
 
 # 会話ログのF列（カテゴリー）をOpenAIに判定させる
-def classify_message_context(message):
-    prompt = f"""次の発言を、以下の分類から最も近いもの1つを日本語で選んでください：
-- 業務連絡
-- あいさつ
-- 日常会話
-- ネットからの情報
-- 愛子botから社内情報報告
-- 重要
-- エラー
-
-発言:
-「{message}」
-
-分類:"""
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0,
-            max_tokens=30
-        )
-        result = response.choices[0].message.content.strip()
-
-        if result not in ["業務連絡", "あいさつ", "日常会話", "ネットからの情報", "愛子botから社内情報報告", "重要", "エラー"]:
-            logging.warning(f"分類結果が不正: {result}")
-            return "未分類"
-        return result
-    except Exception as e:
-        logging.warning(f"OpenAI分類失敗: {e}")
-        return "未分類"
+classify_message_context(message)
 
 # キャッシュをリフレッシュする
 def refresh_cache():
