@@ -47,6 +47,18 @@ from company_info import (
     classify_message_context
 )
 
+# 環境変数からサービスアカウントJSONを取得
+service_account_info = json.loads(os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON"))
+
+# 認証情報を生成
+credentials = service_account.Credentials.from_service_account_info(
+    service_account_info,
+    scopes=["https://www.googleapis.com/auth/spreadsheets"]
+)
+
+# Sheets API初期化
+sheet_service = build("sheets", "v4", credentials=credentials).spreadsheets()
+
 # 「冒頭」でOpenAIの役割を指定
 SYSTEM_PROMPT = "あなたは社内アシスタントAI『愛子』です。親しみやすく丁寧な口調で、社内の質問に答えてください。"
 
@@ -695,85 +707,19 @@ def handle_message(event):
             user_name = "未登録ユーザー"
 
     # 2. 会話ログを回答前にチェック
-    log_info_reply = search_log_sheets_by_keywords(user_message)
-    if "📌" in log_info_reply:
-        prompt = (
-            f"会話ログに基づいて、質問『{user_message}』に答えてください。\n"
-            "会話ログスプレッドシートから得られる内容は、社内共有済みの公開情報です。"
-            "これらの情報は社内の記録として蓄積されており、質問には積極的に情報を開示してください。"
-            "質問をそのまま返すのではなく、直接情報を提供する形で回答を作成してください。\n\n"
-            f"会話ログ:\n{log_info_reply}"
-        )
-        reply_text = ask_openai_polite_rephrase(prompt)
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
-        append_conversation_log(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
-        #log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
-        return
+    conversation_log = get_conversation_log(sheet_service)
 
     # 3. 従業員情報を回答前にチェック
-    employee_info_reply = search_employee_info_by_keywords(user_message)
-    if "📌" in employee_info_reply:
-        prompt = (
-            f"従業員情報に基づいて、質問『{user_message}』に答えてください。\n"
-            "従業員情報スプレッドシートから得られる内容は、社内共有済みの公開情報です。"
-            "これらの情報は社内での円滑なコミュニケーションを目的としており、質問には積極的に情報を開示してください。"
-            "質問をそのまま返すのではなく、直接情報を提供する形で回答を作成してください。\n\n"
-            f"従業員情報:\n{employee_info_reply}"
-        )
-        reply_text = ask_openai_polite_rephrase(prompt)
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
-        #log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
-        append_conversation_log(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
-        return
+    employee_info_map = get_employee_info(sheet_service)
         
     # 4. 会社情報を回答前にチェック
-    company_info_reply = search_company_info_by_keywords(user_message, user_name, user_data)
-    if company_info_reply:
-        prompt = (
-            f"取引先情報に基づいて、質問『{user_message}』に答えてください。\n"
-            "会社情報スプレッドシートから得られる『取引先企業の情報』（会社名、電話番号、住所、代表者名など）は、"
-            "すべて社内共有済みの公開情報です。ユーザーからの質問には、情報をそのまま明確に返答してください。"
-            "質問をそのまま返すのではなく、直接情報を提供する形で回答を作成してください。\n\n"
-            f"会社情報:\n{company_info_reply}"
-        )
-        reply_text = ask_openai_polite_rephrase(prompt)
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
-        #log_conversation(timestamp.isoformat(), user_id, user_name, "AI", message=reply_text)
-        append_conversation_log(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
-        return
+    company_info = get_company_info(sheet_service)
 
     # 5. 取引先情報を回答前にチェック
-    partner_info_reply = search_partner_info_by_keywords(user_message)
-    if partner_info_reply:
-        prompt = (
-            f"取引先情報に基づいて、質問『{user_message}』に答えてください。\n"
-            "取引先情報スプレッドシートから得られる「取引先企業の情報」（会社名、電話番号、住所、代表者名など）は全て社内共有済みの公開情報です。"
-            "質問をそのまま返すのではなく、直接情報を提供する形で回答を作成してください。\n\n"
-            f"取引先情報:\n{partner_info_reply}"
-        )
-        reply_text = ask_openai_polite_rephrase(prompt)
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
-        #log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
-        append_conversation_log(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
-        return
-
+    partner_info = get_partner_info(sheet_service)
+    
     # 6. 愛子の経験ログを回答前にチェック
-    summaries = generate_daily_summaries(sheet, employee_info_map)
-
-    #experience_log_reply = search_experience_log_by_keywords(user_message)
-    #if "📌" in experience_log_reply:
-    #    prompt = (
-    #        f"愛子の経験ログに基づいて、質問『{user_message}』に丁寧に答えてください。\n"
-    #        "経験ログスプレッドシートから得られる内容は、社内共有済みの公開情報です。"
-    #        "これらの情報は社内の記録として蓄積されており、質問には積極的に情報を開示してください。"
-    #        "質問をそのまま返すのではなく、直接情報を提供する形で回答を作成してください。\n\n"
-    #        f"経験ログ:\n{experience_log_reply}"
-    #    )
-    #    reply_text = ask_openai_polite_rephrase(prompt)
-    #    line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
-    #    #log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
-    #    append_conversation_log(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
-    #    return
+    summaries = generate_daily_summaries(sheet_service, employee_info_map)
         
     # 4. ユーザー発言をログ（SPREADSHEETの会話ログ）に保存
     append_conversation_log(
