@@ -127,56 +127,6 @@ def get_time_based_greeting():
     else:
         return "ねむねむ。"
 
-def get_user_summary(user_id):
-    try:
-        result = sheet.values().get(
-            spreadsheetId=SPREADSHEET_ID5,
-            range='経験ログ!A2:D'
-        ).execute()
-        rows = result.get("values", [])
-        for row in reversed(rows):
-            if row[1] == user_id and len(row) >= 4:
-                return row[3]  # 要約内容
-    except Exception as e:
-        logging.error(f"{user_id} の経験ログ取得失敗: {e}")
-    return ""
-    
-# キャッシュをリフレッシュする
-def refresh_cache():
-    global recent_user_logs
-    try:
-        result = sheet.values().get(
-            spreadsheetId=SPREADSHEET_ID1,
-            range='会話ログ!A2:J'
-        ).execute()
-        rows = result.get("values", [])[-100:]
-        with cache_lock:
-            recent_user_logs = {
-                row[1]: [r for r in rows if r[1] == row[1] and r[3] == "ユーザー"][-10:]
-                for row in rows if len(row) >= 4
-            }
-    except Exception as e:
-        logging.error("キャッシュ更新失敗: %s", e)
-
-def load_employee_info():
-    global employee_info_map
-    try:
-        result = sheet.values().get(
-            spreadsheetId=SPREADSHEET_ID2,
-            range='従業員情報!A1:Z'  # ← A1:Z に要修正
-        ).execute()
-        rows = result.get("values", [])
-        headers = rows[0]
-        for row in rows[1:]:
-            data = dict(zip(headers, row))
-            uid = data.get("LINEのUID")
-            if uid:
-                employee_info_map[uid] = data
-    except Exception as e:
-        logging.error("従業員情報の読み込み失敗: %s", e)
-
-threading.Thread(target=lambda: (lambda: [refresh_cache() or load_employee_info() or time.sleep(300) for _ in iter(int, 1)])(), daemon=True).start()
-
 app = Flask(__name__)
 
 line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
@@ -192,39 +142,6 @@ SPREADSHEET_IDS = [
     SPREADSHEET_ID5  # 愛子の経験ログ
 ]
 
-# === 全ユーザーのUIDの読み込み（従業員情報のM列にあるLINEのUID） ===
-def load_all_user_ids():
-    try:
-        result = sheet.values().get(
-            spreadsheetId=SPREADSHEET_ID2,
-            range="従業員情報!M2:M"
-        ).execute()
-        values = result.get("values", [])
-        # UIDの形式として：Uで始まり長さが10文字以上のものだけを採用
-        return [
-            row[0].strip()
-            for row in values
-            if row and row[0].strip().startswith("U") and len(row[0].strip()) >= 10
-        ]
-    except Exception as e:
-        logging.error(f"ユーザーIDリストの取得失敗: {e}")
-        return []
-        
-# === 全ユーザーUIDから愛子ちゃんからの呼ばれ方を選ぶ（従業員情報のLINEのUIDはM列） ===
-def get_user_callname(user_id):
-    try:
-        result = sheet.values().get(
-            spreadsheetId=SPREADSHEET_ID2,
-            range="従業員情報!A2:W"
-        ).execute()
-        rows = result.get("values", [])
-        for row in rows:
-            if len(row) > 12 and row[12] == user_id:  # M列は12番目なので
-                return row[3] if len(row) > 3 else "LINEのIDが不明な方"  # D列の「愛子ちゃんからの呼ばれ方」は3番目なので
-    except Exception as e:
-        logging.error(f"ユーザー名取得失敗: {e}")
-    return "LINEのIDが不明な方"
-        
 # グローバル変数を定義
 all_user_ids = load_all_user_ids()
 user_expect_yes_no = {}
@@ -243,88 +160,6 @@ def callback():
         abort(500)
     return "OK", 200
 
-@handler.add(FollowEvent)
-def handle_follow(event):
-    line_bot_api.reply_message(
-        event.reply_token,
-        TextSendMessage(text="愛子です。お友だち登録ありがとうございます。")
-    )
-
-# ==== キーワードから取引先情報から情報を取ってくる ====
-def search_partner_info_by_keywords(user_message):
-    try:
-        values = sheet.values().get(
-            spreadsheetId=SPREADSHEET_ID3,  # 取引先情報
-            range="取引先情報!A2:Z"
-        ).execute().get("values", [])
-
-        results = []
-        for row in values:
-            if any(user_message in cell for cell in row):
-                results.append("📌[取引先] " + "｜".join(row))
-        return "\n".join(results)
-    except Exception as e:
-        logging.error(f"取引先情報の検索失敗: {e}")
-        return ""
-
-# ==== キーワードから会話ログから情報を取ってくる ====
-def search_log_sheets_by_keywords(user_message):
-    try:
-        values = sheet.values().get(
-            spreadsheetId=SPREADSHEET_ID1,  # 会話ログ
-            range="会話ログ!A2:D"
-        ).execute().get("values", [])
-
-        results = []
-        for row in values:
-            if any(user_message in cell for cell in row):
-                results.append("📌[会話ログ] " + "｜".join(row))
-        return "\n".join(results)
-    except Exception as e:
-        logging.error(f"会話ログ検索失敗: {e}")
-        return ""
-        
-# ==== キーワードから経験ログから情報を取ってくる ====
-def search_experience_log_by_keywords(user_message):
-    try:
-        values = sheet.values().get(
-            spreadsheetId=SPREADSHEET_ID5,
-            range="経験ログ!A2:D"
-        ).execute().get("values", [])
-        results = []
-        for row in values:
-            if any(user_message in cell for cell in row):
-                results.append("📌[経験ログ] " + "｜".join(row))
-        return "\n".join(results)
-    except Exception as e:
-        logging.error(f"経験ログ検索失敗: {e}")
-        return ""
-
-# ==== 自動サマリー保存関数（毎日3時に実行） ====
-def write_daily_summary():
-    if not summary_log:
-        return
-    date_str = datetime.datetime.now().strftime('%Y-%m-%d')
-    all_text = "\n".join(summary_log)
-    trimmed = all_text[:1900]  # 少し余裕をもって2000文字制限
-
-    # ツンデレ愛子の気分別メッセージリスト
-    closing_messages = [
-        "……今日もよくがんばったのっ！（ドヤァ）",
-        "ふん、別にサンネームのためにまとめたんじゃないんだからねっ！",
-        "ちょっとだけ、やりきった気がするかも…なんてね♪",
-        "これで明日もきっと大丈夫…だと思う、た、たぶんね",
-        "やるじゃない、愛子。ちょっとだけ自分を褒めてあげたい",
-        "今日は疲れたもうくったくたやねん",
-        "明日もがんばるもん",
-        "あーんもう嫌！誰かに癒されたい！",
-        "今日もやりきったでござる"
-    ]
-    ending = random.choice(closing_messages)
-
-    summary_text = f"愛子の日報（{date_str}）\n" + trimmed + f"\n{ending}"
-    summary_log.clear()   #サマリーログをクリア
-        
 # ==== １日の会話ログのサマリーを作成 ====
 def summarize_daily_conversations():
     try:
