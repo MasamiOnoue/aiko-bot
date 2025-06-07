@@ -765,7 +765,8 @@ def handle_message(event):
         )
         reply_text = ask_openai_polite_rephrase(prompt)
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
-        log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
+        #log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
+        append_conversation_log(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
         return
         
     # 4. 会社情報を回答前にチェック
@@ -780,7 +781,8 @@ def handle_message(event):
         )
         reply_text = ask_openai_polite_rephrase(prompt)
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
-        log_conversation(timestamp.isoformat(), user_id, user_name, "AI", message=reply_text)
+        #log_conversation(timestamp.isoformat(), user_id, user_name, "AI", message=reply_text)
+        append_conversation_log(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
         return
 
     # 5. 取引先情報を回答前にチェック
@@ -794,7 +796,8 @@ def handle_message(event):
         )
         reply_text = ask_openai_polite_rephrase(prompt)
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
-        log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
+        #log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
+        append_conversation_log(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
         return
 
     # 6. 愛子の経験ログを回答前にチェック
@@ -809,11 +812,12 @@ def handle_message(event):
         )
         reply_text = ask_openai_polite_rephrase(prompt)
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
-        log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
+        #log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
+        append_conversation_log(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
         return
         
     # 4. ユーザー発言をログ（SPREADSHEETの会話ログ）に保存
-    log_conversation(
+    append_conversation_log(
         timestamp=timestamp.isoformat(),
         user_id=user_id,
         user_name=user_name,
