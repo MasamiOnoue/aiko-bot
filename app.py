@@ -10,6 +10,10 @@ import re
 import feedparser #ブログチェック機能
 import pytz
 import random
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from flask import Flask, request, abort, jsonify
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
@@ -52,8 +56,6 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
-
-load_dotenv()
 
 # 日本標準時 (JST) タイムゾーン
 JST = pytz.timezone('Asia/Tokyo')
