@@ -62,9 +62,12 @@ service_account_info = json.loads(os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON"))
 
 # 事前に employee_info_map を作成
 sheet_service = get_google_sheets_service()
+values = sheet_service.values().get(
+    spreadsheetId=SPREADSHEET_ID2,
+    range='従業員情報!A2:W'
+).execute().get('values', [])
+
 employee_info_map = get_employee_info(sheet_service)
-spreadsheet = sheet_service.spreadsheets()
-values = spreadsheet.values().get(...).execute()
 
 # 認証情報を生成
 credentials = service_account.Credentials.from_service_account_info(
