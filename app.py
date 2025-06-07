@@ -246,12 +246,29 @@ line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
 handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+# === 全ユーザーIDの読み込み（従業員情報 M列） ===
+def load_all_user_ids():
+    try:
+        result = sheet.values().get(
+            spreadsheetId=SPREADSHEET_ID2,
+            range="従業員情報!M2:M"
+        ).execute()
+        values = result.get("values", [])
+        return [row[0] for row in values if row]
+    except Exception as e:
+        logging.error(f"ユーザーIDリストの取得失敗: {e}")
+        return []
+
+# グローバル定義
+all_user_ids = load_all_user_ids()
+
+# Googleのスプレッドシート（情報保管先）のID定義
 SPREADSHEET_IDS = [
-    SPREADSHEET_ID1,
-    SPREADSHEET_ID2,
-    SPREADSHEET_ID3,
-    SPREADSHEET_ID4,
-    SPREADSHEET_ID5
+    SPREADSHEET_ID1,  # 会話ログ
+    SPREADSHEET_ID2,  # 従業員情報
+    SPREADSHEET_ID3,  # 取引先情報
+    SPREADSHEET_ID4,  # 会社情報
+    SPREADSHEET_ID5  # 愛子の経験ログ
 ]
 
 @app.route("/callback", methods=["POST"])
@@ -714,6 +731,7 @@ def handle_message(event):
     important_keywords = ["覚えておいて", "おぼえておいて", "覚えてね", "記録して", "メモして", "覚えてください", "覚えて", "忘れないで", "記憶して", "保存して", "記録お願い", "記録をお願い"]
     is_important = any(kw in user_message for kw in important_keywords)
     experience_context = get_recent_experience_summary(sheet, user_name)
+    last_user_message[user_id] = user_message
 
     # 1. user_name空文字だった場合、LINEのプロフィールから取得
     if not user_name:
