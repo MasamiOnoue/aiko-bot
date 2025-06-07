@@ -22,6 +22,24 @@ import logging  #通信ログをRenderに出力するようにする
 from openai import OpenAI
 import googleapiclient.discovery
 
+# company_info.pyに会社の情報の読み込みや書き込み系の関数を移動したのでそれらを呼び出しておく
+from company_info import (
+    get_conversation_log,
+    get_employee_info,
+    search_employee_info_by_keywords,
+    get_partner_info,
+    get_company_info,
+    get_experience_log,
+    append_conversation_log,
+    append_company_info,
+    append_experience_log,
+    generate_daily_summaries,
+    write_daily_summary,
+    find_employee_by_name_or_title,
+    get_name_by_uid,
+    get_employee_tags,
+    aiko_moods
+)
 # 「冒頭」でOpenAIの役割を指定
 SYSTEM_PROMPT = "あなたは社内アシスタントAI『愛子』です。親しみやすく丁寧な口調で、社内の質問に答えてください。"
 
