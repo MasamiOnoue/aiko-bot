@@ -111,9 +111,6 @@ def get_user_summary(user_id):
         logging.error(f"{user_id} の経験ログ取得失敗: {e}")
     return ""
     
-# 愛子の経験ログ＝つまり日記の情報を読み込む
-summaries = generate_daily_summaries(sheet, employee_info_map)
-
 # キャッシュをリフレッシュする
 def refresh_cache():
     global recent_user_logs
@@ -761,20 +758,22 @@ def handle_message(event):
         return
 
     # 6. 愛子の経験ログを回答前にチェック
-    experience_log_reply = search_experience_log_by_keywords(user_message)
-    if "📌" in experience_log_reply:
-        prompt = (
-            f"愛子の経験ログに基づいて、質問『{user_message}』に丁寧に答えてください。\n"
-            "経験ログスプレッドシートから得られる内容は、社内共有済みの公開情報です。"
-            "これらの情報は社内の記録として蓄積されており、質問には積極的に情報を開示してください。"
-            "質問をそのまま返すのではなく、直接情報を提供する形で回答を作成してください。\n\n"
-            f"経験ログ:\n{experience_log_reply}"
-        )
-        reply_text = ask_openai_polite_rephrase(prompt)
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
-        #log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
-        append_conversation_log(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
-        return
+    summaries = generate_daily_summaries(sheet, employee_info_map)
+
+    #experience_log_reply = search_experience_log_by_keywords(user_message)
+    #if "📌" in experience_log_reply:
+    #    prompt = (
+    #        f"愛子の経験ログに基づいて、質問『{user_message}』に丁寧に答えてください。\n"
+    #        "経験ログスプレッドシートから得られる内容は、社内共有済みの公開情報です。"
+    #        "これらの情報は社内の記録として蓄積されており、質問には積極的に情報を開示してください。"
+    #        "質問をそのまま返すのではなく、直接情報を提供する形で回答を作成してください。\n\n"
+    #        f"経験ログ:\n{experience_log_reply}"
+    #    )
+    #    reply_text = ask_openai_polite_rephrase(prompt)
+    #    line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
+    #    #log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
+    #    append_conversation_log(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
+    #    return
         
     # 4. ユーザー発言をログ（SPREADSHEETの会話ログ）に保存
     append_conversation_log(
