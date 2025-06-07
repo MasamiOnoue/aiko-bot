@@ -3,7 +3,7 @@ import logging
 from datetime import datetime
 import pytz
 import os
-import json
+import json  # ✅ JSON読み込み用
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 import googleapiclient.discovery
