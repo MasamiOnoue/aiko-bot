@@ -64,7 +64,7 @@ service_account_info = json.loads(os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON"))
 sheet_service = get_google_sheets_service()
 values = sheet_service.values().get(
     spreadsheetId=SPREADSHEET_ID2,
-    range='従業員情報!A2:W'
+    range='従業員情報!A1:Z'
 ).execute().get('values', [])
 
 employee_info_map = get_employee_info(sheet_service)
