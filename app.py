@@ -282,9 +282,6 @@ def search_experience_log_by_keywords(user_message):
         logging.error(f"経験ログ検索失敗: {e}")
         return ""
 
-
-
-
 # ==== 自動日記をOpenAIにやらせる関数（毎日3時に呼び出す） ====
 def generate_daily_summaries(logs_by_user, sheet, client, SPREADSHEET_ID5):
     for (uid, name), messages in logs_by_user.items():
