@@ -791,7 +791,8 @@ def handle_message(event):
     if any(kw in user_message for kw in notice_keywords):
         follow_up = f"{user_name}、どなたかに伝えますか？"
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=follow_up))
-        log_conversation(timestamp.isoformat(), user_id, user_name, "AI", follow_up)
+        append_conversation_log(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
+        #log_conversation(timestamp.isoformat(), user_id, user_name, "AI", follow_up)
         return
 
     # === ユーザーからの「はい」「いいえ」応答で分岐 ===
@@ -817,7 +818,8 @@ def handle_message(event):
             else:
                 reply_text = f"⚠️ お名前が『{target_name}』の方が見つかりませんでした。"
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
-            log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
+            #log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
+            append_conversation_log(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
             return
     if user_expect_yes_no.get(user_id) == "confirm_all":
         if user_message.strip() == "はい":
@@ -828,13 +830,15 @@ def handle_message(event):
             reply_text = "みなさんにお知らせしました。"
             user_expect_yes_no[user_id] = False
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
-            log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
+            #log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
+            append_conversation_log(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
             return
         elif user_message.strip() == "いいえ":
             reply_text = "誰に送りますか？お名前で教えてください。"
             user_expect_yes_no[user_id] = "await_specific_name"
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
-            log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
+            #log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
+            append_conversation_log(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
             return
 
     elif user_expect_yes_no.get(user_id) == "await_specific_name":
@@ -855,7 +859,8 @@ def handle_message(event):
         else:
             reply_text = f"⚠️『{target_name}』さんが見つかりませんでした。もう一度正確にお名前を教えてください。"
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
-        log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
+        #log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
+        append_conversation_log(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
         return
 
     elif isinstance(user_expect_yes_no.get(user_id), dict) and user_expect_yes_no[user_id].get("stage") == "confirm_specific":
@@ -872,7 +877,8 @@ def handle_message(event):
         else:
             reply_text = "『はい』か『いいえ』で教えてください。"
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
-        log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
+        #log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
+        append_conversation_log(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
         return
 
     elif isinstance(user_expect_yes_no.get(user_id), dict) and user_expect_yes_no[user_id].get("stage") == "adding_more":
@@ -891,7 +897,8 @@ def handle_message(event):
             reply_text = f"⚠️『{target_name}』さんが見つからないか、すでに追加済みです。"
         user_expect_yes_no[user_id] = entry
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
-        log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
+        #log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
+        append_conversation_log(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
         return
 
     # 5. ユーザーの問いにマスクを付けてOpenAIに渡すかそのまま渡すかを分岐させ、マスクする場合はマスクしてOpenAIに丁寧語に変換する
@@ -911,7 +918,7 @@ def handle_message(event):
     #return
 
     # 5. AI応答のログ（SPREADSHEETの会話ログ）に保存
-    log_conversation(
+    append_log_conversation(
         timestamp=timestamp.isoformat(),
         user_id=user_id,
         user_name=user_name,
@@ -954,7 +961,8 @@ def handle_message(event):
                     logging.error(f"通知失敗: {uid} - {e}")
         reply_text = "みなさんにお知らせしました。"
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
-        log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
+        #log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
+        append_conversation_log(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
         return
     
     match = re.search(r"(\S+?)(?:さん)?だけに伝えて", user_message)
@@ -975,7 +983,8 @@ def handle_message(event):
             reply_text = f"⚠️ お名前が『{target_name}』の方が見つかりませんでした。"
 
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
-        log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
+        #log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
+        append_conversation_log(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
         return
         
     # タグ分類の簡易抽出（#タグ名形式を想定）
@@ -1033,7 +1042,8 @@ def handle_message(event):
     ai_greeting_phrases = ["こんにちは", "こんにちわ", "おはよう", "こんばんは", "ごきげんよう", "お疲れ様", "おつかれさま"]
 
     # ログ保存：status="重要" を渡す
-    log_conversation(timestamp.isoformat(), user_id, user_name, "ユーザー", user_message, status="重要" if is_important else "OK")
+    #log_conversation(timestamp.isoformat(), user_id, user_name, "ユーザー", user_message, status="重要" if is_important else "OK")
+    append_conversation_log(timestamp.isoformat(), user_id, user_name, "ユーザー", user_message, status="重要" if is_important else "OK")
             
     with cache_lock:
         user_recent = recent_user_logs.get(user_id, [])
@@ -1205,7 +1215,8 @@ def handle_message(event):
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
     
     # ログ記録（AI応答）
-    log_conversation(now_jst().isoformat(), user_id, user_name, "AI", reply_text)
+    #log_conversation(now_jst().isoformat(), user_id, user_name, "AI", reply_text)
+    append_conversation_log(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
 
 # Flask起動直前にこの行を追加
 threading.Thread(target=daily_summary_scheduler, daemon=True).start()
