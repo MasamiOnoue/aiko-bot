@@ -81,8 +81,6 @@ def classify_message_context(message):
         logging.warning(f"OpenAI分類失敗: {e}")
         return "未分類"
 
-
-
 # ---------------- 読み込み系 関数 ----------------
 
 # 会話ログを取得（SPREADSHEET_ID1）
