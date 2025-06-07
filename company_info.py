@@ -1,8 +1,15 @@
 # company_info.py に分離すべき会社・従業員情報・会話ログ・取引先情報・経験ログ処理
-
 import logging
 from datetime import datetime
 import pytz
+import os
+
+# company_infoルーチンに必要なIDを宣言
+SPREADSHEET_ID1 = os.getenv('SPREADSHEET_ID1')  # 会話ログ
+SPREADSHEET_ID2 = os.getenv('SPREADSHEET_ID2')  # 従業員情報
+SPREADSHEET_ID3 = os.getenv('SPREADSHEET_ID3')  # 取引先情報
+SPREADSHEET_ID4 = os.getenv('SPREADSHEET_ID4')  # 会社情報
+SPREADSHEET_ID5 = os.getenv('SPREADSHEET_ID5')  # 愛子の経験ログ
 
 # ==== 会社情報スプレッドシートの列構成定義 ====
 COMPANY_INFO_COLUMNS = {
