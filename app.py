@@ -275,7 +275,7 @@ def load_all_user_ids():
         logging.error(f"ユーザーIDリストの取得失敗: {e}")
         return []
         
-# === 全ユーザーUIDから愛子ちゃんからの呼ばれ方を選ぶ関数（従業員情報のLINEのUIDはM列） ===
+# === 全ユーザーUIDから愛子ちゃんからの呼ばれ方を選ぶ（従業員情報のLINEのUIDはM列） ===
 def get_user_callname(user_id):
     try:
         result = sheet.values().get(
@@ -292,6 +292,7 @@ def get_user_callname(user_id):
         
 # グローバル定義
 all_user_ids = load_all_user_ids()
+user_callname = get_user_callname()
 
 @app.route("/callback", methods=["POST"])
 def callback():
