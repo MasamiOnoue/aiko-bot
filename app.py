@@ -113,43 +113,7 @@ summaries = generate_daily_summaries(sheet, employee_info_map)
         
 # 会話ログの情報を保存する関数
 # 会話ログC列に従業員情報の「愛子ちゃんからの呼ばれ方」を記録し、F列にメッセージ分類を記録
-def log_conversation(timestamp, user_id, user_name, speaker, message, status="OK"):
-    try:
-        # 従業員情報マップから「愛子ちゃんからの呼ばれ方」を取得
-        nickname = employee_info_map.get(user_id, {}).get("愛子ちゃんからの呼ばれ方", user_name or "不明")
-
-        # メッセージ分類（OpenAIに送信）
-        if speaker == "AI":
-            # 🔻 AI応答のときは分類せず固定カテゴリにする
-            category = "愛子botから社内情報報告"
-            processed_message = message
-        else:
-            category = classify_message_context(message)
-            if category in ["重要", "業務連絡", "愛子botから社内情報報告"]:
-                processed_message = mask_personal_info(message)
-            else:
-                processed_message = message
-
-        values = [[
-            timestamp,
-            user_id,
-            nickname,
-            speaker,
-            processed_message,
-            category,    # F列にカテゴリされたものを入れる
-            "text",
-            "",
-            status,
-            ""
-        ]]
-        sheet.values().append(
-            spreadsheetId=SPREADSHEET_ID1,
-            range='会話ログ!A:J',
-            valueInputOption='USER_ENTERED',
-            body={'values': values}
-        ).execute()
-    except Exception as e:
-        logging.error("ログ保存失敗: %s", e)
+append_conversation_log(sheet, user_id, user_name, message, timestamp)
 
 # 会話ログのF列（カテゴリー）をOpenAIに判定させる
 def classify_message_context(message):
