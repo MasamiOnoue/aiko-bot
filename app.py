@@ -854,7 +854,7 @@ def handle_message(event):
                 now_jst().strftime("%Y-%m-%d"),     # G: 最終更新日
                 "愛子",                             # H: 登録者名
                 0,                                  # I: 使用回数
-                name,                               # J: 担当者
+                user_name,                               # J: 担当者
                 "社内"                             # K: 開示範囲
             ] + [""] * 14]  # K〜Z: 予備を空で埋める（列Zまで14列必要）
 
