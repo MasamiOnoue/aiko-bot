@@ -670,10 +670,6 @@ def clean_log_message(text):
 #  ==== メインのLINEから受信が来た時のメッセージ処理のメインルーチン ==== 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
-    line_bot_api.reply_message(                       #テスト
-        event.reply_token,                            #テスト
-        TextSendMessage(text="テストメッセージです。")  #テスト
-    )                                                 #テスト
     user_message = event.message.text.strip()
     user_id = event.source.user_id
     timestamp = now_jst()
@@ -1136,33 +1132,6 @@ def handle_message(event):
             # ↑挨拶を省いて通常の応答だけを返す
     else:
         greeting = ""
-
-    #show_greeting = True    # 最初に show_greeting フラグを True にしておく
-
-    # 1. ユーザー発言にすでに挨拶が含まれていれば、挨拶しない
-    #if any(g in user_message for g in greeting_keywords + ai_greeting_phrases):
-    #    show_greeting = False
-
-    # 2. 2時間以内に挨拶済みなら、挨拶しない
-    #elif user_id in last_greeting_time:
-    #    elapsed = (timestamp - last_greeting_time[user_id]).total_seconds()
-    #    if elapsed < 7200:
-    #        show_greeting = False
-
-    # 3. 挨拶する場合は、時刻を記録
-    #if show_greeting:
-    #    last_greeting_time[user_id] = timestamp
-
-    # ユーザーの発言にすでに挨拶が含まれているかチェック
-    #if any(g in user_message for g in greeting_keywords + ai_greeting_phrases):
-    #    show_greeting = False
-    #if show_greeting and not any(g in reply_text[:10] for g in greeting_keywords + ai_greeting_phrases):
-    #    try:
-    #        reply_text = reply_text.replace("[氏名]", user_name)
-    #        reply_text = f"{greeting}{user_name}。" + reply_text
-    #    except Exception as e:
-    #        logging.error("挨拶整形でエラー: %s", e)
-    #        # ↑挨拶を省いて通常の応答だけを返す（reply_textはそのまま）
 
     messages = [
         {"role": "system", "content": (
