@@ -263,7 +263,8 @@ def load_all_user_ids():
             range="従業員情報!M2:M"
         ).execute()
         values = result.get("values", [])
-        return [row[0] for row in values if row]
+        # UIDの形式が正しいものだけを返す（Uから始まる文字列のみ）
+        return [row[0] for row in values if row and row[0].startswith("U")]
     except Exception as e:
         logging.error(f"ユーザーIDリストの取得失敗: {e}")
         return []
