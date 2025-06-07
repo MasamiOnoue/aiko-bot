@@ -18,6 +18,19 @@ SPREADSHEET_ID3 = os.getenv('SPREADSHEET_ID3')  # 取引先情報
 SPREADSHEET_ID4 = os.getenv('SPREADSHEET_ID4')  # 会社情報
 SPREADSHEET_ID5 = os.getenv('SPREADSHEET_ID5')  # 愛子の経験ログ
 
+# ==== Googleのシート共有サービスを宣言 ====
+def get_google_sheets_service():
+    import json
+    from google.oauth2 import service_account
+    from googleapiclient.discovery import build
+
+    service_account_info = json.loads(os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON"))
+    credentials = service_account.Credentials.from_service_account_info(
+        service_account_info,
+        scopes=["https://www.googleapis.com/auth/spreadsheets"]
+    )
+    return build("sheets", "v4", credentials=credentials).spreadsheets()
+
 # ==== 会社情報スプレッドシートの列構成定義 ====
 COMPANY_INFO_COLUMNS = {
     "カテゴリ": 0,
