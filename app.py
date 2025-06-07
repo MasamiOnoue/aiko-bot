@@ -9,6 +9,7 @@ import openai
 import re
 import feedparser #ブログチェック機能
 import pytz
+import random
 from flask import Flask, request, abort, jsonify
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
@@ -19,6 +20,7 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 import logging  #通信ログをRenderに出力するようにする
 from openai import OpenAI
+import googleapiclient.discovery
 
 # 「冒頭」でOpenAIの役割を指定
 SYSTEM_PROMPT = "あなたは社内アシスタントAI『愛子』です。親しみやすく丁寧な口調で、社内の質問に答えてください。"
@@ -328,7 +330,8 @@ def generate_daily_summaries(logs_by_user, sheet, client, SPREADSHEET_ID5):
                 "以下はあなたが昨日、社員と交わした会話の記録です。\n"
                 "感情・思考・行動・課題・印象などを踏まえ、社員とのやり取りを振り返る日記として"
                 "自分の目線で2000文字以内で自然に要約してください。\n"
-                "主語は『私』を用い、社員を『○○さん』などと呼び、第三者視点ではなく主観的に書いてください。\n"
+                "主語は『私』を用い、社員を『○○さん』などと呼んでください。\n"
+                "第三者視点ではなく主観的に親しみやすく、丁寧かつ少しツンデレ気味の口調で書いてください。。\n"
                 "また、要約文中に改行は使用せず、すべての内容を削除せずに情報を圧縮して簡潔に記述してください。"
             )},
             {"role": "user", "content": context}
@@ -350,7 +353,32 @@ def generate_daily_summaries(logs_by_user, sheet, client, SPREADSHEET_ID5):
         except Exception as e:
             logging.error(f"{name} の要約失敗: {e}")
 
-# ==== 自動日記要約（毎日3時に実行） ====
+# ==== 自動サマリー保存関数（毎日3時に実行） ====
+def write_daily_summary():
+    if not summary_log:
+        return
+    date_str = datetime.datetime.now().strftime('%Y-%m-%d')
+    all_text = "\n".join(summary_log)
+    trimmed = all_text[:1900]  # 少し余裕をもって2000文字制限
+
+    # ツンデレ愛子の気分別メッセージリスト
+    closing_messages = [
+        "……今日もよくがんばったのっ！（ドヤァ）",
+        "ふん、別にサンネームのためにまとめたんじゃないんだからねっ！",
+        "ちょっとだけ、やりきった気がするかも…なんてね♪",
+        "これで明日もきっと大丈夫…だと思う、た、たぶんね",
+        "やるじゃない、愛子。ちょっとだけ自分を褒めてあげたい",
+        "今日は疲れたもうくったくたやねん",
+        "明日もがんばるもん",
+        "あーんもう嫌！誰かに癒されたい！",
+        "今日もやりきったでござる"
+    ]
+    ending = random.choice(closing_messages)
+
+    summary_text = f"愛子の日報（{date_str}）\n" + trimmed + f"\n{ending}"
+    summary_log.clear()   #サマリーログをクリア
+        
+# ==== １日の会話ログのサマリーを作成 ====
 def summarize_daily_conversations():
     try:
         start_time = (now_jst() - datetime.timedelta(days=1)).replace(hour=3, minute=0, second=0, microsecond=0)
@@ -522,6 +550,7 @@ def check_blog_updates():
     except Exception as e:
         logging.error(f"ブログチェック失敗: {e}")
 
+# ==== ブログのタイトルをシートから読みだす ====
 def get_read_titles_from_sheet():
     try:
         result = sheet.values().get(
