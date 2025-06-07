@@ -762,16 +762,17 @@ def handle_message(event):
         return
 
     # === ユーザーからの「はい」「いいえ」応答で分岐 ===
-    if user_message.strip() in ["はい", "いいえ"] and user_id in last_greeting_time:  # last_greeting_timeを汎用的な会話状態保存に活用
+    if user_id in last_greeting_time:
         if user_message.strip() == "はい":
             reply_text = "全員でいいですか？"
-            # 全員のユーザーID（あらかじめ定義されたリスト）にメッセージ送信
             message_to_all = f"{user_name}さんから「{last_user_message.get(user_id, '連絡があります')}」と連絡がありました。"
             for uid in all_user_ids:
-                if uid != user_id:  # 自分以外に送信
+                if uid != user_id:
                     line_bot_api.push_message(uid, TextSendMessage(text=message_to_all))
-        else:
+        elif user_message.strip() == "いいえ":
             reply_text = "わかりました。"
+        else:
+            reply_text = "愛子わかんない、はいかいいえで答えてくれますか？"
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
         log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
         return
