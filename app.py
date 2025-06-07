@@ -21,7 +21,6 @@ from googleapiclient.discovery import build
 import logging  #通信ログをRenderに出力するようにする
 from openai import OpenAI
 import googleapiclient.discovery
-from company_info import COMPANY_INFO_COLUMNS  #会社情報スプレッドシートの列構成定義の呼び出し
 
 # company_info.pyに会社の情報の読み込みや書き込み系の関数を移動したのでそれらを呼び出しておく
 from company_info import (
@@ -40,6 +39,7 @@ from company_info import (
     get_name_by_uid,
     get_employee_tags,
     aiko_moods
+    COMPANY_INFO_COLUMNS   #会社情報スプレッドシートの列構成定義の呼び出し
 )
 
 # 「冒頭」でOpenAIの役割を指定
@@ -109,17 +109,7 @@ def get_user_summary(user_id):
     return ""
     
 # 愛子の経験ログ＝つまり日記の情報を読み込む
-def get_recent_summaries(count=5):
-    try:
-        result = sheet.values().get(
-            spreadsheetId=SPREADSHEET_ID5,
-            range='経験ログ!A2:C'
-        ).execute()
-        rows = result.get("values", [])[-count:]
-        return "\n".join(f"【{r[2]}】{r[3]}" for r in rows if len(r) >= 4)
-    except Exception as e:
-        logging.error(f"全体の経験ログ取得失敗: {e}")
-        return ""
+summaries = generate_daily_summaries(sheet, employee_info_map)
         
 # 会話ログの情報を保存する関数
 # 会話ログC列に従業員情報の「愛子ちゃんからの呼ばれ方」を記録し、F列にメッセージ分類を記録
