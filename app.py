@@ -961,7 +961,7 @@ def handle_message(event):
     company_info_reply = search_company_info_by_keywords(user_message, user_name, user_data)
     if company_info_reply:
         context += f"\n\n【会社情報による参考情報】\n{company_info_reply}"
-    
+
     # 最後の挨拶から2時間以内なら greeting を削除
     show_greeting = True    # 最初に show_greeting フラグを True にしておく
 
@@ -983,7 +983,8 @@ def handle_message(event):
     #if any(g in user_message for g in greeting_keywords + ai_greeting_phrases):
     #    show_greeting = False
     if show_greeting and not any(g in reply_text[:10] for g in greeting_keywords + ai_greeting_phrases):
-    reply_text = f"{greeting}{user_name}。" + reply_text
+        reply_text = reply_text.replace("[氏名]", user_name)
+        reply_text = f"{greeting}{user_name}。" + reply_text
     except Exception as e:
         logging.error("OpenAI 応答失敗: %s", e)
         reply_text = "⚠️ 応答に失敗しました。政美さんにご連絡ください。"
