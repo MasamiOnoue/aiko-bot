@@ -1203,9 +1203,25 @@ def handle_message(event):
         context += f"\n\n【会社情報による参考情報】\n{company_info_reply}"
 
     # 最後の挨拶から2時間以内なら greeting を削除
-    show_greeting = True    # 最初に show_greeting フラグを True にしておく
+    # === 挨拶メッセージの重複防止処理 ===
+    # ユーザーの挨拶内容と現在時刻が矛盾していたらツッコミを入れる
+    mismatch_comment = ""
+    current_hour = now_jst().hour
+    user_message_lower = user_message.lower()
 
-    # 1. ユーザー発言にすでに挨拶が含まれていれば、挨拶しない
+    if any(g in user_message_lower for g in ["おはよう", "おっはー"]):
+        if not (5 <= current_hour < 11):
+            mismatch_comment = "（今は朝じゃないのに、おはよう…？寝ぼけてる？）"
+    elif any(g in user_message_lower for g in ["こんにちは", "こんにちわ", "こんちわ"]):
+        if not (11 <= current_hour < 18):
+            mismatch_comment = "（今って昼じゃないけど…まあいいか）"
+    elif any(g in user_message_lower for g in ["こんばんは", "ばんわ"]):
+        if not (18 <= current_hour <= 23):
+            mismatch_comment = "（まだ夜じゃないよ？）"
+    elif "やっはろー" in user_message_lower and not (10 <= current_hour < 18):
+        mismatch_comment = "（やっはろー、って昼だっけ？まあテンション高めでよきよき）"
+
+    show_greeting = True    # 最初に show_greeting フラグを True にしておく
     if any(g in user_message for g in greeting_keywords + ai_greeting_phrases):
         show_greeting = False
 
@@ -1219,16 +1235,43 @@ def handle_message(event):
     if show_greeting:
         last_greeting_time[user_id] = timestamp
 
-    # ユーザーの発言にすでに挨拶が含まれているかチェック
-    #if any(g in user_message for g in greeting_keywords + ai_greeting_phrases):
-    #    show_greeting = False
+    # 4. 既に挨拶文が reply_text に含まれていれば、繰り返さない
     if show_greeting and not any(g in reply_text[:10] for g in greeting_keywords + ai_greeting_phrases):
         try:
             reply_text = reply_text.replace("[氏名]", user_name)
-            reply_text = f"{greeting}{user_name}。" + reply_text
+            reply_text = f"{get_time_based_greeting()}{user_name}。" + (mismatch_comment + " " if mismatch_comment else "") + reply_text
         except Exception as e:
             logging.error("挨拶整形でエラー: %s", e)
-            # ↑挨拶を省いて通常の応答だけを返す（reply_textはそのまま）
+            # ↑挨拶を省いて通常の応答だけを返す
+    else:
+        greeting = ""
+
+    #show_greeting = True    # 最初に show_greeting フラグを True にしておく
+
+    # 1. ユーザー発言にすでに挨拶が含まれていれば、挨拶しない
+    #if any(g in user_message for g in greeting_keywords + ai_greeting_phrases):
+    #    show_greeting = False
+
+    # 2. 2時間以内に挨拶済みなら、挨拶しない
+    #elif user_id in last_greeting_time:
+    #    elapsed = (timestamp - last_greeting_time[user_id]).total_seconds()
+    #    if elapsed < 7200:
+    #        show_greeting = False
+
+    # 3. 挨拶する場合は、時刻を記録
+    #if show_greeting:
+    #    last_greeting_time[user_id] = timestamp
+
+    # ユーザーの発言にすでに挨拶が含まれているかチェック
+    #if any(g in user_message for g in greeting_keywords + ai_greeting_phrases):
+    #    show_greeting = False
+    #if show_greeting and not any(g in reply_text[:10] for g in greeting_keywords + ai_greeting_phrases):
+    #    try:
+    #        reply_text = reply_text.replace("[氏名]", user_name)
+    #        reply_text = f"{greeting}{user_name}。" + reply_text
+    #    except Exception as e:
+    #        logging.error("挨拶整形でエラー: %s", e)
+    #        # ↑挨拶を省いて通常の応答だけを返す（reply_textはそのまま）
 
     messages = [
         {"role": "system", "content": (
