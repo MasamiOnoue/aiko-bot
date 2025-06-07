@@ -757,7 +757,7 @@ def handle_message(event):
     if contains_personal_info(user_message):
         masked_text = mask_personal_info(user_message)
         reply_text = ask_openai_polite_rephrase(masked_text)
-        reply_text = restore_masked_info(reply_text, user_message)
+        reply_text = restore_masked_terms(reply_text, user_message)
     else:
         reply_text = ask_openai_free_response(user_message)
         
