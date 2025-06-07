@@ -917,26 +917,80 @@ def handle_message(event):
         return
 
     # === ユーザーからの「はい」「いいえ」応答で分岐 ===
-    if user_id in last_greeting_time:
+    if user_expect_yes_no.get(user_id) == "confirm_all":
         if user_message.strip() == "はい":
-            reply_text = "全員でいいですか？"
             message_to_all = f"{user_name}さんから「{last_user_message.get(user_id, '連絡があります')}」と連絡がありました。"
             for uid in all_user_ids:
                 if uid != user_id:
                     line_bot_api.push_message(uid, TextSendMessage(text=message_to_all))
+            reply_text = "みなさんにお知らせしました。"
+            user_expect_yes_no[user_id] = False
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
+            log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
+            return
+        elif user_message.strip() == "いいえ":
+            reply_text = "誰に送りますか？お名前で教えてください。"
+            user_expect_yes_no[user_id] = "await_specific_name"
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
+            log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
+            return
+
+    elif user_expect_yes_no.get(user_id) == "await_specific_name":
+        target_name = user_message.strip().replace("さん", "")
+        matched_uid = None
+        for uid, data in employee_info_map.items():
+            if data.get("名前") == target_name or data.get("愛子ちゃんからの呼ばれ方") == target_name:
+                matched_uid = uid
+                break
+        if matched_uid:
+            user_expect_yes_no[user_id] = {
+                "stage": "confirm_specific",
+                "uids": [matched_uid],
+                "names": [target_name],
+                "message": last_user_message.get(user_id, '')
+            }
+            reply_text = f"{target_name}さんだけでいいですか？『はい』で送信、『いいえ』で他の方を追加します。"
+        else:
+            reply_text = f"⚠️『{target_name}』さんが見つかりませんでした。もう一度正確にお名前を教えてください。"
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
+        log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
+        return
+
+    elif isinstance(user_expect_yes_no.get(user_id), dict) and user_expect_yes_no[user_id].get("stage") == "confirm_specific":
+        entry = user_expect_yes_no[user_id]
+        if user_message.strip() == "はい":
+            notify_text = f"📢 {user_name}さんよりご連絡です：『{entry['message']}』"
+            for uid in entry["uids"]:
+                line_bot_api.push_message(uid, TextSendMessage(text=notify_text))
+            reply_text = "ご指定の方に送信しました。"
             user_expect_yes_no[user_id] = False
         elif user_message.strip() == "いいえ":
-            reply_text = "わかりました。"
-            user_expect_yes_no[user_id] = False
+            reply_text = "他に伝える方のお名前を教えてください。"
+            user_expect_yes_no[user_id] = entry | {"stage": "adding_more"}
         else:
-            # 話題が変わっていたらフラグをリセットして通常処理へ
-            if not any(keyword in user_message for keyword in ["はい", "いいえ"]):
-                user_expect_yes_no[user_id] = False
-            else:
-                reply_text = "愛子わかんないです…『はい』か『いいえ』で答えてくれますか？"
-                line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
-                log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
-                return
+            reply_text = "『はい』か『いいえ』で教えてください。"
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
+        log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
+        return
+
+    elif isinstance(user_expect_yes_no.get(user_id), dict) and user_expect_yes_no[user_id].get("stage") == "adding_more":
+        entry = user_expect_yes_no[user_id]
+        target_name = user_message.strip().replace("さん", "")
+        matched_uid = None
+        for uid, data in employee_info_map.items():
+            if data.get("名前") == target_name or data.get("愛子ちゃんからの呼ばれ方") == target_name:
+                matched_uid = uid
+                break
+        if matched_uid and matched_uid not in entry["uids"]:
+            entry["uids"].append(matched_uid)
+            entry["names"].append(target_name)
+            reply_text = f"{target_name}さんを追加しました。他にもいますか？いなければ『はい』で送信、続けるなら名前を教えてください。"
+        else:
+            reply_text = f"⚠️『{target_name}』さんが見つからないか、すでに追加済みです。"
+        user_expect_yes_no[user_id] = entry
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
+        log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
+        return
 
     # 5. ユーザーの問いにマスクを付けてOpenAIに渡すかそのまま渡すかを分岐させ、マスクする場合はマスクしてOpenAIに丁寧語に変換する
     if contains_personal_info(user_message):
