@@ -927,13 +927,19 @@ def handle_message(event):
             for uid in all_user_ids:
                 if uid != user_id:
                     line_bot_api.push_message(uid, TextSendMessage(text=message_to_all))
+            user_expect_yes_no[user_id] = False
         elif user_message.strip() == "いいえ":
             reply_text = "わかりました。"
+            user_expect_yes_no[user_id] = False
         else:
-            reply_text = "愛子わかんない、はいかいいえで答えてくれますか？"
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
-        log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
-        return
+            # 話題が変わっていたらフラグをリセットして通常処理へ
+            if not any(keyword in user_message for keyword in ["はい", "いいえ"]):
+                user_expect_yes_no[user_id] = False
+            else:
+                reply_text = "愛子わかんない、はいかいいえで答えてくれますか？"
+                line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
+                log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
+                return
 
     # 5. ユーザーの問いにマスクを付けてOpenAIに渡すかそのまま渡すかを分岐させ、マスクする場合はマスクしてOpenAIに丁寧語に変換する
     if contains_personal_info(user_message):
