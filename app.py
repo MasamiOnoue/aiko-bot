@@ -246,6 +246,15 @@ line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
 handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+# Googleのスプレッドシート（情報保管先）のID定義
+SPREADSHEET_IDS = [
+    SPREADSHEET_ID1,  # 会話ログ
+    SPREADSHEET_ID2,  # 従業員情報
+    SPREADSHEET_ID3,  # 取引先情報
+    SPREADSHEET_ID4,  # 会社情報
+    SPREADSHEET_ID5  # 愛子の経験ログ
+]
+
 # === 全ユーザーIDの読み込み（従業員情報 M列） ===
 def load_all_user_ids():
     try:
@@ -261,15 +270,6 @@ def load_all_user_ids():
         
 # グローバル定義
 all_user_ids = load_all_user_ids()
-
-# Googleのスプレッドシート（情報保管先）のID定義
-SPREADSHEET_IDS = [
-    SPREADSHEET_ID1,  # 会話ログ
-    SPREADSHEET_ID2,  # 従業員情報
-    SPREADSHEET_ID3,  # 取引先情報
-    SPREADSHEET_ID4,  # 会社情報
-    SPREADSHEET_ID5  # 愛子の経験ログ
-]
 
 @app.route("/callback", methods=["POST"])
 def callback():
