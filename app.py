@@ -133,25 +133,22 @@ def get_recent_summaries(count=5):
         
 # 会話ログの情報を保存する関数
 # 会話ログC列に従業員情報の「愛子ちゃんからの呼ばれ方」を記録し、F列にメッセージ分類を記録
-
 def log_conversation(timestamp, user_id, user_name, speaker, message, status="OK"):
     try:
         # 従業員情報マップから「愛子ちゃんからの呼ばれ方」を取得
         nickname = employee_info_map.get(user_id, {}).get("愛子ちゃんからの呼ばれ方", user_name or "不明")
 
-                # メッセージ分類（OpenAIに送信）
-        category = classify_message_context(message)
-        
-        # 🔻 AI応答のときは分類せず固定カテゴリにする
+        # メッセージ分類（OpenAIに送信）
         if speaker == "AI":
+            # 🔻 AI応答のときは分類せず固定カテゴリにする
             category = "愛子botから社内情報報告"
+            processed_message = message
         else:
             category = classify_message_context(message)
-
-        if category in ["重要", "業務連絡", "愛子botから社内情報報告"]:
-            processed_message = mask_personal_info(message)
-        else:
-            processed_message = message
+            if category in ["重要", "業務連絡", "愛子botから社内情報報告"]:
+                processed_message = mask_personal_info(message)
+            else:
+                processed_message = message
 
         values = [[
             timestamp,
