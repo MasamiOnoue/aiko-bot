@@ -287,8 +287,9 @@ def get_user_callname(user_id):
         logging.error(f"ユーザー名取得失敗: {e}")
     return "LINEのIDが不明な方"
         
-# グローバル定義
+# グローバル変数を定義
 all_user_ids = load_all_user_ids()
+user_expect_yes_no = {}
 #user_callname = get_user_callname(user_id)
 
 @app.route("/callback", methods=["POST"])
