@@ -1001,11 +1001,13 @@ def handle_message(event):
     #if any(g in user_message for g in greeting_keywords + ai_greeting_phrases):
     #    show_greeting = False
     if show_greeting and not any(g in reply_text[:10] for g in greeting_keywords + ai_greeting_phrases):
-        reply_text = reply_text.replace("[氏名]", user_name)
-        reply_text = f"{greeting}{user_name}。" + reply_text
-    except Exception as e:
-        logging.error("OpenAI 応答失敗: %s", e)
-        reply_text = "⚠️ 応答に失敗しました。政美さんにご連絡ください。"
+        try:
+            reply_text = reply_text.replace("[氏名]", user_name)
+            reply_text = f"{greeting}{user_name}。" + reply_text
+        except Exception as e:
+            logging.error("挨拶整形でエラー: %s", e)
+        
+    # 挨拶を省いて通常の応答だけを返す（reply_textはそのまま）
 
     messages = [
         {"role": "system", "content": (
