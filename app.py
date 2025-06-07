@@ -44,10 +44,12 @@ SPREADSHEET_ID3 = os.getenv('SPREADSHEET_ID3')  # 取引先情報
 SPREADSHEET_ID4 = os.getenv('SPREADSHEET_ID4')  # 会社情報
 SPREADSHEET_ID5 = os.getenv('SPREADSHEET_ID5')  # 愛子の経験ログ
 
+#グローバル変数を宣言
 cache_lock = threading.Lock()
 recent_user_logs = {}
 employee_info_map = {}
 last_greeting_time = {}
+last_user_message = {}
 
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 creds = service_account.Credentials.from_service_account_file(
