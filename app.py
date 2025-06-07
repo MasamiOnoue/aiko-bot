@@ -21,6 +21,7 @@ from googleapiclient.discovery import build
 import logging  #通信ログをRenderに出力するようにする
 from openai import OpenAI
 import googleapiclient.discovery
+from company_info import COMPANY_INFO_COLUMNS  #会社情報スプレッドシートの列構成定義の呼び出し
 
 # company_info.pyに会社の情報の読み込みや書き込み系の関数を移動したのでそれらを呼び出しておく
 from company_info import (
@@ -40,6 +41,7 @@ from company_info import (
     get_employee_tags,
     aiko_moods
 )
+
 # 「冒頭」でOpenAIの役割を指定
 SYSTEM_PROMPT = "あなたは社内アシスタントAI『愛子』です。親しみやすく丁寧な口調で、社内の質問に答えてください。"
 
@@ -75,36 +77,6 @@ creds = service_account.Credentials.from_service_account_file(
 )
 sheets_service = build('sheets', 'v4', credentials=creds)
 sheet = sheets_service.spreadsheets()
-
-# ==== 会社情報スプレッドシートの列構成定義 ====
-COMPANY_INFO_COLUMNS = {
-    "カテゴリ": 0,
-    "キーワード": 1,
-    "質問例": 2,
-    "回答内容": 3,
-    "回答要約": 4,
-    "補足情報": 5,
-    "最終更新日": 6,
-    "登録者名": 7,
-    "使用回数": 8,
-    "担当者": 9,
-    "開示範囲": 10,
-    "予備2": 11,
-    "予備3": 12,
-    "予備4": 13,
-    "予備5": 14,
-    "予備6": 15,
-    "予備7": 16,
-    "予備8": 17,
-    "予備9": 18,
-    "予備10": 19,
-    "予備11": 20,
-    "予備12": 21,
-    "予備13": 22,
-    "予備14": 23,
-    "予備15": 24,
-    "予備16": 25
-}
 
 def now_jst():
     return datetime.datetime.now(pytz.timezone("Asia/Tokyo"))
