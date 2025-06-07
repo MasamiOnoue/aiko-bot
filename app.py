@@ -360,6 +360,59 @@ def search_employee_info_by_keywords(query):
 
     return "⚠️ 社内情報でも見つかりませんでした。"
 
+# ==== キーワードから取引先情報から情報を取ってくる ====
+def search_vendor_info_by_keywords(user_message):
+    try:
+        values = sheet.values().get(
+            spreadsheetId=SPREADSHEET_ID3,  # 取引先情報
+            range="取引先情報!A2:Z"
+        ).execute().get("values", [])
+
+        results = []
+        for row in values:
+            if any(user_message in cell for cell in row):
+                results.append("📌[取引先] " + "｜".join(row))
+        return "\n".join(results)
+    except Exception as e:
+        logging.error(f"取引先情報の検索失敗: {e}")
+        return ""
+
+# ==== キーワードから会話ログから情報を取ってくる ====
+def search_log_sheets_by_keywords(user_message):
+    try:
+        values = sheet.values().get(
+            spreadsheetId=SPREADSHEET_ID1,  # 会話ログ
+            range="会話ログ!A2:D"
+        ).execute().get("values", [])
+
+        results = []
+        for row in values:
+            if any(user_message in cell for cell in row):
+                results.append("📌[会話ログ] " + "｜".join(row))
+        return "\n".join(results)
+    except Exception as e:
+        logging.error(f"会話ログ検索失敗: {e}")
+        return ""
+        
+# ==== キーワードから経験ログから情報を取ってくる ====
+def search_experience_log_by_keywords(user_message):
+    try:
+        values = sheet.values().get(
+            spreadsheetId=SPREADSHEET_ID5,
+            range="経験ログ!A2:D"
+        ).execute().get("values", [])
+        results = []
+        for row in values:
+            if any(user_message in cell for cell in row):
+                results.append("📌[経験ログ] " + "｜".join(row))
+        return "\n".join(results)
+    except Exception as e:
+        logging.error(f"経験ログ検索失敗: {e}")
+        return ""
+
+
+
+
 # ==== 自動日記をOpenAIにやらせる関数（毎日3時に呼び出す） ====
 def generate_daily_summaries(logs_by_user, sheet, client, SPREADSHEET_ID5):
     for (uid, name), messages in logs_by_user.items():
