@@ -28,7 +28,7 @@ def get_google_sheets_service():
             scopes=["https://www.googleapis.com/auth/spreadsheets"]
         )
         service = build("sheets", "v4", credentials=credentials)
-        return service
+        return service  # ← spreadsheets()ではなく service を返す
     except Exception as e:
         logging.error(f"Google Sheets Serviceの初期化に失敗: {e}")
         return None
