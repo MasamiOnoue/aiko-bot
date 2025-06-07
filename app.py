@@ -38,7 +38,7 @@ from company_info import (
     find_employee_by_name_or_title,
     get_name_by_uid,
     get_employee_tags,
-    aiko_moods
+    aiko_moods,
     COMPANY_INFO_COLUMNS   #会社情報スプレッドシートの列構成定義の呼び出し
 )
 
