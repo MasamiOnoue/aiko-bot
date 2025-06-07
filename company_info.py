@@ -3,7 +3,11 @@ import logging
 from datetime import datetime
 import pytz
 import os
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+import googleapiclient.discovery
 
+from company_info import COMPANY_INFO_COLUMNS   #会社情報スプレッドシートの列構成定義の呼び出し
 # company_infoルーチンに必要なIDを宣言
 SPREADSHEET_ID1 = os.getenv('SPREADSHEET_ID1')  # 会話ログ
 SPREADSHEET_ID2 = os.getenv('SPREADSHEET_ID2')  # 従業員情報
