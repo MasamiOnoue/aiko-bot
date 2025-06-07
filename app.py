@@ -39,7 +39,8 @@ from company_info import (
     find_employee_by_name_or_title,
     get_name_by_uid,
     get_employee_tags,
-    aiko_moods
+    aiko_moods,
+    classify_message_context
 )
 
 # 「冒頭」でOpenAIの役割を指定
