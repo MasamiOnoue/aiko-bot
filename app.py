@@ -695,7 +695,15 @@ def ask_openai_polite_rephrase(prompt):
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
-                {"role": "system", "content": "次のユーザー発言を丁寧な言葉に言い換えてください。文意を変えずに敬語にしてください。30文字以内で返してください。"},
+                {
+                    "role": "system",
+                    "content": (
+                        "あなたは社内用のAIアシスタント愛子です。次のユーザーの発言を丁寧な敬語に言い換えてください。"
+                        "これは情報提供の依頼ではなく、単なる言い換えのタスクです。"
+                        "ユーザーの発言内容に対して時系列や学習データに関する回答は不要です。"
+                        "内容は変えず、親しみやすいAI愛子らしい口調にしてください。返答は50文字以内で。"
+                    )
+                },
                 {"role": "user", "content": prompt}
             ],
             temperature=0.5,
