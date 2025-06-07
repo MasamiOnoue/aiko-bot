@@ -62,12 +62,7 @@ service_account_info = json.loads(os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON"))
 
 # 事前に employee_info_map を作成
 sheet_service = get_google_sheets_service()
-values = sheet_service.values().get(
-    spreadsheetId=SPREADSHEET_ID2,
-    range='従業員情報!A1:Z'
-).execute().get('values', [])
-
-employee_info_map = get_employee_info(sheet_service)
+employee_info_map = get_employee_info(sheet_service.spreadsheets())  # ← service.spreadsheets() を渡す
 
 # 認証情報を生成
 credentials = service_account.Credentials.from_service_account_info(
@@ -665,14 +660,21 @@ def handle_message(event):
     user_message = event.message.text.strip()
     user_id = event.source.user_id
     timestamp = now_jst()
-    user_data = employee_info_map.get(user_id, {})
+    user_data = employee_info_map.get(user_id, {})   #従業員の情報をリストで入手
     user_name = get_user_callname(user_id)    # LINEのUIDから会話している人の名前をuser_nameに入れる
     #user_name = user_data.get("愛子ちゃんからの呼ばれ方", user_data.get("名前", ""))
     important_keywords = ["覚えておいて", "おぼえておいて", "覚えてね", "記録して", "メモして", "覚えてください", "覚えて", "忘れないで", "記憶して", "保存して", "記録お願い", "記録をお願い"]
     is_important = any(kw in user_message for kw in important_keywords)
     experience_context = get_recent_experience_summary(sheet, user_name)
     
-    employee_info_map = get_employee_info(sheet)   # 従業員情報を取得（キャッシュしてあればそれを使う）
+    #employee_info_map = get_employee_info(sheet)   # 従業員情報を取得（キャッシュしてあればそれを使う）
+
+    if not user_data:
+        reply_text = "申し訳ありませんが、あなたの情報が登録されていません。"
+    else:
+        name = user_data.get("氏名", "不明さん")
+        reply_text = f"{name}さん、メッセージを受け付けました。"
+
     employee_info_reply = search_employee_info_by_keywords(user_message, employee_info_map)    # メッセージ内のキーワードに応じて従業員情報を検索
 
     last_user_message[user_id] = user_message
