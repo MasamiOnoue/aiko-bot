@@ -255,13 +255,13 @@ def get_experience_log(sheet, spreadsheet_id=SPREADSHEET_ID5):
 # ---------------- 保存系 関数 ----------------
 
 # 会話ログを保存（SPREADSHEET_ID1）
-def append_conversation_log(timestamp, user_id, user_name, speaker, message):
+def append_conversation_log(timestamp, user_id, user_name, speaker, message, status=""):
     try:
-        values = [[timestamp, user_id, user_name, speaker, message]]
+        values = [[timestamp, user_id, user_name, speaker, message, status]]
         sheet_service = get_google_sheets_service()
         sheet_service.values().append(
             spreadsheetId=SPREADSHEET_ID_LOG,
-            range="会話ログ!A2:J",  # ← 必要列数に合わせて調整
+            range="会話ログ!A2:F",  # ← 6列に拡張
             valueInputOption="USER_ENTERED",
             body={"values": values}
         ).execute()
