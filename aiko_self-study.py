@@ -4,75 +4,113 @@ import requests
 import hashlib
 import time
 import datetime
+import os
 from bs4 import BeautifulSoup
 from googleapiclient.discovery import build
 from google.oauth2.service_account import Credentials
+import openai
+
+# OpenAI APIキー（RenderのEnvironmentに登録されている）
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # Spreadsheet ID（会社情報）
-SPREADSHEET_ID4 = os.getenv('SPREADSHEET_ID4')  # 会社情報
+SPREADSHEET_ID4 = "あなたのスプレッドシートIDをここに記載"
 
 # 使用するスコープと認証情報
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 creds = Credentials.from_service_account_file("service_account.json", scopes=SCOPES)
 sheet_service = build("sheets", "v4", credentials=creds)
 
-# ハッシュを記録する（前回の内容と比較するため）
-HASH_FILE = "blog_hash.txt"
+# 補足情報列の取得と書き込み
+def get_existing_links():
+    result = sheet_service.spreadsheets().values().get(
+        spreadsheetId=SPREADSHEET_ID4,
+        range="会社情報!F2"
+    ).execute()
+    values = result.get("values", [])
+    return values[0][0] if values else ""
 
-# ブログページの取得と解析
-def fetch_blog_content():
-    url = "https://sun-name.com/bloglist/"
+def update_links_and_log_diff(new_links_text, diff_summary):
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+    # 補足情報（F列）更新
+    sheet_service.spreadsheets().values().update(
+        spreadsheetId=SPREADSHEET_ID4,
+        range="会社情報!F2",
+        valueInputOption="USER_ENTERED",
+        body={"values": [[new_links_text]]}
+    ).execute()
+    # 差分履歴（G列以降）に追記
+    sheet_service.spreadsheets().values().append(
+        spreadsheetId=SPREADSHEET_ID4,
+        range="会社情報!G2",
+        valueInputOption="USER_ENTERED",
+        insertDataOption="INSERT_ROWS",
+        body={"values": [[now, diff_summary]]}
+    ).execute()
+
+# サイト全体からリンクと中身を取得
+def crawl_all_pages(base_url):
     try:
-        response = requests.get(url)
+        response = requests.get(base_url)
         response.raise_for_status()
         soup = BeautifulSoup(response.text, "html.parser")
-        content_text = soup.get_text()
-        return content_text.strip()
+        links = [a["href"] for a in soup.find_all("a", href=True) if base_url in a["href"]]
+        unique_links = sorted(set(links))
+        all_content = ""
+        for link in unique_links:
+            try:
+                page = requests.get(link)
+                page.raise_for_status()
+                page_soup = BeautifulSoup(page.text, "html.parser")
+                page_text = page_soup.get_text().strip()
+                all_content += f"\n\n--- {link} ---\n{page_text}"
+            except:
+                continue
+        return all_content
     except Exception as e:
-        return f"[取得エラー]: {e}"
+        return f"[巡回エラー]: {e}"
 
-# ハッシュ化（変更検知）
-def get_hash(content):
-    return hashlib.sha256(content.encode("utf-8")).hexdigest()
-
-# スプレッドシートに内容を書き込む
-def write_to_company_info(text):
-    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-    values = [[now, text]]
-    request_body = {
-        "values": values
-    }
+# OpenAIで差分要約
+def summarize_diff(old_text, new_text):
+    prompt = (
+        "以下はWebページの古い内容と新しい内容です。何が変更されたかを簡潔に日本語で要約してください。\n"
+        "---古い内容---\n"
+        f"{old_text[:3000]}\n"
+        "---新しい内容---\n"
+        f"{new_text[:3000]}"
+    )
     try:
-        sheet_service.spreadsheets().values().update(
-            spreadsheetId=SPREADSHEET_ID4,
-            range="会社情報!D2",
-            valueInputOption="USER_ENTERED",
-            body=request_body
-        ).execute()
-        print(f"✅ 更新情報をD列に記録しました：{now}")
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "あなたは変更点を要約するアシスタントです。"},
+                {"role": "user", "content": prompt}
+            ]
+        )
+        return response.choices[0].message.content.strip()
     except Exception as e:
-        print(f"❌ スプレッドシート書き込み失敗: {e}")
+        return f"[要約失敗]: {e}"
 
-# メイン処理
-def check_blog_update():
-    content = fetch_blog_content()
-    new_hash = get_hash(content)
+# メイン処理（毎日1回）
+def check_full_site_update():
+    print("🌐 サイト全体の巡回を開始します...")
+    base_url = "https://sun-name.com/"
+    new_content = crawl_all_pages(base_url)
+    old_content = get_existing_links()
 
-    old_hash = ""
-    if os.path.exists(HASH_FILE):
-        with open(HASH_FILE, "r") as f:
-            old_hash = f.read().strip()
-
-    if new_hash != old_hash:
-        write_to_company_info(content)
-        with open(HASH_FILE, "w") as f:
-            f.write(new_hash)
+    if new_content.strip() != old_content.strip():
+        diff_summary = summarize_diff(old_content, new_content)
+        update_links_and_log_diff(new_content, diff_summary)
+        print("✅ 差分あり：更新・記録しました")
     else:
         print("変化なし：更新はありませんでした。")
 
-# 定期実行（6時間ごと）
+# 毎日午前3時に実行（実運用ではcron推奨）
 if __name__ == "__main__":
     while True:
-        print("🔍 ブログ更新チェックを実行中...")
-        check_blog_update()
-        time.sleep(6 * 60 * 60)  # 6時間待機
+        now = datetime.datetime.now()
+        if now.hour == 3:
+            check_full_site_update()
+            time.sleep(24 * 60 * 60)  # 24時間待機
+        else:
+            time.sleep(60 * 30)  # 30分ごとに再確認
