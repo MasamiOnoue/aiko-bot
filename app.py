@@ -25,7 +25,7 @@ from aiko_emergency_procedure import handle_emergency_reply
 
 load_dotenv()     # .env 読み込み
 
-from aiko_greeting import now_jst   #挨拶系の関数群のファイルから関数を呼ぶ
+from aiko_greeting import now_jst, get_time_based_greeting #挨拶系の関数群のファイルから関数を呼ぶ
 from aiko_diary_report import generate_daily_summaries   #日記系の関数群のファイルから関数を呼ぶ
 from company_info import COMPANY_INFO_COLUMNS   #会社情報スプレッドシートの列構成定義の呼び出し
 # company_info.pyに会社の情報の読み込みや書き込み系の関数を移動したのでそれらを呼び出しておく
@@ -98,19 +98,6 @@ creds = service_account.Credentials.from_service_account_file(
 )
 sheets_service = build('sheets', 'v4', credentials=creds)
 sheet = sheets_service.spreadsheets()
-
-def get_time_based_greeting():
-    current_time = now_jst()
-    logging.info(f"現在のJST時刻: {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
-    hour = current_time.hour
-    if 5 <= hour < 10:
-        return "おっはー。"
-    elif 10 <= hour < 18:
-        return "やっはろー。"
-    elif 18 <= hour < 23:
-        return "おっつ〜。"
-    else:
-        return "ねむねむ。"
 
 def get_user_summary(user_id):
     try:
@@ -198,22 +185,6 @@ def load_all_user_ids():
         logging.error(f"ユーザーIDリストの取得失敗: {e}")
         handle_emergency_reply(line_bot_api, event.reply_token, e)
         return []
-        
-# === 全ユーザーUIDから愛子ちゃんからの呼ばれ方を選ぶ（従業員情報のLINEのUIDはM列） ===
-def get_user_callname(user_id):
-    try:
-        result = sheet.values().get(
-            spreadsheetId=SPREADSHEET_ID2,
-            range="従業員情報!A2:W"
-        ).execute()
-        rows = result.get("values", [])
-        for row in rows:
-            if len(row) > 12 and row[12] == user_id:  # M列は12番目なので
-                return row[3] if len(row) > 3 else "LINEのIDが不明な方"  # D列の「愛子ちゃんからの呼ばれ方」は3番目なので
-    except Exception as e:
-        logging.error(f"ユーザー名取得失敗: {e}")
-        handle_emergency_reply(line_bot_api, event.reply_token, e)
-    return "LINEのIDが不明な方"
         
 # グローバル変数を定義
 all_user_ids = load_all_user_ids()
