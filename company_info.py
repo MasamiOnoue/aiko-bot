@@ -1,4 +1,3 @@
-
 # company_info.py（各種スプレッドシートの操作を担当）
 
 import os
