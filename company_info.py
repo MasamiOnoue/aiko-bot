@@ -80,13 +80,13 @@ def classify_message_context(message):
 
 分類:"""
     try:
-        response = client.chat.completions.create(
+        response = openai.ChatCompletion.create(  # ← 修正済み
             model="gpt-4o",
             messages=[{"role": "user", "content": prompt}],
             temperature=0,
             max_tokens=30
         )
-        result = response.choices[0].message.content.strip()
+        result = response.choices[0].message["content"].strip()
 
         if result not in ["業務連絡", "あいさつ", "日常会話", "ネットからの情報", "愛子botから社内情報報告", "重要", "エラー"]:
             logging.warning(f"分類結果が不正: {result}")
