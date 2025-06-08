@@ -68,19 +68,6 @@ def get_google_sheet_service():
         logging.error(f"❌ Google Sheets認証エラー: {e}")
         return None
 
-
-
-
-
-
-
-
-
-
-
-# 環境変数からサービスアカウントJSONを取得
-service_account_info = json.loads(os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON"))
-
 # 事前に employee_info_map を作成
 sheet_service = get_google_sheets_service()
 employee_info_map = get_employee_info(sheet_service)   # ← service.spreadsheets() を渡す
