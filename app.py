@@ -722,6 +722,7 @@ def handle_message(event):
     summaries = generate_daily_summaries(sheet_service, employee_info_map)
         
     # 4. ユーザー発言をログ（SPREADSHEETの会話ログ）に保存
+    #append_conversation_log(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
     append_conversation_log(
         timestamp=timestamp.isoformat(),
         user_id=user_id,
