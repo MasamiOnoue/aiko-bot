@@ -129,7 +129,11 @@ def get_conversation_log(sheet, spreadsheet_id=SPREADSHEET_ID1):
         return []
 
 # 従業員情報を取得（SPREADSHEET_ID2）
-def get_employee_info(sheet_service, spreadsheet_id=SPREADSHEET_ID2, retries=3, delay=2):
+def get_employee_info(sheet_service, spreadsheet_id=SPREADSHEET_ID2, use_cache=True, retries=3, delay=2):
+    global employee_info_cache
+    if use_cache and employee_info_cache:
+        return employee_info_cache
+
     try:
         for attempt in range(retries):
             try:
@@ -150,6 +154,7 @@ def get_employee_info(sheet_service, spreadsheet_id=SPREADSHEET_ID2, retries=3, 
                     uid = row_data.get("UID") or row_data.get("社員コード") or row_data.get("名前")
                     if uid:
                         employee_info_map[uid] = row_data
+                employee_info_cache = employee_info_map  # ✅ キャッシュ保存
                 return employee_info_map
             except HttpError as e:
                 logging.warning(f"⚠️ 従業員情報の取得失敗（{attempt+1}回目）: {e}")
