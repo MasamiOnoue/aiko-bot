@@ -1,3 +1,4 @@
+
 # company_info.py（各種スプレッドシートの操作を担当）
 
 import os
@@ -296,5 +297,3 @@ def get_user_callname_from_uid(user_id):
     except Exception as e:
         logging.error(f"ユーザー名取得失敗: {e}")
     return "LINEのIDが不明な方"
-
-
