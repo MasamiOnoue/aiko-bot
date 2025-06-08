@@ -1,6 +1,6 @@
 import os
 import traceback
-import logging
+import logging  #通信ログをRenderに出力するようにする
 import datetime
 import threading
 import time
@@ -10,10 +10,6 @@ import re
 import feedparser #ブログチェック機能
 import pytz
 import random
-from dotenv import load_dotenv
-
-load_dotenv()
-
 from flask import Flask, request, abort, jsonify
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
@@ -22,13 +18,14 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
-import logging  #通信ログをRenderに出力するようにする
-from openai import OpenAI
+from googleapiclient.http import set_user_agent
 import googleapiclient.discovery
-from company_info import COMPANY_INFO_COLUMNS   #会社情報スプレッドシートの列構成定義の呼び出し
 
-# company_info.pyに会社の情報の読み込みや書き込み系の関数を移動したのでそれらを呼び出しておく
-from company_info import (
+load_dotenv()     # .env 読み込み
+
+from aiko_diary_report import generate_daily_summaries
+from company_info import COMPANY_INFO_COLUMNS   #会社情報スプレッドシートの列構成定義の呼び出し
+from company_info import (    # company_info.pyに会社の情報の読み込みや書き込み系の関数を移動したのでそれらを呼び出しておく
     get_conversation_log,
     get_employee_info,
     search_employee_info_by_keywords,
@@ -46,17 +43,41 @@ from company_info import (
     aiko_moods,
     classify_message_context
 )
-from aiko_diary_report import generate_daily_summaries
 
-#googleのDriveファイルにアクセスする関数の定義
-def get_google_sheets_service():
-    service_account_info = json.loads(os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON"))
-    credentials = service_account.Credentials.from_service_account_info(
-        service_account_info,
-        scopes=["https://www.googleapis.com/auth/spreadsheets"]
-    )
-    return build("sheets", "v4", credentials=credentials).spreadsheets()
-    
+# ログ設定
+logging.basicConfig(level=logging.INFO)
+
+# OpenAI キー設定
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+# LINE API キー
+line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
+handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
+
+# Google Sheets 接続（ローカル JSON ファイルから）
+def get_google_sheet_service():
+    try:
+        json_path = os.path.join(os.path.dirname(__file__), 'aiko-bot-log-cfbf23e039fd.json')
+        credentials = service_account.Credentials.from_service_account_file(
+            json_path,
+            scopes=["https://www.googleapis.com/auth/spreadsheets"]
+        )
+        service = build("sheets", "v4", credentials=credentials)
+        return service.spreadsheets()
+    except Exception as e:
+        logging.error(f"❌ Google Sheets認証エラー: {e}")
+        return None
+
+
+
+
+
+
+
+
+
+
+
 # 環境変数からサービスアカウントJSONを取得
 service_account_info = json.loads(os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON"))
 
