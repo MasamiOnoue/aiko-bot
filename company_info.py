@@ -11,6 +11,29 @@ import openai
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
+# ✅ GOOGLE_SERVICE_ACCOUNT_JSON の読み込み確認
+raw_json = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON")
+if not raw_json:
+    logging.error("❌ GOOGLE_SERVICE_ACCOUNT_JSON が読み込まれていません")
+else:
+    logging.info("✅ GOOGLE_SERVICE_ACCOUNT_JSON が設定されています")
+
+# ✅ JSONの中身を一部表示（デバッグ用）
+try:
+    raw_json = raw_json.replace("\\n", "\n")  # ← 改行を正しく復元
+    service_account_info = json.loads(raw_json)
+    logging.info(f"📌 project_id: {service_account_info.get('project_id')}")
+    logging.info(f"📌 client_email: {service_account_info.get('client_email')}")
+except Exception as e:
+    logging.error(f"❌ JSONの解析に失敗しました: {e}")
+
+# ✅ SPREADSHEET_ID2 の読み込み確認
+spreadsheet_id2 = os.getenv("SPREADSHEET_ID2")
+if not spreadsheet_id2:
+    logging.error("❌ SPREADSHEET_ID2 が定義されていません")
+else:
+    logging.info(f"✅ SPREADSHEET_ID2 = {spreadsheet_id2}")
+
 #from company_info import COMPANY_INFO_COLUMNS   #会社情報スプレッドシートの列構成定義の呼び出し
 # company_infoルーチンに必要なIDを宣言
 SPREADSHEET_ID1 = os.getenv('SPREADSHEET_ID1')  # 会話ログ
