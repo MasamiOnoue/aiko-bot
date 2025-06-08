@@ -16,7 +16,7 @@ import threading
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # Spreadsheet ID（会社情報）
-SPREADSHEET_ID4 = "あなたのスプレッドシートIDをここに記載"
+SPREADSHEET_ID4 = os.getenv('SPREADSHEET_ID4')  # 会社情報
 
 # 使用するスコープと認証情報
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
