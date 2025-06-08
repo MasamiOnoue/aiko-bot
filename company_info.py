@@ -265,3 +265,36 @@ def write_aiko_experience_log(sheet_service, values):
     except Exception as e:
         logging.error(f"❌ 愛子の経験ログ書き込みエラー: {e}")
 
+# === 全ユーザーのUIDの読み込み ===
+def load_all_user_ids():
+    try:
+        result = sheet.values().get(
+            spreadsheetId=SPREADSHEET_ID2,
+            range="従業員情報!M2:M"
+        ).execute()
+        values = result.get("values", [])
+        return [
+            row[0].strip()
+            for row in values
+            if row and row[0].strip().startswith("U") and len(row[0].strip()) >= 10
+        ]
+    except Exception as e:
+        logging.error(f"ユーザーIDリストの取得失敗: {e}")
+        return []
+
+# === UIDから呼ばれ方を取得 ===
+def get_user_callname_from_uid(user_id):
+    try:
+        result = sheet.values().get(
+            spreadsheetId=SPREADSHEET_ID2,
+            range="従業員情報!A2:W"
+        ).execute()
+        rows = result.get("values", [])
+        for row in rows:
+            if len(row) > 12 and row[12] == user_id:
+                return row[3] if len(row) > 3 else "LINEのIDが不明な方"
+    except Exception as e:
+        logging.error(f"ユーザー名取得失敗: {e}")
+    return "LINEのIDが不明な方"
+
+
