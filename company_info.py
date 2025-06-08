@@ -29,12 +29,12 @@ for sid, label in [
     else:
         logging.info(f"✅ {label} = {sid}")
 
-# ==== Googleのシート共有サービスを宣言（JSON環境変数から読み込み方式） ====
+# ==== Googleのシート共有サービスを宣言（ローカルのJSONファイルから読み込み方式） ====
 def get_google_sheets_service():
     try:
-        service_account_info = json.loads(os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON"))
-        credentials = service_account.Credentials.from_service_account_info(
-            service_account_info,
+        json_path = os.path.join(os.path.dirname(__file__), 'aiko-bot-log-cfbf23e039fd.json')
+        credentials = service_account.Credentials.from_service_account_file(
+            json_path,
             scopes=["https://www.googleapis.com/auth/spreadsheets"]
         )
         service = build("sheets", "v4", credentials=credentials)
@@ -44,7 +44,7 @@ def get_google_sheets_service():
         return None
 
 # ==== .gitignore に追加すべき項目 ====
-# aiko-bot-log-584180f0987f.json（この方式では使用しません）
+# aiko-bot-log-584180f0987f.json（GitHubには含めない）
 
 # ==== 会社情報スプレッドシートの列構成定義 ====
 COMPANY_INFO_COLUMNS = {
