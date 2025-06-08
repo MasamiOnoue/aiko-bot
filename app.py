@@ -1,73 +1,59 @@
-# app.py（メインLINE Bot処理）
+# app.py（メイン処理ファイル）
 
 import os
 import logging
-from datetime import datetime
 from flask import Flask, request, abort
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
 
-from company_info import get_google_sheets_service, append_conversation_log, SPREADSHEET_ID1
+# 各種関数のインポート
+from company_info import (
+    get_google_sheets_service,
+    get_conversation_log,
+    get_employee_info,
+    get_partner_info,
+    get_company_info,
+    get_experience_log,
+    write_conversation_log,
+    write_employee_info,
+    write_partner_info,
+    write_company_info,
+    write_experience_log,
+)
 from aiko_greeting import now_jst, get_time_based_greeting
 
+# Flaskアプリ初期化
 app = Flask(__name__)
 
-# LINE API 認証
-line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
-handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
+# LINE Bot設定
+LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
+LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
+line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
+handler = WebhookHandler(LINE_CHANNEL_SECRET)
 
-# LINE Webhook エンドポイント
+# Webhookエンドポイント
 @app.route("/callback", methods=["POST"])
 def callback():
     signature = request.headers["X-Line-Signature"]
     body = request.get_data(as_text=True)
+
     try:
         handler.handle(body, signature)
     except InvalidSignatureError:
         abort(400)
+
     return "OK"
 
-# メッセージ受信時
+# メッセージイベントのハンドリング
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
-    user_id = event.source.user_id
     user_message = event.message.text
-    reply_token = event.reply_token
-
-    # JSTタイムスタンプ
-    timestamp = now_jst().strftime("%Y-%m-%d %H:%M:%S")
-
-    # 応答メッセージを生成
-    greeting = get_time_based_greeting()
-    reply_text = f"{greeting} ご用件は何ですか？"
-
-    # LINE返信
-    line_bot_api.reply_message(reply_token, TextSendMessage(text=reply_text))
-
-    # 会話ログをGoogle Sheetsに記録
-    sheet_service = get_google_sheets_service()
-    if sheet_service:
-        append_conversation_log(
-            sheet_service,
-            SPREADSHEET_ID1,
-            timestamp=timestamp,
-            user_id=user_id,
-            user_name="不明",
-            speaker="ユーザー",
-            message=user_message,
-            status="OK"
-        )
-        append_conversation_log(
-            sheet_service,
-            SPREADSHEET_ID1,
-            timestamp=timestamp,
-            user_id=user_id,
-            user_name="不明",
-            speaker="AI",
-            message=reply_text,
-            status="OK"
-        )
+    reply_text = f"{get_time_based_greeting()} ご用件は何でしょうか？"
+    line_bot_api.reply_message(
+        event.reply_token,
+        TextSendMessage(text=reply_text)
+    )
 
 if __name__ == "__main__":
     app.run(debug=True)
