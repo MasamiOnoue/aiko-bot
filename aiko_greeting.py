@@ -110,20 +110,6 @@ sheet = sheets_service.spreadsheets()
 def now_jst():
     return return datetime.datetime.now(pytz.timezone("Asia/Tokyo"))
 
-def get_time_based_greeting():
-    current_time = now_jst()
-    logging.info(f"現在のJST時刻: {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
-    hour = current_time.hour
-    if 5 <= hour < 10:
-        return "おっはー。"
-    elif 10 <= hour < 18:
-        return "やっはろー。"
-    elif 18 <= hour < 23:
-        return "おっつ〜。"
-    else:
-        return "ねむねむ。"
-
-
 # 時間帯に応じた挨拶を返す関数
 def get_time_based_greeting():
     current_time = now_jst()
@@ -138,7 +124,20 @@ def get_time_based_greeting():
     else:
         return "ねむねむ。"
 
-
+# === 全ユーザーUIDから愛子ちゃんからの呼ばれ方を選ぶ（従業員情報のLINEのUIDはM列） ===
+def get_user_callname(user_id):
+    try:
+        result = sheet.values().get(
+            spreadsheetId=SPREADSHEET_ID2,
+            range="従業員情報!A2:W"
+        ).execute()
+        rows = result.get("values", [])
+        for row in rows:
+            if len(row) > 12 and row[12] == user_id:  # M列は12番目なので
+                return row[3] if len(row) > 3 else "LINEのIDが不明な方"  # D列の「愛子ちゃんからの呼ばれ方」は3番目なので
+    except Exception as e:
+        logging.error(f"ユーザー名取得失敗: {e}")
+    return "LINEのIDが不明な方"
 
 app = Flask(__name__)
 
