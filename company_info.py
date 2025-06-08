@@ -113,7 +113,11 @@ def classify_message_context(message):
     except Exception as e:
         logging.warning(f"OpenAI分類失敗: {e}")
         return "未分類"
-
+        
+# ---------------- キャッシュデータクリアの関数 ----------------
+def reset_employee_info_cache():   #従業員情報のキャッシュクリア
+    global employee_info_cache
+    employee_info_cache = None
 # ---------------- 読み込み系 関数 ----------------
 
 # 会話ログを取得（SPREADSHEET_ID1）
