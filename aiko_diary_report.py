@@ -5,6 +5,8 @@ import pytz
 import openai
 import os
 from company_info import get_conversation_log, write_company_info
+from linebot import LineBotApi
+from linebot.models import TextSendMessage
 
 # JST取得関数
 def now_jst():
@@ -29,7 +31,11 @@ def generate_daily_report():
 
     # OpenAIに渡すプロンプトを作成
     text = "\n".join([f"{log['発言者']}: {log['メッセージ内容']}" for log in recent_logs])
-    prompt = f"以下は愛子とユーザーの会話ログです。これらをもとに今日の業務や出来事を1000文字以内で要約してください。\n\n{text}"
+    prompt = (
+        "以下は愛子とユーザーの会話ログです。"
+        "これらをもとに『この24時間でどんな仕事をしたのか』を1000文字以内でまとめてください。\n\n"
+        f"{text}"
+    )
 
     # OpenAIへ問い合わせ
     try:
@@ -46,3 +52,12 @@ def generate_daily_report():
         return summary
     except Exception as e:
         return f"要約の作成に失敗しました: {e}"
+
+# LINEで日報を送信する処理（任意のタイミングで呼び出す）
+def send_daily_report(line_bot_api: LineBotApi, user_id: str):
+    summary = generate_daily_report()
+    message = f"📋 愛子の日報です：\n\n{summary}"
+    try:
+        line_bot_api.push_message(user_id, TextSendMessage(text=message))
+    except Exception as e:
+        print(f"LINE送信エラー: {e}")
