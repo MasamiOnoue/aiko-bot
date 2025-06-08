@@ -72,9 +72,6 @@ def get_google_sheet_service():
 sheet_service = get_google_sheets_service()
 employee_info_map = get_employee_info(sheet_service)   # ← service.spreadsheets() を渡す
 
-# Sheets API初期化
-sheet_service = build("sheets", "v4", credentials=credentials).spreadsheets()
-
 # 「冒頭」でOpenAIの役割を指定
 SYSTEM_PROMPT = "あなたは社内アシスタントAI『愛子』です。親しみやすく丁寧な口調で、社内の質問に答えてください。"
 
