@@ -113,7 +113,7 @@ def reset_employee_info_cache():
     global EMPLOYEE_CACHE
     EMPLOYEE_CACHE = {}
 
-def cache_employee_info(spreadsheet_id=SPREADSHEET_ID2, retries=3, delay=2):
+def cache_employee_info(spreadsheet_id=SPREADSHEET_ID2, retries=10, delay=2):
     global EMPLOYEE_CACHE
     sheet_service = get_google_sheets_service()
     if not sheet_service:
@@ -121,9 +121,10 @@ def cache_employee_info(spreadsheet_id=SPREADSHEET_ID2, retries=3, delay=2):
     try:
         for attempt in range(retries):
             try:
+                logging.info("📥 従業員シートを読み込み中...")  # ← この行を追加
                 result = sheet_service.values().get(
                     spreadsheetId=spreadsheet_id,
-                    range="従業員情報!A2:W"
+                    range="従業員情報!A2:O"
                 ).execute()
                 values = result.get("values", [])
                 keys = [
