@@ -1,53 +1,52 @@
-# company_info.py
+# company_info.py（Google Sheets 連携＋会話ログ記録用）
 
 import os
 import logging
-import json
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
+from datetime import datetime
 
-# Google Sheets APIの認証を行う関数
+# Google Sheets API 接続サービスを返す関数
 def get_google_sheets_service():
     try:
-        service_account_info = json.loads(os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON"))
-        credentials = service_account.Credentials.from_service_account_info(
-            service_account_info,
+        json_path = os.path.join(os.path.dirname(__file__), 'aiko-bot-log-cfbf23e039fd.json')
+        credentials = service_account.Credentials.from_service_account_file(
+            json_path,
             scopes=["https://www.googleapis.com/auth/spreadsheets"]
         )
         service = build("sheets", "v4", credentials=credentials)
         return service.spreadsheets()
     except Exception as e:
-        logging.error(f"❌ Google Sheets APIの認証に失敗: {e}")
+        logging.error(f"❌ Google Sheets認証エラー: {e}")
         return None
 
-# スプレッドシートIDを環境変数から取得
+# 会話ログの保存関数（10列対応）
+def append_conversation_log(spreadsheet_service, spreadsheet_id, timestamp, user_id, user_name, speaker, message, status):
+    try:
+        values = [[
+            timestamp,
+            user_id,
+            user_name,
+            speaker,
+            message,
+            "会話",           # カテゴリ
+            "テキスト",       # メッセージタイプ
+            "",              # 関連トピック（現状空）
+            status,
+            ""               # 感情ラベル（現状空）
+        ]]
+        spreadsheet_service.values().append(
+            spreadsheetId=spreadsheet_id,
+            range="会話ログ!A:J",
+            valueInputOption="USER_ENTERED",
+            body={"values": values}
+        ).execute()
+    except Exception as e:
+        logging.error(f"❌ 会話ログの追記に失敗: {e}")
+
+# 各スプレッドシートIDの取得
 SPREADSHEET_ID1 = os.getenv('SPREADSHEET_ID1')  # 会話ログ
 SPREADSHEET_ID2 = os.getenv('SPREADSHEET_ID2')  # 従業員情報
 SPREADSHEET_ID3 = os.getenv('SPREADSHEET_ID3')  # 取引先情報
 SPREADSHEET_ID4 = os.getenv('SPREADSHEET_ID4')  # 会社情報
 SPREADSHEET_ID5 = os.getenv('SPREADSHEET_ID5')  # 愛子の経験ログ
-
-# データ取得の共通関数
-def get_sheet_values(sheet_service, spreadsheet_id, range_name):
-    try:
-        result = sheet_service.values().get(spreadsheetId=spreadsheet_id, range=range_name).execute()
-        return result.get('values', [])
-    except Exception as e:
-        logging.error(f"❌ シートの読み込みに失敗しました: {e}")
-        return []
-
-# それぞれのデータ取得関数（必要に応じて拡張可）
-def get_conversation_log(sheet_service):
-    return get_sheet_values(sheet_service, SPREADSHEET_ID1, "会話ログ!A2:Z")
-
-def get_employee_info(sheet_service):
-    return get_sheet_values(sheet_service, SPREADSHEET_ID2, "従業員情報!A2:Z")
-
-def get_partner_info(sheet_service):
-    return get_sheet_values(sheet_service, SPREADSHEET_ID3, "取引先情報!A2:Z")
-
-def get_company_info(sheet_service):
-    return get_sheet_values(sheet_service, SPREADSHEET_ID4, "会社情報!A2:Z")
-
-def get_aiko_experience_log(sheet_service):
-    return get_sheet_values(sheet_service, SPREADSHEET_ID5, "愛子経験ログ!A2:Z")
