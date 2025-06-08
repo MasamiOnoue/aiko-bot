@@ -7,10 +7,10 @@ import time
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-import openai
+from openai import OpenAI
 import json
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI()
 
 # ✅ SPREADSHEET_ID の読み込み確認
 SPREADSHEET_ID1 = os.getenv('SPREADSHEET_ID1')  # 会話ログ
