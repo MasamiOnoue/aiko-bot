@@ -255,7 +255,7 @@ def get_experience_log(sheet, spreadsheet_id=SPREADSHEET_ID5):
 # ---------------- 保存系 関数 ----------------
 
 # 会話ログを保存（SPREADSHEET_ID1）
-def append_conversation_log(timestamp, user_id, user_name, speaker, message, status=""):
+def append_log_conversation(timestamp, user_id, user_name, speaker, message, status=""):
     try:
         values = [[timestamp, user_id, user_name, speaker, message, "", "", status]]
         # 6列目=F列: カテゴリ（空）
