@@ -31,13 +31,6 @@ from company_info import COMPANY_INFO_COLUMNS   #会社情報スプレッドシ�
 # company_info.pyに会社の情報の読み込みや書き込み系の関数を移動したのでそれらを呼び出しておく
 from aiko_diary_report import generate_daily_summaries
 
-# 事前に employee_info_map を作成
-sheet_service = get_google_sheets_service()
-values = sheet_service.values().get(
-    spreadsheetId=SPREADSHEET_ID2,
-    range='従業員情報!A1:Z'
-).execute().get('values', [])
-
 employee_info_map = get_employee_info(sheet_service)
 
 # 認証情報を生成
