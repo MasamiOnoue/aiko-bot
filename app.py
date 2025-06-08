@@ -33,7 +33,8 @@ from company_info import (
     get_partner_info,
     get_company_info,
     get_experience_log,
-    append_conversation_log,
+    append_log_conversation
+    #append_conversation_log,
     append_company_info,
     append_experience_log,
     generate_daily_summaries,
