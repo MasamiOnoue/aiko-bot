@@ -30,11 +30,8 @@ for sid, label in [
         logging.error(f"❌ {label} が定義されていません")
     else:
         logging.info(f"✅ {label} = {sid}")
-        
-#グローバル変数としてキャッシュを定義
-employee_info_cache = None
 
-# ==== Googleのシート共有サービスを宣言（ローカルのJSONファイルから読み込み方式） ====
+# ==== Googleのシート共有サービスを関数内で初期化 ====
 def get_google_sheets_service():
     try:
         json_path = os.path.join(os.path.dirname(__file__), 'aiko-bot-log-cfbf23e039fd.json')
@@ -47,9 +44,6 @@ def get_google_sheets_service():
     except Exception as e:
         logging.error(f"❌ Google Sheets Serviceの初期化に失敗: {e}")
         return None
-
-# ==== .gitignore に追加すべき項目 ====
-# aiko-bot-log-584180f0987f.json（GitHubには含めない）
 
 # ==== 会社情報スプレッドシートの列構成定義 ====
 COMPANY_INFO_COLUMNS = {
@@ -82,7 +76,7 @@ COMPANY_INFO_COLUMNS = {
 }
 
 # ---------------- 判定系 関数 ----------------
-# 会話ログのF列（カテゴリー）をOpenAIに判定させる
+
 def classify_message_context(message):
     prompt = f"""次の発言を、以下の分類から最も近いもの1つを日本語で選んでください：
 - 業務連絡
@@ -98,14 +92,13 @@ def classify_message_context(message):
 
 分類:"""
     try:
-        response = openai.ChatCompletion.create(  # ← 修正済み
+        response = openai.ChatCompletion.create(
             model="gpt-4o",
             messages=[{"role": "user", "content": prompt}],
             temperature=0,
             max_tokens=30
         )
         result = response.choices[0].message["content"].strip()
-
         if result not in ["業務連絡", "あいさつ", "日常会話", "ネットからの情報", "愛子botから社内情報報告", "重要", "エラー"]:
             logging.warning(f"分類結果が不正: {result}")
             return "未分類"
@@ -113,30 +106,18 @@ def classify_message_context(message):
     except Exception as e:
         logging.warning(f"OpenAI分類失敗: {e}")
         return "未分類"
-        
+
 # ---------------- キャッシュデータクリアの関数 ----------------
-def reset_employee_info_cache():   #従業員情報のキャッシュクリア
-    global employee_info_cache
-    employee_info_cache = None
-# ---------------- 読み込み系 関数 ----------------
 
-# 会話ログを取得（SPREADSHEET_ID1）
-def get_conversation_log(sheet, spreadsheet_id=SPREADSHEET_ID1):
-    try:
-        result = sheet.values().get(
-            spreadsheetId=spreadsheet_id,
-            range="会話ログ!A2:D"
-        ).execute()
-        return result.get("values", [])
-    except Exception as e:
-        logging.error(f"会話ログの取得に失敗: {e}")
-        return []
-
-# 従業員情報を取得（SPREADSHEET_ID2）
-EMPLOYEE_CACHE = {}
-
-def cache_employee_info(sheet_service, spreadsheet_id=SPREADSHEET_ID2, retries=3, delay=2):
+def reset_employee_info_cache():
     global EMPLOYEE_CACHE
+    EMPLOYEE_CACHE = {}
+
+def cache_employee_info(spreadsheet_id=SPREADSHEET_ID2, retries=3, delay=2):
+    global EMPLOYEE_CACHE
+    sheet_service = get_google_sheets_service()
+    if not sheet_service:
+        return False
     try:
         for attempt in range(retries):
             try:
@@ -167,6 +148,26 @@ def cache_employee_info(sheet_service, spreadsheet_id=SPREADSHEET_ID2, retries=3
     except Exception as e:
         logging.error(f"❌ 予期しないエラー: {e}")
         return False
+
+def get_employee_info_from_cache():
+    return EMPLOYEE_CACHE
+
+# ---------------- 読み込み系 関数 ----------------
+
+# 会話ログを取得（SPREADSHEET_ID1）
+def get_conversation_log(sheet, spreadsheet_id=SPREADSHEET_ID1):
+    try:
+        result = sheet.values().get(
+            spreadsheetId=spreadsheet_id,
+            range="会話ログ!A2:D"
+        ).execute()
+        return result.get("values", [])
+    except Exception as e:
+        logging.error(f"会話ログの取得に失敗: {e}")
+        return []
+
+# 従業員情報を取得（SPREADSHEET_ID2）
+EMPLOYEE_CACHE = {}
 
 def get_employee_info_from_cache():
     return EMPLOYEE_CACHE
