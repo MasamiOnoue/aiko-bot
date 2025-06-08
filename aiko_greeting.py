@@ -108,7 +108,7 @@ sheet = sheets_service.spreadsheets()
 ################################実関数群######################################
 # JSTでの現在時刻を返す関数
 def now_jst():
-    return return datetime.datetime.now(pytz.timezone("Asia/Tokyo"))
+    return datetime.datetime.now(pytz.timezone("Asia/Tokyo"))
 
 # 時間帯に応じた挨拶を返す関数
 def get_time_based_greeting():
