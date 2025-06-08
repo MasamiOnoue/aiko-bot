@@ -1,4 +1,4 @@
-# app.py（会話ログ記録機能付き）
+# app.py（会話ログ記録機能付き＋AI返答も保存・10列対応）
 
 import os
 from flask import Flask, request, abort
@@ -47,6 +47,12 @@ def handle_message(event):
     user_id = event.source.user_id
     user_message = event.message.text
     timestamp = datetime.now().isoformat()
+    user_name = "不明"  # 必要なら後で取得ロジックを追加
+    category = "会話"
+    message_type = "テキスト"
+    topic = ""
+    status = "OK"
+    emotion = ""
 
     # 挨拶テスト
     if "あいさつ" in user_message:
@@ -60,12 +66,15 @@ def handle_message(event):
         TextSendMessage(text=reply_text)
     )
 
-    # 会話ログの記録
+    # 会話ログの記録（ユーザー発言とAI返答の両方、10列構成）
     try:
-        values = [[timestamp, user_id, "ユーザー", user_message, "OK"]]  # A〜E列
+        values = [
+            [timestamp, user_id, user_name, "ユーザー", user_message, category, message_type, topic, status, emotion],
+            [timestamp, user_id, user_name, "AI", reply_text, category, message_type, topic, status, emotion]
+        ]
         gsheet_service.values().append(
             spreadsheetId=SPREADSHEET_ID1,
-            range="会話ログ!A:E",
+            range="会話ログ!A:J",
             valueInputOption="USER_ENTERED",
             body={"values": values}
         ).execute()
