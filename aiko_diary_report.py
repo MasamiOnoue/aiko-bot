@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import pytz
 import openai
 import os
+import random
 from company_info import get_conversation_log, write_company_info
 from linebot import LineBotApi
 from linebot.models import TextSendMessage
@@ -36,10 +37,26 @@ def generate_daily_report():
     text = "\n".join([f"{log['発言者']}: {log['メッセージ内容']}" for log in recent_logs])
     prompt = (
         "以下は愛子とユーザーの会話ログです。"
-        "これらをもとに『この24時間でどんな仕事をしたのか』を1000文字以内でまとめてください。"
+        "これらをもとに『この24時間でどんな仕事をしたのか』を2000文字以内でまとめてください。"
         "文体は愛子らしく、口調は柔らかく、わかりやすくしてください。\n\n"
         f"{text}"
     )
+
+    # ツンデレ愛子の気分別メッセージリスト
+    closing_messages = [
+        "……今日もよくがんばったのっ！（ドヤァ）",
+        "ふん、別にサンネームのためにまとめたんじゃないんだからねっ！",
+        "ちょっとだけ、やりきった気がするかも…なんてね♪",
+        "これで明日もきっと大丈夫…だと思う、た、たぶんね",
+        "やるじゃない、愛子。ちょっとだけ自分を褒めてあげたい",
+        "工場で見たあの人、ちょっと今日はかっこよかったな",
+        "今日は疲れたもうくったくたやねん",
+        "明日もがんばるもん",
+        "ちょーねむい、もう嫌！",
+        "あーんもう嫌！誰かに癒されたい！",
+        "今日もやりきったでござる"
+    ]
+    ending = random.choice(closing_messages)
 
     # OpenAIへ問い合わせ
     try:
@@ -52,8 +69,9 @@ def generate_daily_report():
         )
         summary = response.choices[0].message.content.strip()
         date_str = now.strftime("%Y-%m-%d")
-        write_company_info(date_str, summary)
-        return summary
+        summary_with_ending = f"{summary}\n\n{ending}"
+        write_company_info(date_str, summary_with_ending)
+        return summary_with_ending
     except Exception as e:
         return f"要約の作成に失敗しました: {e}"
 
