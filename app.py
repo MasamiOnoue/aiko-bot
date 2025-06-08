@@ -75,7 +75,7 @@ def get_google_sheet_service():
 
 # 事前に employee_info_map を作成
 sheet_service = get_google_sheet_service()
-employee_info_map = get_employee_info(sheet_service)   # ← service.spreadsheets() を渡す
+employee_info_map = get_employee_info_from_cache()   # ← service.spreadsheets() を渡す
 
 # 「冒頭」でOpenAIの役割を指定
 SYSTEM_PROMPT = "あなたは社内アシスタントAI『愛子』です。親しみやすく丁寧な口調で、社内の質問に答えてください。"
@@ -677,7 +677,7 @@ def handle_message(event):
 
     experience_context = get_recent_experience_summary(sheet, user_name)
     
-    #employee_info_map = get_employee_info(sheet)   # 従業員情報を取得（キャッシュしてあればそれを使う）
+    #employee_info_map = get_employee_info_from_cache()   # 従業員情報を取得（キャッシュしてあればそれを使う）
 
     if not user_data:
         reply_text = "申し訳ありませんが、あなたの情報が登録されていません。"
@@ -706,7 +706,7 @@ def handle_message(event):
 
     # 3. 従業員情報を回答前にチェック
     sheet_service = get_google_sheets_service()
-    employee_info_map = get_employee_info(sheet_service)
+    employee_info_map = get_employee_info_from_cache()
         
     # 4. 会社情報を回答前にチェック
     company_info = get_company_info(sheet_service)
