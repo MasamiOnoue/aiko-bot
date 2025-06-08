@@ -22,6 +22,11 @@ SPREADSHEET_ID5 = os.getenv('SPREADSHEET_ID5')  # 愛子の経験ログ
 # ==== Googleのシート共有サービスを宣言 ====
 def get_google_sheets_service():
     try:
+        raw_json = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON")    #デバッグ用
+        if not raw_json:    #デバッグ用
+            logging.error("❌ GOOGLE_SERVICE_ACCOUNT_JSON が読み込めていません")    #デバッグ用
+            return None    #デバッグ用
+            
         service_account_info = json.loads(os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON"))
         credentials = service_account.Credentials.from_service_account_info(
             service_account_info,
