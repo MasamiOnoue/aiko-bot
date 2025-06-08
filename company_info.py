@@ -137,9 +137,32 @@ def get_company_info(sheet_service):
         ).execute()
         rows = result.get("values", [])
         headers = [
-            "カテゴリ", "キーワード", "質問例", "回答内容", "回答要約", "補足情報", "最終更新日", "登録者名",
-            "使用回数", "担当者", "開示範囲", "予備2", "予備3", "予備4", "予備5", "予備6", "予備7",
-            "予備8", "予備9", "予備10", "予備11", "予備12", "予備13", "予備14", "予備15", "予備16"
+            "カテゴリ",
+            "キーワード",
+            "質問例",
+            "回答内容",
+            "回答要約",
+            "補足情報",
+            "最終更新日",
+            "登録者名",
+            "使用回数",
+            "担当者",
+            "開示範囲",
+            "予備2",
+            "予備3",
+            "予備4",
+            "予備5",
+            "予備6",
+            "予備7",
+            "予備8",
+            "予備9",
+            "予備10",
+            "予備11",
+            "予備12",
+            "予備13",
+            "予備14",
+            "予備15",
+            "予備16"
         ]
         structured_data = []
         for row in rows:
@@ -150,7 +173,20 @@ def get_company_info(sheet_service):
         logging.error(f"❌ 会社情報の取得に失敗: {e}")
         return []
 
+# 愛子の経験ログを取得する関数（A列:日付、B列:日記）
+def get_experience_log(sheet_service):
+    try:
+        result = sheet_service.values().get(
+            spreadsheetId=SPREADSHEET_ID5,
+            range="経験ログ!A2:E"
+        ).execute()
+        return result.get("values", [])
+    except Exception as e:
+        logging.error(f"❌ 経験ログの取得に失敗: {e}")
+        return []
+
 ################ 書き込み関数：統一 ###############
+#会話ログを書き込む
 def write_conversation_log(sheet_service, timestamp, user_id, user_name, speaker, message, status):
     try:
         row = [
@@ -175,7 +211,8 @@ def write_conversation_log(sheet_service, timestamp, user_id, user_name, speaker
         ).execute()
     except Exception as e:
         logging.error(f"❌ 会話ログ書き込みエラー: {e}")
-
+        
+#従業員情報を書き込む
 def write_employee_info(sheet_service, values):
     try:
         body = {"values": [values]}
@@ -189,6 +226,7 @@ def write_employee_info(sheet_service, values):
     except Exception as e:
         logging.error(f"❌ 従業員情報書き込みエラー: {e}")
 
+#取引先情報を書き込む
 def write_partner_info(sheet_service, values):
     try:
         body = {"values": [values]}
@@ -201,7 +239,8 @@ def write_partner_info(sheet_service, values):
         ).execute()
     except Exception as e:
         logging.error(f"❌ 取引先情報書き込みエラー: {e}")
-
+        
+#会社情報（ノウハウ）を書き込む
 def write_company_info(sheet_service, values):
     try:
         body = {"values": [values]}
@@ -214,7 +253,8 @@ def write_company_info(sheet_service, values):
         ).execute()
     except Exception as e:
         logging.error(f"❌ 会社情報書き込みエラー: {e}")
-
+        
+#愛子の日記（経験ログ）を書き込む
 def write_aiko_experience_log(sheet_service, values):
     try:
         body = {"values": [values]}
