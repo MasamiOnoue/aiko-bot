@@ -46,9 +46,6 @@ from company_info import (
     cache_employee_info
 )
 
-# キャッシュ読み込み
-cache_employee_info()
-
 # ログ設定
 logging.basicConfig(level=logging.INFO)
 
@@ -663,6 +660,7 @@ def clean_log_message(text):
 def handle_message(event):
     global employee_info_map  # 🔑 従業員情報のグローバル宣言
     global sheet_service  # 🔑 SPREADSHEETの読み込みをグローバル宣言
+    
     user_message = event.message.text.strip()
     user_id = event.source.user_id
     timestamp = now_jst()
@@ -677,13 +675,21 @@ def handle_message(event):
 
     experience_context = get_recent_experience_summary(sheet, user_name)
     
-    #employee_info_map = get_employee_info_from_cache()   # 従業員情報を取得（キャッシュしてあればそれを使う）
-
-    if not user_data:
-        reply_text = "申し訳ありませんが、あなたの情報が登録されていません。"
-    else:
-        name = user_data.get("氏名", "不明さん")
-        reply_text = f"{name}さん、メッセージを受け付けました。"
+    # 従業員情報を取得（キャッシュしてあればそれを使う）
+    employee_info_map = get_employee_info_from_cache()
+    if not employee_info_map:
+        logging.info("💾 従業員キャッシュが空のため再読み込みを試みます。")
+        success = cache_employee_info()
+        if success:
+            employee_info_map = get_employee_info_from_cache()
+        else:
+            logging.error("❌ 従業員キャッシュの取得に失敗しました")
+            employee_info_map = {}
+        if not user_data:
+            reply_text = "申し訳ありませんが、あなたの情報が登録されていません。"
+        else:
+            name = user_data.get("氏名", "不明さん")
+            reply_text = f"{name}さん、メッセージを受け付けました。"
 
     employee_info_reply = search_employee_info_by_keywords(user_message, employee_info_map)    # メッセージ内のキーワードに応じて従業員情報を検索
 
