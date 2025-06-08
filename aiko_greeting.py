@@ -10,6 +10,7 @@ import re
 import pytz
 import random
 from dotenv import load_dotenv
+from datetime import datetime, timedelta, timezone
 
 load_dotenv()
 
@@ -102,8 +103,11 @@ creds = service_account.Credentials.from_service_account_file(
 sheets_service = build('sheets', 'v4', credentials=creds)
 sheet = sheets_service.spreadsheets()
 
+################################実関数群######################################
+# JSTでの現在時刻を返す関数
 def now_jst():
-    return datetime.datetime.now(pytz.timezone("Asia/Tokyo"))
+    return return datetime.datetime.now(pytz.timezone("Asia/Tokyo"))
+
 
 def get_time_based_greeting():
     current_time = now_jst()
