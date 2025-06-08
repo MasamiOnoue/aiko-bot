@@ -160,7 +160,7 @@ def get_conversation_log(sheet, spreadsheet_id=SPREADSHEET_ID1):
     try:
         result = sheet.values().get(
             spreadsheetId=spreadsheet_id,
-            range="会話ログ!A2:D"
+            range="会話ログ!A2:J"
         ).execute()
         return result.get("values", [])
     except Exception as e:
@@ -261,7 +261,7 @@ def append_conversation_log(timestamp, user_id, user_name, speaker, message):
         sheet_service = get_google_sheets_service()
         sheet_service.values().append(
             spreadsheetId=SPREADSHEET_ID_LOG,
-            range="会話ログ!A2:I",
+            range="会話ログ!A2:J",  # ← 必要列数に合わせて調整
             valueInputOption="USER_ENTERED",
             body={"values": values}
         ).execute()
