@@ -6,51 +6,51 @@ import os
 import json  # ✅ JSON読み込み用
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
-import googleapiclient.discovery
 import openai
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-# ✅ GOOGLE_SERVICE_ACCOUNT_JSON の読み込み確認
+# ✅ GOOGLE_SERVICE_ACCOUNT_JSON の読み込み確認と復元
 raw_json = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON")
 if not raw_json:
     logging.error("❌ GOOGLE_SERVICE_ACCOUNT_JSON が読み込まれていません")
 else:
-    logging.info("✅ GOOGLE_SERVICE_ACCOUNT_JSON が設定されています")
+    try:
+        raw_json = raw_json.replace("\\n", "\n")  # 改行復元
+        service_account_info = json.loads(raw_json)
+        logging.info(f"📌 project_id: {service_account_info.get('project_id')}")
+        logging.info(f"📌 client_email: {service_account_info.get('client_email')}")
+    except Exception as e:
+        logging.error(f"❌ JSONの解析に失敗しました: {e}")
 
-# ✅ JSONの中身を一部表示（デバッグ用）
-try:
-    raw_json = raw_json.replace("\\n", "\n")  # ← 改行を正しく復元
-    service_account_info = json.loads(raw_json)
-    logging.info(f"📌 project_id: {service_account_info.get('project_id')}")
-    logging.info(f"📌 client_email: {service_account_info.get('client_email')}")
-except Exception as e:
-    logging.error(f"❌ JSONの解析に失敗しました: {e}")
-
-# ✅ SPREADSHEET_ID2 の読み込み確認
-spreadsheet_id2 = os.getenv("SPREADSHEET_ID2")
-if not spreadsheet_id2:
-    logging.error("❌ SPREADSHEET_ID2 が定義されていません")
-else:
-    logging.info(f"✅ SPREADSHEET_ID2 = {spreadsheet_id2}")
-
-#from company_info import COMPANY_INFO_COLUMNS   #会社情報スプレッドシートの列構成定義の呼び出し
-# company_infoルーチンに必要なIDを宣言
+# ✅ SPREADSHEET_ID の読み込み確認
 SPREADSHEET_ID1 = os.getenv('SPREADSHEET_ID1')  # 会話ログ
 SPREADSHEET_ID2 = os.getenv('SPREADSHEET_ID2')  # 従業員情報
 SPREADSHEET_ID3 = os.getenv('SPREADSHEET_ID3')  # 取引先情報
 SPREADSHEET_ID4 = os.getenv('SPREADSHEET_ID4')  # 会社情報
 SPREADSHEET_ID5 = os.getenv('SPREADSHEET_ID5')  # 愛子の経験ログ
 
+for sid, label in [
+    (SPREADSHEET_ID1, "SPREADSHEET_ID1"),
+    (SPREADSHEET_ID2, "SPREADSHEET_ID2"),
+    (SPREADSHEET_ID3, "SPREADSHEET_ID3"),
+    (SPREADSHEET_ID4, "SPREADSHEET_ID4"),
+    (SPREADSHEET_ID5, "SPREADSHEET_ID5"),
+]:
+    if not sid:
+        logging.error(f"❌ {label} が定義されていません")
+    else:
+        logging.info(f"✅ {label} = {sid}")
+
 # ==== Googleのシート共有サービスを宣言 ====
 def get_google_sheets_service():
     try:
-        raw_json = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON")    #デバッグ用
-        if not raw_json:    #デバッグ用
-            logging.error("❌ GOOGLE_SERVICE_ACCOUNT_JSON が読み込めていません")    #デバッグ用
-            return None    #デバッグ用
-            
-        service_account_info = json.loads(os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON"))
+        raw_json = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON")
+        if not raw_json:
+            logging.error("❌ GOOGLE_SERVICE_ACCOUNT_JSON が読み込めていません")
+            return None
+        raw_json = raw_json.replace("\\n", "\n")
+        service_account_info = json.loads(raw_json)
         credentials = service_account.Credentials.from_service_account_info(
             service_account_info,
             scopes=["https://www.googleapis.com/auth/spreadsheets"]
@@ -60,6 +60,7 @@ def get_google_sheets_service():
     except Exception as e:
         logging.error(f"Google Sheets Serviceの初期化に失敗: {e}")
         return None
+
 
 # ==== 会社情報スプレッドシートの列構成定義 ====
 COMPANY_INFO_COLUMNS = {
