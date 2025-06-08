@@ -657,8 +657,8 @@ def clean_log_message(text):
 #  ==== メインのLINEから受信が来た時のメッセージ処理のメインルーチン ==== 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
-    global employee_info_map  # 🔑 従業員情報のグローバル宣言を忘れずに！
-
+    global employee_info_map  # 🔑 従業員情報のグローバル宣言
+    global sheet_service  # 🔑 SPREADSHEETの読み込みをグローバル宣言
     user_message = event.message.text.strip()
     user_id = event.source.user_id
     timestamp = now_jst()
