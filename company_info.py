@@ -255,17 +255,18 @@ def get_experience_log(sheet, spreadsheet_id=SPREADSHEET_ID5):
 # ---------------- 保存系 関数 ----------------
 
 # 会話ログを保存（SPREADSHEET_ID1）
-def append_conversation_log(sheet, user_id, user_name, message, timestamp, spreadsheet_id=SPREADSHEET_ID1):
+def append_conversation_log(timestamp, user_id, user_name, speaker, message):
     try:
-        row = [timestamp.strftime("%Y-%m-%d %H:%M:%S"), user_id, user_name, message]
-        sheet.values().append(
-            spreadsheetId=spreadsheet_id,
-            range="会話ログ!A2:D",
+        values = [[timestamp, user_id, user_name, speaker, message]]
+        sheet_service = get_google_sheets_service()
+        sheet_service.values().append(
+            spreadsheetId=SPREADSHEET_ID_LOG,
+            range="会話ログ!A2:I",
             valueInputOption="USER_ENTERED",
-            body={"values": [row]}
+            body={"values": values}
         ).execute()
     except Exception as e:
-        logging.error(f"会話ログの保存に失敗: {e}")
+        logging.error(f"会話ログの追記に失敗: {e}")
 
 # 会社情報を保存（SPREADSHEET_ID4）
 def append_company_info(sheet, key, value, spreadsheet_id=SPREADSHEET_ID4):
