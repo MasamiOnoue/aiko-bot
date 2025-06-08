@@ -72,12 +72,6 @@ def get_google_sheet_service():
 sheet_service = get_google_sheets_service()
 employee_info_map = get_employee_info(sheet_service)   # ← service.spreadsheets() を渡す
 
-# 認証情報を生成
-credentials = service_account.Credentials.from_service_account_info(
-    service_account_info,
-    scopes=["https://www.googleapis.com/auth/spreadsheets"]
-)
-
 # Sheets API初期化
 sheet_service = build("sheets", "v4", credentials=credentials).spreadsheets()
 
