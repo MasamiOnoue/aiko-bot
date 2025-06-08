@@ -25,7 +25,7 @@ from aiko_emergency_procedure import handle_emergency_reply
 
 load_dotenv()     # .env 読み込み
 
-from aiko_greeting import now_jst, get_time_based_greeting #挨拶系の関数群のファイルから関数を呼ぶ
+from aiko_greeting import now_jst, get_time_based_greeting, get_user_callname #挨拶系の関数群のファイルから関数を呼ぶ
 from aiko_diary_report import generate_daily_summaries   #日記系の関数群のファイルから関数を呼ぶ
 from company_info import COMPANY_INFO_COLUMNS   #会社情報スプレッドシートの列構成定義の呼び出し
 # company_info.pyに会社の情報の読み込みや書き込み系の関数を移動したのでそれらを呼び出しておく
