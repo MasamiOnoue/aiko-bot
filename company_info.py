@@ -265,8 +265,8 @@ def append_conversation_log(timestamp, user_id, user_name, speaker, message, sta
         # 10列目=J列：　感情ラベル（未使用）
         sheet_service = get_google_sheets_service()
         sheet_service.values().append(
-            spreadsheetId=SPREADSHEET_ID_LOG,
-            range="会話ログ!A2:I",
+            spreadsheetId=SPREADSHEET_ID1,
+            range="会話ログ!A2:J",
             valueInputOption="USER_ENTERED",
             body={"values": values}
         ).execute()
