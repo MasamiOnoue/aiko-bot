@@ -1,3 +1,6 @@
+import logging
+from datetime import datetime, timedelta, timezone
+
 import os
 import traceback
 import logging
@@ -10,7 +13,6 @@ import re
 import pytz
 import random
 from dotenv import load_dotenv
-from datetime import datetime, timedelta, timezone
 
 load_dotenv()
 
@@ -108,7 +110,6 @@ sheet = sheets_service.spreadsheets()
 def now_jst():
     return return datetime.datetime.now(pytz.timezone("Asia/Tokyo"))
 
-
 def get_time_based_greeting():
     current_time = now_jst()
     logging.info(f"現在のJST時刻: {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
@@ -121,6 +122,23 @@ def get_time_based_greeting():
         return "おっつ〜。"
     else:
         return "ねむねむ。"
+
+
+# 時間帯に応じた挨拶を返す関数
+def get_time_based_greeting():
+    current_time = now_jst()
+    logging.info(f"現在のJST時刻: {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
+    hour = current_time.hour
+    if 5 <= hour < 10:
+        return "おっはー。"
+    elif 10 <= hour < 18:
+        return "やっはろー。"
+    elif 18 <= hour < 23:
+        return "おっつ〜。"
+    else:
+        return "ねむねむ。"
+
+
 
 app = Flask(__name__)
 
