@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 from googleapiclient.discovery import build
 from google.oauth2.service_account import Credentials
 import openai
+import threading
 
 # OpenAI APIキー（RenderのEnvironmentに登録されている）
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -21,24 +22,52 @@ SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 creds = Credentials.from_service_account_file("service_account.json", scopes=SCOPES)
 sheet_service = build("sheets", "v4", credentials=creds)
 
-# 会話ログからユーザーごとの最新100件を取得
-from company_info import get_conversation_log
+# 会話ログ関連の読み込み
+from company_info import get_conversation_log, load_all_user_ids
 
-def get_recent_user_context(user_id, limit=100):
+# キャッシュ（全体会話ログ50件、個別ログ20件）
+user_conversation_cache = {}
+full_conversation_cache = []
+
+def cache_all_user_conversations():
     logs = get_conversation_log()
-    user_logs = [
-        f"{log['発言者']}: {log['メッセージ内容']}"
-        for log in logs
-        if log.get("ユーザーID") == user_id
-    ][-limit:]
-    return "\n".join(user_logs)
+    all_user_ids = load_all_user_ids()
 
-# OpenAIに会話履歴を渡して文脈応答を生成
+    # 全体の最新50件をキャッシュ
+    global full_conversation_cache
+    full_conversation_cache = [
+        f"{log[3]}: {log[4]}"
+        for log in logs
+        if len(log) > 4
+    ][-50:]
+
+    # 各ユーザーの最新20件もキャッシュ
+    for user_id in all_user_ids:
+        user_logs = [
+            f"{log[3]}: {log[4]}"
+            for log in logs
+            if len(log) > 4 and log[1] == user_id
+        ][-20:]
+        user_conversation_cache[user_id] = "\n".join(user_logs)
+
+    print("🧠 会話キャッシュを更新しました")
+
+# 10分ごとにキャッシュを更新
+cache_thread = threading.Thread(target=lambda: periodic_cache_update(600), daemon=True)
+
+def periodic_cache_update(interval):
+    while True:
+        cache_all_user_conversations()
+        time.sleep(interval)
+
+# 会話履歴から応答生成（文脈：ユーザー+他の話題）
 def generate_contextual_reply(user_id, user_message):
-    context = get_recent_user_context(user_id)
+    user_context = user_conversation_cache.get(user_id, "")
+    others_context = "\n".join(full_conversation_cache)
     prompt = (
-        f"以下はユーザーとの過去の会話履歴です。文脈を踏まえて、最新の入力に自然に応答してください。\n"
-        f"会話履歴:\n{context}\n"
+        f"以下はこのユーザーとの直近の会話と、社内で交わされた他の会話の記録です。文脈を踏まえて、自然に応答してください。\n"
+        f"【このユーザーの履歴】\n{user_context}\n\n"
+        f"【他の人の話題や社内背景】\n{others_context}\n\n"
         f"ユーザーの入力: {user_message}"
     )
     try:
@@ -64,14 +93,12 @@ def get_existing_links():
 
 def update_links_and_log_diff(new_links_text, diff_summary):
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-    # 補足情報（F列）更新
     sheet_service.spreadsheets().values().update(
         spreadsheetId=SPREADSHEET_ID4,
         range="会社情報!F2",
         valueInputOption="USER_ENTERED",
         body={"values": [[new_links_text]]}
     ).execute()
-    # 差分履歴（G列以降）に追記
     sheet_service.spreadsheets().values().append(
         spreadsheetId=SPREADSHEET_ID4,
         range="会社情報!G2",
@@ -137,12 +164,13 @@ def check_full_site_update():
     else:
         print("変化なし：更新はありませんでした。")
 
-# 毎日午前3時に実行（実運用ではcron推奨）
+# 実行開始
 if __name__ == "__main__":
+    cache_thread.start()
     while True:
         now = datetime.datetime.now()
         if now.hour == 3:
             check_full_site_update()
-            time.sleep(24 * 60 * 60)  # 24時間待機
+            time.sleep(24 * 60 * 60)
         else:
-            time.sleep(60 * 30)  # 30分ごとに再確認
+            time.sleep(60 * 30)
