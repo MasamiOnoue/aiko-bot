@@ -169,8 +169,6 @@ def get_conversation_log(sheet, spreadsheet_id=SPREADSHEET_ID1):
 # 従業員情報を取得（SPREADSHEET_ID2）
 EMPLOYEE_CACHE = {}
 
-def get_employee_info_from_cache():
-    return EMPLOYEE_CACHE
 # キーワードから従業員情報を検索
 def search_employee_info_by_keywords(query, employee_info_map):
     attribute_keywords = {
