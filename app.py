@@ -10,6 +10,8 @@ import re
 import feedparser #ブログチェック機能
 import pytz
 import random
+import googleapiclient.discovery
+
 from flask import Flask, request, abort, jsonify
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
@@ -19,7 +21,7 @@ from openai import OpenAI
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import set_user_agent
-import googleapiclient.discovery
+from aiko_emergency_procedure import handle_emergency_reply
 
 load_dotenv()     # .env 読み込み
 
@@ -124,6 +126,7 @@ def get_user_summary(user_id):
                 return row[3]  # 要約内容
     except Exception as e:
         logging.error(f"{user_id} の経験ログ取得失敗: {e}")
+        handle_emergency_reply(line_bot_api, event.reply_token, e)
     return ""
     
 # キャッシュをリフレッシュする
@@ -142,6 +145,7 @@ def refresh_cache():
             }
     except Exception as e:
         logging.error("キャッシュ更新失敗: %s", e)
+        handle_emergency_reply(line_bot_api, event.reply_token, e)
 
 def load_employee_info():
     global employee_info_map
@@ -159,6 +163,7 @@ def load_employee_info():
                 employee_info_map[uid] = data
     except Exception as e:
         logging.error("従業員情報の読み込み失敗: %s", e)
+        handle_emergency_reply(line_bot_api, event.reply_token, e)
 
 threading.Thread(target=lambda: (lambda: [refresh_cache() or load_employee_info() or time.sleep(300) for _ in iter(int, 1)])(), daemon=True).start()
 
@@ -193,6 +198,7 @@ def load_all_user_ids():
         ]
     except Exception as e:
         logging.error(f"ユーザーIDリストの取得失敗: {e}")
+        handle_emergency_reply(line_bot_api, event.reply_token, e)
         return []
         
 # === 全ユーザーUIDから愛子ちゃんからの呼ばれ方を選ぶ（従業員情報のLINEのUIDはM列） ===
@@ -208,6 +214,7 @@ def get_user_callname(user_id):
                 return row[3] if len(row) > 3 else "LINEのIDが不明な方"  # D列の「愛子ちゃんからの呼ばれ方」は3番目なので
     except Exception as e:
         logging.error(f"ユーザー名取得失敗: {e}")
+        handle_emergency_reply(line_bot_api, event.reply_token, e)
     return "LINEのIDが不明な方"
         
 # グローバル変数を定義
@@ -250,6 +257,7 @@ def search_partner_info_by_keywords(user_message):
         return "\n".join(results)
     except Exception as e:
         logging.error(f"取引先情報の検索失敗: {e}")
+        handle_emergency_reply(line_bot_api, event.reply_token, e)
         return ""
 
 # ==== キーワードから会話ログから情報を取ってくる ====
@@ -267,6 +275,7 @@ def search_log_sheets_by_keywords(user_message):
         return "\n".join(results)
     except Exception as e:
         logging.error(f"会話ログ検索失敗: {e}")
+        handle_emergency_reply(line_bot_api, event.reply_token, e)
         return ""
         
 # ==== キーワードから経験ログから情報を取ってくる ====
@@ -283,6 +292,7 @@ def search_experience_log_by_keywords(user_message):
         return "\n".join(results)
     except Exception as e:
         logging.error(f"経験ログ検索失敗: {e}")
+        handle_emergency_reply(line_bot_api, event.reply_token, e)
         return ""
 
 # ==== 自動サマリー保存関数（毎日3時に実行） ====
@@ -334,6 +344,7 @@ def summarize_daily_conversations():
                         filtered.append(r)
                 except Exception as e:
                     logging.warning(f"日時変換エラー: {r[0]} - {e}")
+                    handle_emergency_reply(line_bot_api, event.reply_token, e)
 
         if not filtered:
             logging.info("対象期間の会話ログがありません。")
@@ -379,8 +390,10 @@ def summarize_daily_conversations():
                 logging.info(f"{name} の重要情報を会社情報に保存しました")
             except Exception as e:
                 logging.error(f"{name} の会社情報登録失敗: {e}")
+                handle_emergency_reply(line_bot_api, event.reply_token, e)
     except Exception as e:
         logging.error(f"日記集計エラー: {e}")
+        handle_emergency_reply(line_bot_api, event.reply_token, e)
 
 # ==== 愛子日記から毎日の回答を参照とする ====
 def get_recent_experience_summary(sheet, user_name):
@@ -396,6 +409,7 @@ def get_recent_experience_summary(sheet, user_name):
         return " ".join(recent_summaries)
     except Exception as e:
         logging.error(f"経験ログの読み込み失敗: {e}")
+        handle_emergency_reply(line_bot_api, event.reply_token, e)
         return ""
 
 # ==== 会社情報スプレッドシートからキーワードで検索し、該当内容を返す関数 ====
@@ -450,6 +464,7 @@ def search_company_info_by_keywords(user_message, user_name, user_data):
 
     except Exception as e:
         logging.error(f"会社情報の検索失敗: {e}")
+        handle_emergency_reply(line_bot_api, event.reply_token, e)
         return None
 
 # ==== 自動実行スレッド ====
@@ -481,6 +496,7 @@ def check_blog_updates():
 
     except Exception as e:
         logging.error(f"ブログチェック失敗: {e}")
+        handle_emergency_reply(line_bot_api, event.reply_token, e)
 
 # ==== ブログのタイトルをシートから読みだす ====
 def get_read_titles_from_sheet():
@@ -494,6 +510,7 @@ def get_read_titles_from_sheet():
         return titles
     except Exception as e:
         logging.error(f"既読タイトルの取得失敗: {e}")
+        handle_emergency_reply(line_bot_api, event.reply_token, e)
         return []
 
 # ==== ブログの内容を要約して会社情報に更新する ====
@@ -521,6 +538,7 @@ def register_blog_to_sheet(entry):
 
     except Exception as e:
         logging.error(f"ブログ記事の登録失敗: {e}")
+        handle_emergency_reply(line_bot_api, event.reply_token, e)
 
 # ==== 自動実行スレッドにブログチェック追加 ====
 def daily_summary_scheduler():
@@ -604,6 +622,7 @@ def ask_openai_polite_rephrase(prompt):
         return response.choices[0].message.content.strip()
     except Exception as e:
         logging.warning(f"丁寧語変換失敗: {e}")
+        handle_emergency_reply(line_bot_api, event.reply_token, e)
         return "すみません、言い換えに失敗しました。"
 
 # 個人情報っぽいデータを全て抽出する。
@@ -630,6 +649,7 @@ def ask_openai_free_response(prompt):
         return response.choices[0].message.content.strip()
     except Exception as e:
         logging.warning(f"OpenAI自由応答失敗: {e}")
+        handle_emergency_reply(line_bot_api, event.reply_token, e)
         return "すみません、ちょっと考えがまとまりませんでした。"
 
 # 削除対象の語句（すべて「覚えて系」）
@@ -690,6 +710,7 @@ def handle_message(event):
             user_name = profile.display_name
         except Exception as e:
             logging.warning(f"ユーザー名の取得に失敗しました: {e}")
+            handle_emergency_reply(line_bot_api, event.reply_token, e)
             user_name = "未登録ユーザー"
 
     # 2. 会話ログを回答前にチェック
@@ -755,6 +776,7 @@ def handle_message(event):
                     reply_text = f"{target_name}さんに伝えておきました。"
                 except Exception as e:
                     logging.error(f"通知失敗: {matched_uid} - {e}")
+                    handle_emergency_reply(line_bot_api, event.reply_token, e)
                     reply_text = f"⚠️ {target_name}さんへの通知に失敗しました。"
             else:
                 reply_text = f"⚠️ お名前が『{target_name}』の方が見つかりませんでした。"
@@ -907,21 +929,9 @@ def handle_message(event):
         message=reply_text,
         status="愛子botから社内情報報告"
     )
-    
-    # デバッグ用。employee_info_mapをRenderログに出力
-    #logging.info("🔥 employee_info_map の内容確認開始")
-    #try:
-    #    logging.info("employee_info_map:\n%s", json.dumps(employee_info_map, ensure_ascii=False, indent=2))
-    #except Exception as e:
-    #    logging.warning("employee_info_map のログ出力に失敗しました: %s", str(e))
-    
+
     # 5. メッセージから「他の人に伝える」意図があるか判定。対象が「全員」か「特定の相手」かを確認。対象に通知を送信
     bridge_keywords = ["伝えて", "知らせて", "連絡して", "お知らせして", "休みます", "遅れます"]
-    
-    #if any(kw in user_message for kw in bridge_keywords):
-    #    ask_text = "この内容を全員にお知らせしますか？それとも、誰か特定の方にだけ伝えますか？"
-    #    line_bot_api.reply_message(event.reply_token, TextSendMessage(text=ask_text))
-    #    log_conversation(timestamp.isoformat(), user_id, user_name, "AI", ask_text)
 
     # 6. 社内情報は常時、先にキーワードを探すようする
     company_info_reply = search_company_info_by_keywords(user_message, user_name, user_data)
@@ -940,6 +950,7 @@ def handle_message(event):
                     line_bot_api.push_message(uid, TextSendMessage(text=notify_text))
                 except Exception as e:
                     logging.error(f"通知失敗: {uid} - {e}")
+                    handle_emergency_reply(line_bot_api, event.reply_token, e)
         reply_text = "みなさんにお知らせしました。"
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
         #log_conversation(timestamp.isoformat(), user_id, user_name, "AI", reply_text)
@@ -967,6 +978,7 @@ def handle_message(event):
                 except Exception as e:
                     logging.error(f"通知失敗: {uid} - {e}")
                     reply_text = f"⚠️ {target_name}への通知に失敗しました。"
+                    handle_emergency_reply(line_bot_api, event.reply_token, e)
                     break
         else:
             reply_text = f"⚠️ お名前が『{target_name}』の方が見つかりませんでした。"
@@ -1013,6 +1025,7 @@ def handle_message(event):
             ).execute()
         except Exception as e:
             logging.error("会社ノウハウへ記録失敗: %s", e)
+            handle_emergency_reply(line_bot_api, event.reply_token, e)
 
     # ノウハウ確認要求があるかチェック
     confirm_knowledge_keywords = ["覚えた内容を確認", "ノウハウを確認", "記録した内容を見せて"]
@@ -1032,6 +1045,7 @@ def handle_message(event):
         except Exception as e:
             logging.error("ノウハウ取得失敗: %s", e)
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text="⚠️ ノウハウの取得に失敗しました。"))
+            handle_emergency_reply(line_bot_api, event.reply_token, e)
             return
 
     greeting = get_time_based_greeting()
@@ -1134,6 +1148,7 @@ def handle_message(event):
             reply_text = f"{get_time_based_greeting()}{user_name}。" + (mismatch_comment + " " if mismatch_comment else "") + reply_text
         except Exception as e:
             logging.error("挨拶整形でエラー: %s", e)
+            handle_emergency_reply(line_bot_api, event.reply_token, e)
             # ↑挨拶を省いて通常の応答だけを返す
     else:
         greeting = ""
@@ -1188,6 +1203,7 @@ def handle_message(event):
     except Exception as e:
         logging.error("OpenAI 応答失敗: %s", e)
         reply_text = "⚠️ 応答に失敗しました。政美さんにご連絡ください。"
+        handle_emergency_reply(line_bot_api, event.reply_token, e)
 
     # LINEへ返信
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
