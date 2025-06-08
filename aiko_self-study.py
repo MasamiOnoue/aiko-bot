@@ -97,7 +97,7 @@ def generate_contextual_reply(user_id, user_message):
     )
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-4",
+            model="gpt-4o",
             messages=[
                 {"role": "system", "content": "あなたはAIアシスタント愛子です。"},
                 {"role": "user", "content": prompt}
