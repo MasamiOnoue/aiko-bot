@@ -69,7 +69,7 @@ def get_google_sheet_service():
         return None
 
 # 事前に employee_info_map を作成
-sheet_service = get_google_sheets_service()
+sheet_service = get_google_sheet_service()
 employee_info_map = get_employee_info(sheet_service)   # ← service.spreadsheets() を渡す
 
 # 「冒頭」でOpenAIの役割を指定
