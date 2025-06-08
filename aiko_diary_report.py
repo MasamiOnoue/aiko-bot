@@ -61,7 +61,7 @@ def generate_daily_report():
     # OpenAIへ問い合わせ
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-4",
+            model="gpt-4o",
             messages=[
                 {"role": "system", "content": "あなたはAIアシスタント愛子です。"},
                 {"role": "user", "content": prompt}
