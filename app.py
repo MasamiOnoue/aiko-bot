@@ -911,7 +911,7 @@ def handle_message(event):
     else:
         reply_text = ask_openai_free_response(user_message)
 
-    # 5. AI応答のログ（SPREADSHEETの会話ログ）に保存
+    # 5. AI応答をログ（SPREADSHEET_ID1の会話ログ）に保存
     append_log_conversation(
         timestamp=timestamp.isoformat(),
         user_id=user_id,
