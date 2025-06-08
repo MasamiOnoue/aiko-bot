@@ -5,6 +5,7 @@ import hashlib
 import time
 import datetime
 import os
+import re
 from bs4 import BeautifulSoup
 from googleapiclient.discovery import build
 from google.oauth2.service_account import Credentials
@@ -29,24 +30,47 @@ from company_info import get_conversation_log, load_all_user_ids
 user_conversation_cache = {}
 full_conversation_cache = []
 
+# 特定のワードを含む重要会話フラグ
+IMPORTANT_PATTERNS = [
+    "重要", "緊急", "至急", "要確認", "トラブル", "対応して", "すぐに", "大至急"
+]
+
+# 重要な会話を保存関数
+def is_important_message(text):
+    pattern = "|".join(map(re.escape, IMPORTANT_PATTERNS))
+    return re.search(pattern, text, re.IGNORECASE) is not None
+
+# 重要な会話を保存関数
+def clean_log_message(text):
+    patterns = [
+        "覚えてください", "覚えて", "おぼえておいて", "覚えてね",
+        "記録して", "メモして", "忘れないで", "記憶して",
+        "保存して", "記録お願い", "記録をお願い"
+    ]
+    pattern = "|".join(map(re.escape, patterns))
+    return re.sub(pattern, "", text, flags=re.IGNORECASE).strip()
+
+# 重要な会話を保存関数
 def cache_all_user_conversations():
     logs = get_conversation_log()
     all_user_ids = load_all_user_ids()
 
-    # 全体の最新50件をキャッシュ
     global full_conversation_cache
-    full_conversation_cache = [
-        f"{log[3]}: {log[4]}"
-        for log in logs
-        if len(log) > 4
-    ][-50:]
+    full_conversation_cache = []
+    
+    # 全体の最新50件をキャッシュ
+    for log in logs[-100:]:
+        if len(log) > 4:
+            speaker = log[3]
+            message = clean_log_message(log[4])
+            flag = " [重要]" if is_important_message(message) else ""
+            full_conversation_cache.append(f"{speaker}: {message}{flag}")
 
     # 各ユーザーの最新20件もキャッシュ
     for user_id in all_user_ids:
         user_logs = [
-            f"{log[3]}: {log[4]}"
-            for log in logs
-            if len(log) > 4 and log[1] == user_id
+            f"{log[3]}: {clean_log_message(log[4])}{' [重要]' if is_important_message(log[4]) else ''}"
+            for log in logs if len(log) > 4 and log[1] == user_id
         ][-20:]
         user_conversation_cache[user_id] = "\n".join(user_logs)
 
@@ -55,12 +79,13 @@ def cache_all_user_conversations():
 # 10分ごとにキャッシュを更新
 cache_thread = threading.Thread(target=lambda: periodic_cache_update(600), daemon=True)
 
+# キャッシュ
 def periodic_cache_update(interval):
     while True:
         cache_all_user_conversations()
         time.sleep(interval)
 
-# 会話履歴から応答生成（文脈：ユーザー+他の話題）
+# 直近の会話の精査
 def generate_contextual_reply(user_id, user_message):
     user_context = user_conversation_cache.get(user_id, "")
     others_context = "\n".join(full_conversation_cache)
