@@ -165,7 +165,7 @@ def summarize_diff(old_text, new_text):
     )
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-4",
+            model="gpt-4o",
             messages=[
                 {"role": "system", "content": "あなたは変更点を要約するアシスタントです。"},
                 {"role": "user", "content": prompt}
