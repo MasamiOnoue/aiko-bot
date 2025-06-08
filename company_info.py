@@ -26,8 +26,7 @@ def get_google_sheets_service():
         logging.error(f"❌ Google Sheets認証エラー: {e}")
         return None
 
-
-
+################ 各種読み込み関数 ###############
 # 会話ログをスプレッドシートから取得（全行）
 def get_conversation_log(sheet_service):
     try:
@@ -138,32 +137,9 @@ def get_company_info(sheet_service):
         ).execute()
         rows = result.get("values", [])
         headers = [
-            "カテゴリ",
-            "キーワード",
-            "質問例",
-            "回答内容",
-            "回答要約",
-            "補足情報",
-            "最終更新日",
-            "登録者名",
-            "使用回数",
-            "担当者",
-            "開示範囲",
-            "予備2",
-            "予備3",
-            "予備4",
-            "予備5",
-            "予備6",
-            "予備7",
-            "予備8",
-            "予備9",
-            "予備10",
-            "予備11",
-            "予備12",
-            "予備13",
-            "予備14",
-            "予備15",
-            "予備16"
+            "カテゴリ", "キーワード", "質問例", "回答内容", "回答要約", "補足情報", "最終更新日", "登録者名",
+            "使用回数", "担当者", "開示範囲", "予備2", "予備3", "予備4", "予備5", "予備6", "予備7",
+            "予備8", "予備9", "予備10", "予備11", "予備12", "予備13", "予備14", "予備15", "予備16"
         ]
         structured_data = []
         for row in rows:
@@ -174,9 +150,8 @@ def get_company_info(sheet_service):
         logging.error(f"❌ 会社情報の取得に失敗: {e}")
         return []
 
-################ 各種書き込み関数 ###############
-# 会話ログをスプレッドシートに記録（10列）
-def append_conversation_log(sheet_service, spreadsheet_id, timestamp, user_id, user_name, speaker, message, status):
+################ 書き込み関数：統一 ###############
+def write_conversation_log(sheet_service, timestamp, user_id, user_name, speaker, message, status):
     try:
         row = [
             timestamp,
@@ -184,26 +159,13 @@ def append_conversation_log(sheet_service, spreadsheet_id, timestamp, user_id, u
             user_name,
             speaker,
             message,
-            "",  # F列: カテゴリ
-            "text",  # G列: メッセージタイプ（暫定）
-            "",  # H列: 関連トピック
+            "",  # カテゴリ
+            "text",  # メッセージタイプ
+            "",  # 関連トピック
             status,
-            ""   # J列: 感情ラベル
+            ""   # 感情ラベル
         ]
         body = {"values": [row]}
-        sheet_service.values().append(
-            spreadsheetId=spreadsheet_id,
-            range="会話ログ!A:J",
-            valueInputOption="USER_ENTERED",
-            insertDataOption="INSERT_ROWS",
-            body=body
-        ).execute()
-    except Exception as e:
-        logging.error(f"❌ 会話ログの追記に失敗: {e}")
-        
-def write_conversation_log(sheet_service, values):
-    try:
-        body = {"values": [values]}
         sheet_service.values().append(
             spreadsheetId=SPREADSHEET_ID1,
             range="会話ログ!A:J",
