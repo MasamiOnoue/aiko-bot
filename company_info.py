@@ -74,8 +74,8 @@ def get_employee_info(sheet_service):
         rows = result.get("values", [])
         employee_info_map = {}
         for row in rows:
-            if len(row) >= 12:  # UIDが存在するか確認（L列）
-                user_uid = row[11]  # LINEのUID（L列）
+            if len(row) >= 12:
+                user_uid = row[11]
                 employee_info_map[user_uid] = {
                     "名前": row[0] if len(row) > 0 else "",
                     "名前の読み": row[1] if len(row) > 1 else "",
@@ -151,4 +151,49 @@ def get_partner_info(sheet_service):
         return partner_info_list
     except Exception as e:
         logging.error(f"❌ 取引先情報の取得に失敗: {e}")
+        return []
+
+# 会社情報を取得する関数（A〜Z列対応）
+def get_company_info(sheet_service):
+    try:
+        result = sheet_service.values().get(
+            spreadsheetId=SPREADSHEET_ID4,
+            range="会社情報!A2:Z"
+        ).execute()
+        rows = result.get("values", [])
+        headers = [
+            "カテゴリ",
+            "キーワード",
+            "質問例",
+            "回答内容",
+            "回答要約",
+            "補足情報",
+            "最終更新日",
+            "登録者名",
+            "使用回数",
+            "担当者",
+            "開示範囲",
+            "予備2",
+            "予備3",
+            "予備4",
+            "予備5",
+            "予備6",
+            "予備7",
+            "予備8",
+            "予備9",
+            "予備10",
+            "予備11",
+            "予備12",
+            "予備13",
+            "予備14",
+            "予備15",
+            "予備16"
+        ]
+        structured_data = []
+        for row in rows:
+            entry = {headers[i]: row[i] if i < len(row) else "" for i in range(len(headers))}
+            structured_data.append(entry)
+        return structured_data
+    except Exception as e:
+        logging.error(f"❌ 会社情報の取得に失敗: {e}")
         return []
