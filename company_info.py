@@ -30,6 +30,9 @@ for sid, label in [
         logging.error(f"❌ {label} が定義されていません")
     else:
         logging.info(f"✅ {label} = {sid}")
+        
+#グローバル変数としてキャッシュを定義
+employee_info_cache = None
 
 # ==== Googleのシート共有サービスを宣言（ローカルのJSONファイルから読み込み方式） ====
 def get_google_sheets_service():
