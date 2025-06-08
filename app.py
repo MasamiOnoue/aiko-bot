@@ -27,8 +27,7 @@ from aiko_diary_report import generate_daily_summaries
 from company_info import COMPANY_INFO_COLUMNS   #会社情報スプレッドシートの列構成定義の呼び出し
 from company_info import (    # company_info.pyに会社の情報の読み込みや書き込み系の関数を移動したのでそれらを呼び出しておく
     get_conversation_log,
-    get_employee_info,
-    cache_employee_info,
+    get_employee_info_from_cache,
     search_employee_info_by_keywords,
     get_partner_info,
     get_company_info,
@@ -42,7 +41,8 @@ from company_info import (    # company_info.pyに会社の情報の読み込み
     get_name_by_uid,
     get_employee_tags,
     aiko_moods,
-    classify_message_context
+    classify_message_context,
+    cache_employee_info
 )
 from company_info import 
 
