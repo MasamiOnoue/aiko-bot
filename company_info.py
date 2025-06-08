@@ -32,7 +32,7 @@ for sid, label in [
         logging.info(f"✅ {label} = {sid}")
 
 # ==== Googleのシート共有サービスを関数内で初期化 ====
-def get_google_sheets_service():
+def get_google_sheet_service():
     try:
         json_path = os.path.join(os.path.dirname(__file__), 'aiko-bot-log-cfbf23e039fd.json')
         credentials = service_account.Credentials.from_service_account_file(
