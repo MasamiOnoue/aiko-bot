@@ -7,7 +7,6 @@ import logging
 import datetime
 import threading
 import time
-import json
 import openai
 import re
 import pytz
@@ -31,9 +30,6 @@ from company_info import COMPANY_INFO_COLUMNS   #会社情報スプレッドシ�
 
 # company_info.pyに会社の情報の読み込みや書き込み系の関数を移動したのでそれらを呼び出しておく
 from aiko_diary_report import generate_daily_summaries
-    
-# 環境変数からサービスアカウントJSONを取得
-service_account_info = json.loads(os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON"))
 
 # 事前に employee_info_map を作成
 sheet_service = get_google_sheets_service()
