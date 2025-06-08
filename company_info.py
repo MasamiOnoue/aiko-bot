@@ -133,11 +133,10 @@ def get_conversation_log(sheet, spreadsheet_id=SPREADSHEET_ID1):
         return []
 
 # 従業員情報を取得（SPREADSHEET_ID2）
-def get_employee_info(sheet_service, spreadsheet_id=SPREADSHEET_ID2, use_cache=True, retries=3, delay=2):
-    global employee_info_cache
-    if use_cache and employee_info_cache:
-        return employee_info_cache
+EMPLOYEE_CACHE = {}
 
+def cache_employee_info(sheet_service, spreadsheet_id=SPREADSHEET_ID2, retries=3, delay=2):
+    global EMPLOYEE_CACHE
     try:
         for attempt in range(retries):
             try:
@@ -152,22 +151,25 @@ def get_employee_info(sheet_service, spreadsheet_id=SPREADSHEET_ID2, use_cache=T
                     "備考", "UID", "登録日時", "更新日時", "退職日", "タグ", "よく話す内容",
                     "最終ログイン", "LINE登録日", "Slack名"
                 ]
-                employee_info_map = {}
+                EMPLOYEE_CACHE = {}
                 for row in values:
                     row_data = {keys[i]: row[i] if i < len(row) else "" for i in range(len(keys))}
                     uid = row_data.get("UID") or row_data.get("社員コード") or row_data.get("名前")
                     if uid:
-                        employee_info_map[uid] = row_data
-                employee_info_cache = employee_info_map  # ✅ キャッシュ保存
-                return employee_info_map
+                        EMPLOYEE_CACHE[uid] = row_data
+                logging.info("✅ 従業員キャッシュ読み込み完了")
+                return True
             except HttpError as e:
                 logging.warning(f"⚠️ 従業員情報の取得失敗（{attempt+1}回目）: {e}")
                 time.sleep(delay)
-        return {}
+        logging.error("❌ 従業員情報のキャッシュ取得失敗")
+        return False
     except Exception as e:
         logging.error(f"❌ 予期しないエラー: {e}")
-        return {}
+        return False
 
+def get_employee_info_from_cache():
+    return EMPLOYEE_CACHE
 # キーワードから従業員情報を検索
 def search_employee_info_by_keywords(query, employee_info_map):
     attribute_keywords = {
