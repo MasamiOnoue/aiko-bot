@@ -45,6 +45,7 @@ from company_info import (
     classify_message_context,
     cache_employee_info
 )
+from company_info import get_google_sheets_service
 
 # ログ設定
 logging.basicConfig(level=logging.INFO)
