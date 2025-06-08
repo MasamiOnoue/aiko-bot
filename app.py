@@ -62,7 +62,7 @@ service_account_info = json.loads(os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON"))
 
 # 事前に employee_info_map を作成
 sheet_service = get_google_sheets_service()
-employee_info_map = get_employee_info(sheet_service.spreadsheets())  # ← service.spreadsheets() を渡す
+employee_info_map = get_employee_info(sheet_service)   # ← service.spreadsheets() を渡す
 
 # 認証情報を生成
 credentials = service_account.Credentials.from_service_account_info(
@@ -701,6 +701,7 @@ def handle_message(event):
     conversation_log = get_conversation_log(sheet_service)
 
     # 3. 従業員情報を回答前にチェック
+    sheet_service = get_google_sheets_service()
     employee_info_map = get_employee_info(sheet_service)
         
     # 4. 会社情報を回答前にチェック
