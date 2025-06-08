@@ -31,48 +31,7 @@ from company_info import COMPANY_INFO_COLUMNS   #会社情報スプレッドシ�
 # company_info.pyに会社の情報の読み込みや書き込み系の関数を移動したのでそれらを呼び出しておく
 from aiko_diary_report import generate_daily_summaries
 
-# 認証情報を生成
-credentials = service_account.Credentials.from_service_account_info(
-    service_account_info,
-    scopes=["https://www.googleapis.com/auth/spreadsheets"]
-)
-
-# Sheets API初期化
-sheet_service = build("sheets", "v4", credentials=credentials).spreadsheets()
-
-# 「冒頭」でOpenAIの役割を指定
-SYSTEM_PROMPT = "あなたは社内アシスタントAI『愛子』です。親しみやすく丁寧な口調で、社内の質問に答えてください。"
-
 client = OpenAI()
-
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
-
-# 日本標準時 (JST) タイムゾーン
-JST = pytz.timezone('Asia/Tokyo')
-
-SERVICE_ACCOUNT_FILE = 'aiko-bot-log-cfbf23e039fd.json'
-SPREADSHEET_ID1 = os.getenv('SPREADSHEET_ID1')  # 会話ログ
-SPREADSHEET_ID2 = os.getenv('SPREADSHEET_ID2')  # 従業員情報
-SPREADSHEET_ID3 = os.getenv('SPREADSHEET_ID3')  # 取引先情報
-SPREADSHEET_ID4 = os.getenv('SPREADSHEET_ID4')  # 会社情報
-SPREADSHEET_ID5 = os.getenv('SPREADSHEET_ID5')  # 愛子の経験ログ
-
-#グローバル変数を宣言
-cache_lock = threading.Lock()
-recent_user_logs = {}
-employee_info_map = {}
-last_greeting_time = {}
-last_user_message = {}
-
-SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
-creds = service_account.Credentials.from_service_account_file(
-    SERVICE_ACCOUNT_FILE, scopes=SCOPES
-)
-sheets_service = build('sheets', 'v4', credentials=creds)
-sheet = sheets_service.spreadsheets()
 
 ################################実関数群######################################
 # JSTでの現在時刻を返す関数
@@ -140,79 +99,7 @@ def callback():
         traceback.print_exc()
         abort(500)
     return "OK", 200
-
-# ==== １日の会話ログのサマリーを作成 ====
-def summarize_daily_conversations():
-    try:
-        start_time = (now_jst() - datetime.timedelta(days=1)).replace(hour=3, minute=0, second=0, microsecond=0)
-        end_time = start_time + datetime.timedelta(hours=24)
-        logging.info(f"要約対象期間: {start_time} 〜 {end_time}")
-
-        result = sheet.values().get(
-            spreadsheetId=SPREADSHEET_ID1,
-            range='会話ログ!A2:J'
-        ).execute()
-        rows = result.get("values", [])
-
-        filtered = []
-        for r in rows:
-            if len(r) >= 5:
-                try:
-                    dt = datetime.datetime.fromisoformat(r[0])
-                    if dt.tzinfo is None:
-                        dt = JST.localize(dt)
-                    if start_time <= dt < end_time:
-                        filtered.append(r)
-                except Exception as e:
-                    logging.warning(f"日時変換エラー: {r[0]} - {e}")
-
-        if not filtered:
-            logging.info("対象期間の会話ログがありません。")
-            return
-
-        logs_by_user = {}
-        important_entries = []
-        for row in filtered:
-            uid = row[1]
-            name = row[2]
-            message = row[4]
-            status = row[9] if len(row) > 9 else ""
-            logs_by_user.setdefault((uid, name), []).append(message)
-            if status == "重要":
-                important_entries.append((uid, name, message))
-
-        # 要約生成
-        summaries = generate_daily_summaries(sheet_service, employee_info_map)
-        
-        # 重要情報を会社情報に記録
-        for uid, name, msg in important_entries:
-            try:
-                values = [[
-                    "会話メモ",   # カテゴリ
-                    "なし",       # キーワード
-                    clean_log_message(msg[:30]),    # 質問例（30文字程度）
-                    clean_log_message(msg),         # 回答内容
-                    clean_log_message(msg[:100]),    # 回答要約（100文字程度）
-                    "LINE会話ログより自動登録",  # 補足情報
-                    now_jst().strftime("%Y-%m-%d"),  # 最終更新日
-                    "愛子",        # 登録者名
-                    0,           # 使用回数
-                    name,      # 担当者
-                    "社内"   # 開示範囲
-                ] + [""] * 14]  # 残りの予備2〜予備16を空で埋める
-                
-                sheet.values().append(
-                    spreadsheetId=SPREADSHEET_ID4,
-                    range='会社情報!A2:Z',
-                    valueInputOption='USER_ENTERED',
-                    body={'values': values}
-                ).execute()
-                logging.info(f"{name} の重要情報を会社情報に保存しました")
-            except Exception as e:
-                logging.error(f"{name} の会社情報登録失敗: {e}")
-    except Exception as e:
-        logging.error(f"日記集計エラー: {e}")
-
+    
 # ==== 愛子日記から毎日の回答を参照とする ====
 def get_recent_experience_summary(sheet, user_name):
     try:
