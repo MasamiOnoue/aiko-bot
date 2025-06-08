@@ -6,6 +6,7 @@ import os
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 import openai
+import json
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
@@ -28,19 +29,22 @@ for sid, label in [
     else:
         logging.info(f"✅ {label} = {sid}")
 
-# ==== Googleのシート共有サービスを宣言 ====
+# ==== Googleのシート共有サービスを宣言（JSON環境変数から読み込み方式） ====
 def get_google_sheets_service():
     try:
-        credentials = service_account.Credentials.from_service_account_file(
-            "aiko-bot-log-584180f0987f.json",  # ローカルのJSONファイルを直接読み込み
+        service_account_info = json.loads(os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON"))
+        credentials = service_account.Credentials.from_service_account_info(
+            service_account_info,
             scopes=["https://www.googleapis.com/auth/spreadsheets"]
         )
         service = build("sheets", "v4", credentials=credentials)
         return service.spreadsheets()
     except Exception as e:
-        logging.error(f"Google Sheets Serviceの初期化に失敗: {e}")
+        logging.error(f"❌ Google Sheets Serviceの初期化に失敗: {e}")
         return None
 
+# ==== .gitignore に追加すべき項目 ====
+# aiko-bot-log-584180f0987f.json（この方式では使用しません）
 
 # ==== 会社情報スプレッドシートの列構成定義 ====
 COMPANY_INFO_COLUMNS = {
