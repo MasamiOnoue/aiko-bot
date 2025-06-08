@@ -28,6 +28,7 @@ from company_info import COMPANY_INFO_COLUMNS   #会社情報スプレッドシ�
 from company_info import (    # company_info.pyに会社の情報の読み込みや書き込み系の関数を移動したのでそれらを呼び出しておく
     get_conversation_log,
     get_employee_info,
+    cache_employee_info,
     search_employee_info_by_keywords,
     get_partner_info,
     get_company_info,
@@ -43,6 +44,10 @@ from company_info import (    # company_info.pyに会社の情報の読み込み
     aiko_moods,
     classify_message_context
 )
+from company_info import 
+
+# キャッシュ読み込み
+cache_employee_info()
 
 # ログ設定
 logging.basicConfig(level=logging.INFO)
