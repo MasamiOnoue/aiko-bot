@@ -39,7 +39,7 @@ def get_conversation_log(sheet_service):
         logging.error(f"❌ 会話ログの取得に失敗: {e}")
         return []
 
-# 従業員情報を取得する関数（UIDをキーに、A〜Z列まで対応）
+# 従業員情報を全件取得する関数
 def get_employee_info(sheet_service):
     try:
         result = sheet_service.values().get(
@@ -47,42 +47,40 @@ def get_employee_info(sheet_service):
             range="従業員情報!A2:Z"
         ).execute()
         rows = result.get("values", [])
-        employee_info_map = {}
+        structured_data = []
         for row in rows:
-            if len(row) >= 12:
-                user_uid = row[11]
-                employee_info_map[user_uid] = {
-                    "名前": row[0] if len(row) > 0 else "",
-                    "名前の読み": row[1] if len(row) > 1 else "",
-                    "呼ばれ方": row[2] if len(row) > 2 else "",
-                    "愛子ちゃんからの呼ばれ方": row[3] if len(row) > 3 else "",
-                    "愛子からの呼ばれ方２（よみ）": row[4] if len(row) > 4 else "",
-                    "役職": row[5] if len(row) > 5 else "",
-                    "入社年": row[6] if len(row) > 6 else "",
-                    "生年月日": row[7] if len(row) > 7 else "",
-                    "性別": row[8] if len(row) > 8 else "",
-                    "メールアドレス": row[9] if len(row) > 9 else "",
-                    "LINE ID": row[10] if len(row) > 10 else "",
-                    "LINEのUID": row[11],
-                    "古いメールアドレス": row[12] if len(row) > 12 else "",
-                    "個人メールアドレス": row[13] if len(row) > 13 else "",
-                    "携帯電話番号": row[14] if len(row) > 14 else "",
-                    "自宅電話": row[15] if len(row) > 15 else "",
-                    "住所": row[16] if len(row) > 16 else "",
-                    "郵便番号": row[17] if len(row) > 17 else "",
-                    "緊急連絡先": row[18] if len(row) > 18 else "",
-                    "ペット情報": row[19] if len(row) > 19 else "",
-                    "性格": row[20] if len(row) > 20 else "",
-                    "家族構成": row[21] if len(row) > 21 else "",
-                    "備考1": row[22] if len(row) > 22 else "",
-                    "備考2": row[23] if len(row) > 23 else "",
-                    "備考3": row[24] if len(row) > 24 else "",
-                    "備考4": row[25] if len(row) > 25 else "",
-                }
-        return employee_info_map
+            structured_data.append({
+                "名前": row[0] if len(row) > 0 else "",
+                "名前の読み": row[1] if len(row) > 1 else "",
+                "呼ばれ方": row[2] if len(row) > 2 else "",
+                "愛子ちゃんからの呼ばれ方": row[3] if len(row) > 3 else "",
+                "愛子からの呼ばれ方２（よみ）": row[4] if len(row) > 4 else "",
+                "役職": row[5] if len(row) > 5 else "",
+                "入社年": row[6] if len(row) > 6 else "",
+                "生年月日": row[7] if len(row) > 7 else "",
+                "性別": row[8] if len(row) > 8 else "",
+                "メールアドレス": row[9] if len(row) > 9 else "",
+                "LINE ID": row[10] if len(row) > 10 else "",
+                "LINEのUID": row[11] if len(row) > 11 else "",
+                "古いメールアドレス": row[12] if len(row) > 12 else "",
+                "個人メールアドレス": row[13] if len(row) > 13 else "",
+                "携帯電話番号": row[14] if len(row) > 14 else "",
+                "自宅電話": row[15] if len(row) > 15 else "",
+                "住所": row[16] if len(row) > 16 else "",
+                "郵便番号": row[17] if len(row) > 17 else "",
+                "緊急連絡先": row[18] if len(row) > 18 else "",
+                "ペット情報": row[19] if len(row) > 19 else "",
+                "性格": row[20] if len(row) > 20 else "",
+                "家族構成": row[21] if len(row) > 21 else "",
+                "備考1": row[22] if len(row) > 22 else "",
+                "備考2": row[23] if len(row) > 23 else "",
+                "備考3": row[24] if len(row) > 24 else "",
+                "備考4": row[25] if len(row) > 25 else "",
+            })
+        return structured_data
     except Exception as e:
         logging.error(f"❌ 従業員情報の取得に失敗: {e}")
-        return {}
+        return []
 
 # 取引先情報を取得する関数（A〜Z列対応）
 def get_partner_info(sheet_service):
