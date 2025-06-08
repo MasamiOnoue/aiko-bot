@@ -3,25 +3,11 @@ import logging
 from datetime import datetime
 import pytz
 import os
-import json  # ✅ JSON読み込み用
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 import openai
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
-
-# ✅ GOOGLE_SERVICE_ACCOUNT_JSON の読み込み確認と復元
-raw_json = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON")
-if not raw_json:
-    logging.error("❌ GOOGLE_SERVICE_ACCOUNT_JSON が読み込まれていません")
-else:
-    try:
-        raw_json = raw_json.replace("\\n", "\n")  # 改行復元
-        service_account_info = json.loads(raw_json)
-        logging.info(f"📌 project_id: {service_account_info.get('project_id')}")
-        logging.info(f"📌 client_email: {service_account_info.get('client_email')}")
-    except Exception as e:
-        logging.error(f"❌ JSONの解析に失敗しました: {e}")
 
 # ✅ SPREADSHEET_ID の読み込み確認
 SPREADSHEET_ID1 = os.getenv('SPREADSHEET_ID1')  # 会話ログ
@@ -45,18 +31,12 @@ for sid, label in [
 # ==== Googleのシート共有サービスを宣言 ====
 def get_google_sheets_service():
     try:
-        raw_json = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON")
-        if not raw_json:
-            logging.error("❌ GOOGLE_SERVICE_ACCOUNT_JSON が読み込めていません")
-            return None
-        raw_json = raw_json.replace("\\n", "\n")
-        service_account_info = json.loads(raw_json)
-        credentials = service_account.Credentials.from_service_account_info(
-            service_account_info,
+        credentials = service_account.Credentials.from_service_account_file(
+            "aiko-bot-log-584180f0987f.json",  # ローカルのJSONファイルを直接読み込み
             scopes=["https://www.googleapis.com/auth/spreadsheets"]
         )
         service = build("sheets", "v4", credentials=credentials)
-        return service.spreadsheets()  # ✅ spreadsheets() を返す！
+        return service.spreadsheets()
     except Exception as e:
         logging.error(f"Google Sheets Serviceの初期化に失敗: {e}")
         return None
