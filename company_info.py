@@ -1,10 +1,12 @@
 # company_info.py に分離すべき会社・従業員情報・会話ログ・取引先情報・経験ログ処理
+import os
 import logging
 from datetime import datetime
 import pytz
-import os
+import time
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 import openai
 import json
 
@@ -124,32 +126,37 @@ def get_conversation_log(sheet, spreadsheet_id=SPREADSHEET_ID1):
         return []
 
 # 従業員情報を取得（SPREADSHEET_ID2）
-def get_employee_info(sheet, spreadsheet_id=SPREADSHEET_ID2):
+def get_employee_info(sheet_service, spreadsheet_id=SPREADSHEET_ID2, retries=3, delay=2):
     try:
-        result = sheet.values().get(
-            spreadsheetId=spreadsheet_id,
-            range="従業員情報!A2:W"
-        ).execute()
-        values = result.get("values", [])
-        keys = [
-            "名前", "名前の読み", "呼ばれ方", "愛子ちゃんからの呼ばれ方", "役職", "入社年",
-            "生年月日", "メールアドレス", "LINE名", "社員コード", "部署", "在籍状況",
-            "備考", "UID", "登録日時", "更新日時", "退職日", "タグ", "よく話す内容",
-            "最終ログイン", "LINE登録日", "Slack名"
-        ]
-        employee_info_map = {}
-        for row in values:
-            row_data = {keys[i]: row[i] if i < len(row) else "" for i in range(len(keys))}
-            uid = row_data.get("UID") or row_data.get("社員コード") or row_data.get("名前")
-            if uid:
-                employee_info_map[uid] = row_data
-        return employee_info_map
+        for attempt in range(retries):
+            try:
+                result = sheet_service.values().get(
+                    spreadsheetId=spreadsheet_id,
+                    range="従業員情報!A2:W"
+                ).execute()
+                values = result.get("values", [])
+                keys = [
+                    "名前", "名前の読み", "呼ばれ方", "愛子ちゃんからの呼ばれ方", "役職", "入社年",
+                    "生年月日", "メールアドレス", "LINE名", "社員コード", "部署", "在籍状況",
+                    "備考", "UID", "登録日時", "更新日時", "退職日", "タグ", "よく話す内容",
+                    "最終ログイン", "LINE登録日", "Slack名"
+                ]
+                employee_info_map = {}
+                for row in values:
+                    row_data = {keys[i]: row[i] if i < len(row) else "" for i in range(len(keys))}
+                    uid = row_data.get("UID") or row_data.get("社員コード") or row_data.get("名前")
+                    if uid:
+                        employee_info_map[uid] = row_data
+                return employee_info_map
+            except HttpError as e:
+                logging.warning(f"⚠️ 従業員情報の取得失敗（{attempt+1}回目）: {e}")
+                time.sleep(delay)
+        return {}
     except Exception as e:
-        logging.error(f"従業員情報の取得に失敗: {e}")
+        logging.error(f"❌ 予期しないエラー: {e}")
         return {}
 
 # キーワードから従業員情報を検索
-
 def search_employee_info_by_keywords(query, employee_info_map):
     attribute_keywords = {
         "名前": ["名前", "氏名"],
