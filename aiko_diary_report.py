@@ -29,11 +29,15 @@ def generate_daily_report():
     logs = get_conversation_log()
     recent_logs = [log for log in logs if 'タイムスタンプ' in log and parse_jst(log['タイムスタンプ']) > one_day_ago]
 
+    if not recent_logs:
+        return "この24時間で記録された会話が見つかりませんでした。"
+
     # OpenAIに渡すプロンプトを作成
     text = "\n".join([f"{log['発言者']}: {log['メッセージ内容']}" for log in recent_logs])
     prompt = (
         "以下は愛子とユーザーの会話ログです。"
-        "これらをもとに『この24時間でどんな仕事をしたのか』を1000文字以内でまとめてください。\n\n"
+        "これらをもとに『この24時間でどんな仕事をしたのか』を1000文字以内でまとめてください。"
+        "文体は愛子らしく、口調は柔らかく、わかりやすくしてください。\n\n"
         f"{text}"
     )
 
