@@ -1,6 +1,7 @@
 # mask_word.py
 import re
 import openai
+import uuid
 
 # 個人情報らしいワード（OpenAI経由禁止）
 SENSITIVE_KEYWORDS = [
@@ -17,34 +18,30 @@ def contains_sensitive_info(text):
 # テキストをダミーに置換（マスキング）
 def mask_sensitive_data(text):
     mask_map = {}
-    for i, word in enumerate(SENSITIVE_KEYWORDS):
-        if word in text:
-            dummy = f"[[MASK_{i}]]"
-            text = text.replace(word, dummy)
-            mask_map[dummy] = word
-    return text, mask_map
+    masked_text = text
+    for word in set(re.findall('|'.join(SENSITIVE_KEYWORDS), text)):
+        mask = f"[[MASK-{uuid.uuid4().hex[:6]}]]"
+        mask_map[mask] = word
+        masked_text = masked_text.replace(word, mask)
+    return masked_text, mask_map
 
 # ダミーを元の語に戻す（アンマスキング）
 def unmask_sensitive_data(text, mask_map):
-    for dummy, original in mask_map.items():
-        text = text.replace(dummy, original)
+    for mask, original in mask_map.items():
+        text = text.replace(mask, original)
     return text
 
 # OpenAIで自然な日本語に整形（マスク付き）
-def rephrase_with_masked_text(masked_text, system_message="あなたはAIアシスタント愛子です。"):
-    prompt = (
-        "以下は社内情報の候補です。自然な日本語でまとめてください。ただし個人情報はマスク済みです。\n"
-        f"候補情報:\n{masked_text}"
-    )
+def rephrase_with_masked_text(masked_input):
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-4",
+            model="gpt-4o",
             messages=[
-                {"role": "system", "content": system_message},
-                {"role": "user", "content": prompt}
-            ]
+                {"role": "system", "content": "あなたはサンネームで自然な日本語に直すAIアシスタント愛子です。以下は社内情報の候補です。自然な日本語でまとめてください。ただし個人情報はマスク済みです。"},
+                {"role": "user", "content": masked_input}
+            ],
+            temperature=0.7
         )
-        return response.choices[0].message.content.strip()
+        return response["choices"][0]["message"]["content"].strip()
     except Exception as e:
         return f"[マスク応答失敗]: {e}"
-
