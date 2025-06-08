@@ -90,9 +90,9 @@ def get_partner_info(sheet_service):
             range="取引先情報!A2:Z"
         ).execute()
         rows = result.get("values", [])
-        partner_info_list = []
+        structured_data = []
         for row in rows:
-            partner_info = {
+            structured_data.append({
                 "顧客ID": row[0] if len(row) > 0 else "",
                 "会社名": row[1] if len(row) > 1 else "",
                 "読み": row[2] if len(row) > 2 else "",
@@ -119,9 +119,8 @@ def get_partner_info(sheet_service):
                 "予備1": row[23] if len(row) > 23 else "",
                 "予備2": row[24] if len(row) > 24 else "",
                 "予備3": row[25] if len(row) > 25 else "",
-            }
-            partner_info_list.append(partner_info)
-        return partner_info_list
+            })
+        return structured_data
     except Exception as e:
         logging.error(f"❌ 取引先情報の取得に失敗: {e}")
         return []
