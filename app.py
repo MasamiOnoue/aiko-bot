@@ -43,7 +43,8 @@ from company_info import (
     get_employee_tags,
     aiko_moods,
     classify_message_context,
-    cache_employee_info
+    cache_employee_info,
+    get_google_sheet_service
 )
 from company_info import get_google_sheets_service
 
@@ -56,20 +57,6 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 # LINE API キー
 line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
 handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
-
-# Google Sheets 接続（ローカル JSON ファイルから）
-def get_google_sheet_service():
-    try:
-        json_path = os.path.join(os.path.dirname(__file__), 'aiko-bot-log-cfbf23e039fd.json')
-        credentials = service_account.Credentials.from_service_account_file(
-            json_path,
-            scopes=["https://www.googleapis.com/auth/spreadsheets"]
-        )
-        service = build("sheets", "v4", credentials=credentials)
-        return service.spreadsheets()
-    except Exception as e:
-        logging.error(f"❌ Google Sheets認証エラー: {e}")
-        return None
 
 # 事前に employee_info_map を作成
 sheet_service = get_google_sheet_service()
