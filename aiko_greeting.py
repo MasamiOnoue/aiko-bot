@@ -31,8 +31,6 @@ from company_info import COMPANY_INFO_COLUMNS   #会社情報スプレッドシ�
 # company_info.pyに会社の情報の読み込みや書き込み系の関数を移動したのでそれらを呼び出しておく
 from aiko_diary_report import generate_daily_summaries
 
-employee_info_map = get_employee_info(sheet_service)
-
 # 認証情報を生成
 credentials = service_account.Credentials.from_service_account_info(
     service_account_info,
