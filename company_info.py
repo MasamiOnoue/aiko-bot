@@ -26,31 +26,7 @@ def get_google_sheets_service():
         logging.error(f"❌ Google Sheets認証エラー: {e}")
         return None
 
-# 会話ログをスプレッドシートに記録（10列）
-def append_conversation_log(sheet_service, spreadsheet_id, timestamp, user_id, user_name, speaker, message, status):
-    try:
-        row = [
-            timestamp,
-            user_id,
-            user_name,
-            speaker,
-            message,
-            "",  # F列: カテゴリ
-            "text",  # G列: メッセージタイプ（暫定）
-            "",  # H列: 関連トピック
-            status,
-            ""   # J列: 感情ラベル
-        ]
-        body = {"values": [row]}
-        sheet_service.values().append(
-            spreadsheetId=spreadsheet_id,
-            range="会話ログ!A:J",
-            valueInputOption="USER_ENTERED",
-            insertDataOption="INSERT_ROWS",
-            body=body
-        ).execute()
-    except Exception as e:
-        logging.error(f"❌ 会話ログの追記に失敗: {e}")
+
 
 # 会話ログをスプレッドシートから取得（全行）
 def get_conversation_log(sheet_service):
@@ -197,3 +173,96 @@ def get_company_info(sheet_service):
     except Exception as e:
         logging.error(f"❌ 会社情報の取得に失敗: {e}")
         return []
+
+################ 各種書き込み関数 ###############
+# 会話ログをスプレッドシートに記録（10列）
+def append_conversation_log(sheet_service, spreadsheet_id, timestamp, user_id, user_name, speaker, message, status):
+    try:
+        row = [
+            timestamp,
+            user_id,
+            user_name,
+            speaker,
+            message,
+            "",  # F列: カテゴリ
+            "text",  # G列: メッセージタイプ（暫定）
+            "",  # H列: 関連トピック
+            status,
+            ""   # J列: 感情ラベル
+        ]
+        body = {"values": [row]}
+        sheet_service.values().append(
+            spreadsheetId=spreadsheet_id,
+            range="会話ログ!A:J",
+            valueInputOption="USER_ENTERED",
+            insertDataOption="INSERT_ROWS",
+            body=body
+        ).execute()
+    except Exception as e:
+        logging.error(f"❌ 会話ログの追記に失敗: {e}")
+        
+def write_conversation_log(sheet_service, values):
+    try:
+        body = {"values": [values]}
+        sheet_service.values().append(
+            spreadsheetId=SPREADSHEET_ID1,
+            range="会話ログ!A:J",
+            valueInputOption="USER_ENTERED",
+            insertDataOption="INSERT_ROWS",
+            body=body
+        ).execute()
+    except Exception as e:
+        logging.error(f"❌ 会話ログ書き込みエラー: {e}")
+
+def write_employee_info(sheet_service, values):
+    try:
+        body = {"values": [values]}
+        sheet_service.values().append(
+            spreadsheetId=SPREADSHEET_ID2,
+            range="従業員情報!A:Z",
+            valueInputOption="USER_ENTERED",
+            insertDataOption="INSERT_ROWS",
+            body=body
+        ).execute()
+    except Exception as e:
+        logging.error(f"❌ 従業員情報書き込みエラー: {e}")
+
+def write_partner_info(sheet_service, values):
+    try:
+        body = {"values": [values]}
+        sheet_service.values().append(
+            spreadsheetId=SPREADSHEET_ID3,
+            range="取引先情報!A:Z",
+            valueInputOption="USER_ENTERED",
+            insertDataOption="INSERT_ROWS",
+            body=body
+        ).execute()
+    except Exception as e:
+        logging.error(f"❌ 取引先情報書き込みエラー: {e}")
+
+def write_company_info(sheet_service, values):
+    try:
+        body = {"values": [values]}
+        sheet_service.values().append(
+            spreadsheetId=SPREADSHEET_ID4,
+            range="会社情報!A:Z",
+            valueInputOption="USER_ENTERED",
+            insertDataOption="INSERT_ROWS",
+            body=body
+        ).execute()
+    except Exception as e:
+        logging.error(f"❌ 会社情報書き込みエラー: {e}")
+
+def write_aiko_experience_log(sheet_service, values):
+    try:
+        body = {"values": [values]}
+        sheet_service.values().append(
+            spreadsheetId=SPREADSHEET_ID5,
+            range="愛子の経験ログ!A:E",
+            valueInputOption="USER_ENTERED",
+            insertDataOption="INSERT_ROWS",
+            body=body
+        ).execute()
+    except Exception as e:
+        logging.error(f"❌ 愛子の経験ログ書き込みエラー: {e}")
+
