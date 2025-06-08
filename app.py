@@ -17,6 +17,8 @@ from company_info import (
     write_conversation_log,
     write_experience_log,
     write_company_info,
+    load_all_user_ids,
+    get_user_callname_from_uid,
 )
 from aiko_diary_report import generate_daily_report, send_daily_report
 
@@ -44,7 +46,7 @@ def handle_message(event):
     user_message = event.message.text
 
     # 呼ばれ方を取得
-    callname = get_user_callname(user_id)
+    callname = get_user_callname_from_uid(user_id)
     greeting = get_time_based_greeting(user_id)
 
     # 応答テキストの組み立て
