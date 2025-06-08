@@ -257,11 +257,16 @@ def get_experience_log(sheet, spreadsheet_id=SPREADSHEET_ID5):
 # 会話ログを保存（SPREADSHEET_ID1）
 def append_conversation_log(timestamp, user_id, user_name, speaker, message, status=""):
     try:
-        values = [[timestamp, user_id, user_name, speaker, message, status]]
+        values = [[timestamp, user_id, user_name, speaker, message, "", "", status]]
+        # 6列目=F列: カテゴリ（空）
+        # 7列目=G列: メッセージタイプ
+        # 8列目=H列: 関連トピック
+        # 9列目=I列: 処理ステータス
+        # 10列目=J列：　感情ラベル（未使用）
         sheet_service = get_google_sheets_service()
         sheet_service.values().append(
             spreadsheetId=SPREADSHEET_ID_LOG,
-            range="会話ログ!A2:F",  # ← 6列に拡張
+            range="会話ログ!A2:I",
             valueInputOption="USER_ENTERED",
             body={"values": values}
         ).execute()
