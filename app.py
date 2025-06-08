@@ -270,7 +270,7 @@ def search_log_sheets_by_keywords(user_message):
     try:
         values = sheet.values().get(
             spreadsheetId=SPREADSHEET_ID1,  # 会話ログ
-            range="会話ログ!A2:D"
+            range="会話ログ!A2:J"
         ).execute().get("values", [])
 
         results = []
