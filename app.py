@@ -1,4 +1,4 @@
-# app.py（最小構成 + 外部関数読み込み）
+# app.py（会話ログ記録機能付き）
 
 import os
 from flask import Flask, request, abort
@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
+from datetime import datetime
 
 from aiko_greeting import now_jst, get_time_based_greeting
 from company_info import (
@@ -14,7 +15,8 @@ from company_info import (
     get_employee_info,
     get_partner_info,
     get_company_info,
-    get_aiko_experience_log
+    get_aiko_experience_log,
+    SPREADSHEET_ID1
 )
 
 load_dotenv()
@@ -42,7 +44,9 @@ def callback():
 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
+    user_id = event.source.user_id
     user_message = event.message.text
+    timestamp = datetime.now().isoformat()
 
     # 挨拶テスト
     if "あいさつ" in user_message:
@@ -50,10 +54,23 @@ def handle_message(event):
     else:
         reply_text = f"あなたのメッセージ: {user_message}"
 
+    # LINE返信
     line_bot_api.reply_message(
         event.reply_token,
         TextSendMessage(text=reply_text)
     )
+
+    # 会話ログの記録
+    try:
+        values = [[timestamp, user_id, "ユーザー", user_message, "OK"]]  # A〜E列
+        gsheet_service.values().append(
+            spreadsheetId=SPREADSHEET_ID1,
+            range="会話ログ!A:E",
+            valueInputOption="USER_ENTERED",
+            body={"values": values}
+        ).execute()
+    except Exception as e:
+        print(f"❌ 会話ログの記録失敗: {e}")
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
