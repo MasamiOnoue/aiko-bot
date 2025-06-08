@@ -99,9 +99,6 @@ creds = service_account.Credentials.from_service_account_file(
 sheets_service = build('sheets', 'v4', credentials=creds)
 sheet = sheets_service.spreadsheets()
 
-def now_jst():
-    return datetime.datetime.now(pytz.timezone("Asia/Tokyo"))
-
 def get_time_based_greeting():
     current_time = now_jst()
     logging.info(f"現在のJST時刻: {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
