@@ -14,12 +14,44 @@ import openai
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # Spreadsheet ID（会社情報）
-SPREADSHEET_ID4 = os.getenv('SPREADSHEET_ID4')  # 会社情報
+SPREADSHEET_ID4 = "あなたのスプレッドシートIDをここに記載"
 
 # 使用するスコープと認証情報
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 creds = Credentials.from_service_account_file("service_account.json", scopes=SCOPES)
 sheet_service = build("sheets", "v4", credentials=creds)
+
+# 会話ログからユーザーごとの最新100件を取得
+from company_info import get_conversation_log
+
+def get_recent_user_context(user_id, limit=100):
+    logs = get_conversation_log()
+    user_logs = [
+        f"{log['発言者']}: {log['メッセージ内容']}"
+        for log in logs
+        if log.get("ユーザーID") == user_id
+    ][-limit:]
+    return "\n".join(user_logs)
+
+# OpenAIに会話履歴を渡して文脈応答を生成
+def generate_contextual_reply(user_id, user_message):
+    context = get_recent_user_context(user_id)
+    prompt = (
+        f"以下はユーザーとの過去の会話履歴です。文脈を踏まえて、最新の入力に自然に応答してください。\n"
+        f"会話履歴:\n{context}\n"
+        f"ユーザーの入力: {user_message}"
+    )
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "あなたはAIアシスタント愛子です。"},
+                {"role": "user", "content": prompt}
+            ]
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        return f"[応答失敗]: {e}"
 
 # 補足情報列の取得と書き込み
 def get_existing_links():
