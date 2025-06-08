@@ -52,12 +52,24 @@ def append_conversation_log(sheet_service, spreadsheet_id, timestamp, user_id, u
     except Exception as e:
         logging.error(f"❌ 会話ログの追記に失敗: {e}")
 
-# 従業員情報を取得する関数（UIDをキーに、A〜W列まで対応）
+# 会話ログをスプレッドシートから取得（全行）
+def get_conversation_log(sheet_service):
+    try:
+        result = sheet_service.values().get(
+            spreadsheetId=SPREADSHEET_ID1,
+            range="会話ログ!A2:J"
+        ).execute()
+        return result.get("values", [])
+    except Exception as e:
+        logging.error(f"❌ 会話ログの取得に失敗: {e}")
+        return []
+
+# 従業員情報を取得する関数（UIDをキーに、A〜Z列まで対応）
 def get_employee_info(sheet_service):
     try:
         result = sheet_service.values().get(
             spreadsheetId=SPREADSHEET_ID2,
-            range="従業員情報!A2:W"
+            range="従業員情報!A2:Z"
         ).execute()
         rows = result.get("values", [])
         employee_info_map = {}
@@ -88,8 +100,55 @@ def get_employee_info(sheet_service):
                     "性格": row[20] if len(row) > 20 else "",
                     "家族構成": row[21] if len(row) > 21 else "",
                     "備考1": row[22] if len(row) > 22 else "",
+                    "備考2": row[23] if len(row) > 23 else "",
+                    "備考3": row[24] if len(row) > 24 else "",
+                    "備考4": row[25] if len(row) > 25 else "",
                 }
         return employee_info_map
     except Exception as e:
         logging.error(f"❌ 従業員情報の取得に失敗: {e}")
         return {}
+
+# 取引先情報を取得する関数（A〜Z列対応）
+def get_partner_info(sheet_service):
+    try:
+        result = sheet_service.values().get(
+            spreadsheetId=SPREADSHEET_ID3,
+            range="取引先情報!A2:Z"
+        ).execute()
+        rows = result.get("values", [])
+        partner_info_list = []
+        for row in rows:
+            partner_info = {
+                "顧客ID": row[0] if len(row) > 0 else "",
+                "会社名": row[1] if len(row) > 1 else "",
+                "読み": row[2] if len(row) > 2 else "",
+                "部署名": row[3] if len(row) > 3 else "",
+                "担当者名": row[4] if len(row) > 4 else "",
+                "電話番号": row[5] if len(row) > 5 else "",
+                "FAX": row[6] if len(row) > 6 else "",
+                "メール": row[7] if len(row) > 7 else "",
+                "郵便番号": row[8] if len(row) > 8 else "",
+                "住所": row[9] if len(row) > 9 else "",
+                "取引開始日": row[10] if len(row) > 10 else "",
+                "最終連絡日": row[11] if len(row) > 11 else "",
+                "契約ステータス": row[12] if len(row) > 12 else "",
+                "見積履歴リンク": row[13] if len(row) > 13 else "",
+                "対応履歴リンク": row[14] if len(row) > 14 else "",
+                "備考欄": row[15] if len(row) > 15 else "",
+                "サブ担当1": row[16] if len(row) > 16 else "",
+                "サブ担当2": row[17] if len(row) > 17 else "",
+                "サブ担当4": row[18] if len(row) > 18 else "",
+                "歴史": row[19] if len(row) > 19 else "",
+                "略称1": row[20] if len(row) > 20 else "",
+                "略称2": row[21] if len(row) > 21 else "",
+                "略称3": row[22] if len(row) > 22 else "",
+                "予備1": row[23] if len(row) > 23 else "",
+                "予備2": row[24] if len(row) > 24 else "",
+                "予備3": row[25] if len(row) > 25 else "",
+            }
+            partner_info_list.append(partner_info)
+        return partner_info_list
+    except Exception as e:
+        logging.error(f"❌ 取引先情報の取得に失敗: {e}")
+        return []
