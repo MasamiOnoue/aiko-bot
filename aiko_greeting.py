@@ -35,16 +35,22 @@ def record_greeting_time(user_id, timestamp, category):
     recent_greeting_users[user_id] = (timestamp, category)
 
 # 時間帯に応じた挨拶
-def get_time_based_greeting():
+def get_time_based_greeting(user_id=None):
     hour = now_jst().hour
     if 5 <= hour < 11:
-        return "おっはー"
+        greeting = "おっはー"
     elif 11 <= hour < 18:
-        return "やっはろー"
+        greeting = "やっはろー"
     elif 18 <= hour < 23:
-        return "ばんわ～"
+        greeting = "ばんわ～"
     else:
-        return "ねむ～"
+        greeting = "ねむ～"
+
+    if user_id:
+        name = get_user_callname_from_uid(user_id)
+        if name and name != "不明":
+            greeting += f"、{name}さん"
+    return greeting
 
 # 挨拶と認識される語を正規化
 GREETING_KEYWORDS = [
