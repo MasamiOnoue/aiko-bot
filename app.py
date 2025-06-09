@@ -18,7 +18,9 @@ from aiko_greeting import (
     update_user_status,
     reset_user_status,
     forward_message_to_others,
-    get_user_name_for_sheet
+    get_user_name_for_sheet,
+    get_aiko_official_email,
+    fetch_latest_email
 )
 from company_info import (
     get_employee_info,
@@ -68,8 +70,20 @@ def handle_message(event):
     user_id = event.source.user_id
     user_message = event.message.text
 
+    # 🔐 UID認証チェック（社員でない場合は応答しない）
+    registered_uids = load_all_user_ids()
+    if user_id not in registered_uids:
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text="申し訳ありません。このサービスは社内専用です。"))
+        return
+
     callname = get_user_callname_from_uid(user_id)
     greeting = get_time_based_greeting()
+
+    # 📩 メール確認キーワードへの応答
+    if "最新メール" in user_message or "メール見せて" in user_message:
+        email_text = fetch_latest_email()
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=email_text))
+        return
 
     status = get_user_status(user_id)
     step = status.get("step", 0)
