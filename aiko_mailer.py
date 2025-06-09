@@ -29,12 +29,7 @@ def draft_email_for_user(sender_uid, target_name):
             sender_name = emp[3]
             break
 
-    body = f"{target_name}さん
-
-お疲れさまです。{sender_name}さんからご連絡があります。
-詳細は直接お伝えします。
-
-愛子より"
+    body = f"{target_name}さん\n\nお疲れさまです。{sender_name}さんからご連絡があります。\n詳細は直接お伝えします。\n\n愛子より"
     return body
 
 # メール送信
@@ -56,12 +51,7 @@ def send_email_with_confirmation(sender_uid, to_name, cc=None):
         print(f"✉️ {to_name}のメールアドレスが見つかりませんでした")
         return
 
-    body = f"{to_name}さん
-
-お疲れさまです。{sender_name}さんからご連絡があります。
-詳細は直接お伝えします。
-
-愛子より"
+    body = f"{to_name}さん\n\nお疲れさまです。{sender_name}さんからご連絡があります。\n詳細は直接お伝えします。\n\n愛子より"
 
     message = MIMEText(body)
     message['to'] = to_email
