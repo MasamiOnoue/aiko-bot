@@ -91,7 +91,7 @@ def get_experience_log(sheet_values):
         return []
 
 def load_all_user_ids():
-    sheet = get_google_sheets_service() 
+    sheet = get_google_sheets_service()
     result = sheet.get(
         spreadsheetId=SPREADSHEET_ID2,
         range="従業員情報!L2:L"
@@ -101,9 +101,9 @@ def load_all_user_ids():
 
 # === 書き込み関数 ===
 
-def write_conversation_log(sheet_values, timestamp, user_id, user_name, speaker, message, status):
+def write_conversation_log(sheet_values, timestamp, user_id, user_name, speaker, message, category):
     try:
-        row = [timestamp, user_id, user_name, speaker, message, "", "text", "", status, ""]
+        row = [timestamp, user_id, user_name, speaker, message, category, "text", "", "OK", ""]
         body = {"values": [row]}
         sheet_values.append(
             spreadsheetId=SPREADSHEET_ID1,
@@ -250,9 +250,6 @@ def classify_conversation_category(message):
         return "未分類"
 
 def get_user_callname_from_uid(user_id):
-    """
-    従業員情報から UID に対応する呼び名（D列）を取得する。
-    """
     sheet = get_google_sheets_service()
     try:
         result = sheet.get(
