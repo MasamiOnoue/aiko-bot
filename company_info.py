@@ -182,11 +182,13 @@ def search_employee_info_by_keywords(user_message, employee_info_list):
         if not name:
             continue
 
-        for keyword, index in attributes.items():
-            if keyword in user_message and name in user_message:
-                value = row[index] if index < len(row) and row[index].strip() != "" else "不明"
-                found = True
-                return f"{name}さんの{keyword}は {value} です。"
+        # フルネーム一致または「さん」付き名前一致
+        if name in user_message or f"{name}さん" in user_message:
+            for keyword, index in attributes.items():
+                if keyword in user_message:
+                    value = row[index] if index < len(row) and row[index].strip() != "" else "不明"
+                    found = True
+                    return f"{name}さんの{keyword}は {value} です。"
 
     if not found:
         logging.warning(f"❗該当する従業員または属性が見つかりませんでした: '{user_message}'")
