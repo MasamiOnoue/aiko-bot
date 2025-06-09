@@ -22,8 +22,8 @@ def search_employee_info_by_keywords(user_message, employee_info_list):
     alias_dict = {
         "おきく": "菊田京子",
         "まさみ": "政美",
-        "たかし": "高橋",
-        "ともこ": "友子",
+        "かおり": "香織",
+        "こうちゃん": "孝一",
         # 必要に応じて追加
     }
     attributes = {
