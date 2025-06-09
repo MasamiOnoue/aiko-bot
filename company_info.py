@@ -222,16 +222,24 @@ def search_employee_info_by_keywords(user_message, employee_info_list):
 ############## 補助系 ###########################
 
 def classify_conversation_category(message):
+    """
+    OpenAIを使って会話内容をカテゴリ分類する。
+    候補カテゴリ：「重要」「日常会話」「あいさつ」「業務情報」「その他」
+    """
     prompt = (
-        "以下の会話の内容をカテゴリ分けしてください。候補は「重要」「日常会話」「あいさつ」「業務情報」「その他」です。\n"
-        "カテゴリ名のみを1単語で出力してください。\n\n"
-        f"会話内容:\n{message}"
+        "以下の会話内容を、次のいずれかのカテゴリで1単語だけで分類してください："
+        "「重要」「日常会話」「あいさつ」「業務情報」「その他」。\n\n"
+        f"会話内容:\n{message}\n\n"
+        "カテゴリ名だけを返してください。"
     )
 
     try:
         response = client.chat.completions.create(
             model="gpt-4o",
-            messages=[{"role": "user", "content": prompt}],
+            messages=[
+                {"role": "system", "content": "あなたは優秀な会話分類AIです。"},
+                {"role": "user", "content": prompt}
+            ],
             max_tokens=10,
             temperature=0
         )
@@ -240,5 +248,3 @@ def classify_conversation_category(message):
     except Exception as e:
         logging.error(f"❌ カテゴリ分類失敗: {e}")
         return "未分類"
-
-
