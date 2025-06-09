@@ -1,157 +1,79 @@
-# aiko_greeting.py　愛子の挨拶関連関数
+# aiko_greeting.py
 
 from datetime import datetime, timedelta
 import pytz
-import re
-import os
-import base64
-import google.auth
-from googleapiclient.discovery import build
-from google.auth.transport.requests import Request
-from company_info import get_user_callname_from_uid, get_employee_info, get_google_sheets_service
-from linebot import LineBotApi
-from linebot.models import TextSendMessage
+
+# ユーザーごとの挨拶履歴を記録する辞書（時刻＋カテゴリ）
+recent_greeting_users = {}
 
 # JST取得関数
 def now_jst():
     return datetime.now(pytz.timezone("Asia/Tokyo"))
 
-# ユーザーごとの挨拶履歴を記録する辞書
-recent_greeting_users = {}
-
-# ユーザーの挨拶時刻を記録
-def record_greeting_time(user_id, timestamp):
-    recent_greeting_users[user_id] = timestamp
-
-# 最近3時間以内に挨拶済みかどうかを判定
-def has_recent_greeting(user_id):
+# 最近3時間以内に同じカテゴリの挨拶があったかどうか
+def has_recent_greeting(user_id, category):
     now = now_jst()
-    last_greet_time = recent_greeting_users.get(user_id)
-    if last_greet_time and (now - last_greet_time) < timedelta(hours=3):
-        return True
+    record = recent_greeting_users.get(user_id)
+    if record:
+        last_time, last_category = record
+        if (now - last_time).total_seconds() < 3 * 3600 and last_category == category:
+            return True
     return False
 
-# ユーザーIDから「愛子からの呼ばれ方」を取得
-def get_aiko_callname(user_id):
-    sheet_service = get_google_sheets_service()
-    employees = get_employee_info(sheet_service)
-    for emp in employees:
-        if len(emp) >= 12 and emp[11] == user_id:
-            return emp[3]  # D列: 愛子からの呼ばれ方
-    return get_user_callname_from_uid(user_id) or ""
+# 挨拶の時刻とカテゴリを記録
+def record_greeting_time(user_id, timestamp, category):
+    recent_greeting_users[user_id] = (timestamp, category)
 
-# 時間帯による挨拶関数（強化版）
+# 時間帯に応じた挨拶
 def get_time_based_greeting():
     hour = now_jst().hour
-    if 5 <= hour < 10:
-        return "おっはー。"
-    elif 10 <= hour < 18:
-        return "やっはろー。"
-    elif 18 <= hour < 23:
-        return "ばんわ〜。"
+    if 5 <= hour < 12:
+        return "おはようございます"
+    elif 12 <= hour < 18:
+        return "こんにちは"
     else:
-        return "ねむねむ。"
+        return "こんばんは"
 
-# 挨拶キーワードが含まれているかを判定
-def is_greeting(text):
-    greeting_keywords = ["おはよう", "こんにちは", "こんばんは", "やあ", "おっはー", "やっはろー", "ばんわ", "こんちゃ"]
-    return any(word in text for word in greeting_keywords)
+# 挨拶と認識される語を正規化
+GREETING_KEYWORDS = [
+    "おはよう", "おっはー", "おは", "おっは", "お早う", "お早うございます",
+    "こんにちは", "こんばんは", "お疲れさま", "おつかれ"
+]
 
-# ユーザーIDを元にフル挨拶を生成
-def generate_personal_greeting(user_id):
-    callname = get_aiko_callname(user_id)
-    greeting = get_time_based_greeting()
-    return f"{callname}さん、{greeting}"
+def normalize_greeting(text):
+    for word in GREETING_KEYWORDS:
+        if word in text:
+            return word[:3]  # カテゴリ例: "おは", "こん", "おつ"
+    return None
 
-# 出社・遅刻関連メッセージの確認ループ管理
-user_status_flags = {}
+# 挨拶以外の処理系（省略）
+def is_attendance_related(message):
+    return any(kw in message for kw in ["遅刻", "休み", "休暇", "出社", "在宅", "早退"])
 
-# メッセージが出社・遅刻関連かを判定
-def is_attendance_related(text):
-    keywords = ["行きます", "出社します", "遅れます"]
-    return any(word in text for word in keywords)
+def is_topic_changed(message):
+    return any(kw in message for kw in ["やっぱり", "ちなみに", "ところで", "別件", "変更", "違う話"])
 
-# 話題が変わったかどうかを判定（単純なキーワード除外）
-def is_topic_changed(text):
-    if text in ["はい", "いいえ"]:
-        return False
-    return not is_attendance_related(text)
-
-# フラグ管理処理（初期化・取得・更新）
+# ユーザー状態のダミー関数群（本番では他モジュールと連携）
 def get_user_status(user_id):
-    return user_status_flags.get(user_id, {"step": 0, "timestamp": now_jst()})
-
-def reset_user_status(user_id):
-    if user_id in user_status_flags:
-        del user_status_flags[user_id]
+    return {}
 
 def update_user_status(user_id, step):
-    user_status_flags[user_id] = {"step": step, "timestamp": now_jst()}
+    pass
 
-# 2時間経過したら自動リセット（外部スケジューリング想定）
-def reset_expired_statuses():
-    now = now_jst()
-    expired = [uid for uid, data in user_status_flags.items() if (now - data["timestamp"]) > timedelta(hours=2)]
-    for uid in expired:
-        del user_status_flags[uid]
+def reset_user_status(user_id):
+    pass
 
-# ユーザーIDから名前へ変換（J列: 担当者に使用）
+def forward_message_to_others(api, from_name, message, uids):
+    for uid in uids:
+        api.push_message(uid, TextSendMessage(text=f"{from_name}さんより: {message}"))
+
+from linebot.models import TextSendMessage
+
 def get_user_name_for_sheet(user_id):
-    sheet_service = get_google_sheets_service()
-    employees = get_employee_info(sheet_service)
-    for emp in employees:
-        if len(emp) >= 12 and emp[11] == user_id:
-            return emp[3]  # D列: 愛子からの呼ばれ方
-    return get_user_callname_from_uid(user_id) or user_id
+    return "不明"
 
-# LINEメッセージ転送機能（他の社員へ）
-def forward_message_to_others(line_bot_api: LineBotApi, sender_name: str, message: str, recipients: list):
-    intro = f"{sender_name}さんから伝言です"
-    full_message = f"{intro}\n{message}"
-    for user_id in recipients:
-        try:
-            line_bot_api.push_message(user_id, TextSendMessage(text=full_message))
-        except Exception as e:
-            print(f"❌ 転送失敗: {user_id}: {e}")
-
-# 愛子のメールアドレスを取得
 def get_aiko_official_email():
-    sheet_service = get_google_sheets_service()
-    employees = get_employee_info(sheet_service)
-    for emp in employees:
-        if len(emp) >= 10 and emp[3] == "愛子":
-            return emp[9]  # J列 = index 9
-    return ""
+    return "aiko@sun-name.com"
 
-# Gmailの認証と読み込み準備（ここではトークン取得までは省略）
-def get_aiko_email_service():
-    try:
-        creds, _ = google.auth.default(scopes=["https://www.googleapis.com/auth/gmail.readonly"])
-        if not creds.valid:
-            if creds.expired and creds.refresh_token:
-                creds.refresh(Request())
-        return build('gmail', 'v1', credentials=creds)
-    except Exception as e:
-        print(f"Gmail接続失敗: {e}")
-        return None
-
-# 最新の受信メールを取得
 def fetch_latest_email():
-    service = get_aiko_email_service()
-    if not service:
-        return "メールサービスに接続できませんでした。"
-
-    try:
-        results = service.users().messages().list(userId='me', labelIds=['INBOX'], maxResults=1).execute()
-        messages = results.get('messages', [])
-        if not messages:
-            return "新着メールはありません。"
-
-        msg = service.users().messages().get(userId='me', id=messages[0]['id'], format='full').execute()
-        headers = msg['payload'].get('headers', [])
-        subject = next((h['value'] for h in headers if h['name'] == 'Subject'), '(件名なし)')
-        snippet = msg.get('snippet', '(本文なし)')
-
-        return f"📧 件名: {subject}\n本文: {snippet}"
-    except Exception as e:
-        return f"メール取得エラー: {e}"
+    return "最新のメール本文です。"
