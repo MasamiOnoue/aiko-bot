@@ -198,8 +198,8 @@ def handle_message(event):
         except Exception as e:
             reply_text = f"申し訳ありません。現在応答できませんでした（{e}）"
 
-    write_conversation_log(sheet_service, now_jst().isoformat(), user_id, DEFAULT_USER_NAME, "ユーザー", user_message, "OK")
-    write_conversation_log(sheet_service, now_jst().isoformat(), user_id, DEFAULT_USER_NAME, "愛子", reply_text, "OK")
+    write_conversation_log(sheet_service, now_jst().isoformat(), user_id, callname, "ユーザー", user_message, "OK")
+    write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text, "OK")
 
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
 
