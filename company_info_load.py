@@ -69,7 +69,7 @@ def get_experience_log(sheet_values):
     except Exception as e:
         logging.error(f"❌ 経験ログの取得に失敗: {e}")
         return []
-        
+
 def load_all_user_ids():
     sheet = get_google_sheets_service()
     if not sheet:
@@ -92,7 +92,9 @@ def get_user_callname_from_uid(user_id):
         values = result.get("values", [])
         for row in values:
             if len(row) >= 9 and row[8].strip() == user_id:
-                return row[0].strip() if row[0].strip() else "不明"
+                name = row[0].strip() if row[0].strip() else "不明"
+                # 「さん」が重複しないように整形
+                return name.replace("さん", "")
     except Exception as e:
         logging.error(f"❌ UIDの読み込みに失敗しました: {e}")
     return "不明"
