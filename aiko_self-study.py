@@ -52,14 +52,14 @@ def clean_log_message(text):
     pattern = "|".join(map(re.escape, patterns))
     return re.sub(pattern, "", text, flags=re.IGNORECASE).strip()
 
-# 重要会話を会社情報に保存
+# 重要会話を会社情報に保存（H列：登録者名＝愛子、D列：回答内容）
 
 def store_important_message_to_company_info(message, user_id):
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-    row_data = [[now, user_id, message]]
+    row_data = [["", message, "", "愛子", "", "", "", now]]
     sheet_service.spreadsheets().values().append(
         spreadsheetId=SPREADSHEET_ID4,
-        range="会社情報!H2",  # 必要に応じて列位置を調整
+        range="会社情報!A2",
         valueInputOption="USER_ENTERED",
         insertDataOption="INSERT_ROWS",
         body={"values": row_data}
