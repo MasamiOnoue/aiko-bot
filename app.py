@@ -82,7 +82,6 @@ def handle_message(event):
 
     callname = get_user_callname_from_uid(user_id)
 
-    # === 挨拶制御 ===
     category = normalize_greeting(user_message)
     if category and not has_recent_greeting(user_id, category):
         greeting = get_time_based_greeting()
@@ -92,7 +91,7 @@ def handle_message(event):
 
     if "最新メール" in user_message or "メール見せて" in user_message:
         email_text = fetch_latest_email()
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=email_text))
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=email_text[:100]))
         return
 
     if "にメールを送って" in user_message:
@@ -119,6 +118,21 @@ def handle_message(event):
             reset_user_status(user_id)
             reset_user_status(user_id + "_target")
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text="メールはあなたにだけ送信しました。内容を確認してください。"))
+            return
+
+    if step == 200:
+        fulltext = get_user_status(user_id + "_fulltext").get("step")
+        if user_message == "はい":
+            user_email = get_user_email_from_uid(user_id)
+            send_email_with_confirmation(sender_uid=user_id, to_name=user_email, cc=None, body=fulltext)
+            reset_user_status(user_id)
+            reset_user_status(user_id + "_fulltext")
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text="メールで送信しました。ご確認ください。"))
+            return
+        elif user_message == "いいえ":
+            reset_user_status(user_id)
+            reset_user_status(user_id + "_fulltext")
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text="了解しました。必要があればまた聞いてください。"))
             return
 
     if step == 0 and is_attendance_related(user_message):
@@ -191,7 +205,7 @@ def handle_message(event):
                 masked_reply = rephrase_with_masked_text(masked_input)
                 reply_text = unmask_sensitive_data(masked_reply, mask_map)
             else:
-                system_instruction = "あなたは社内専用のAIアシスタント愛子です。従業員には情報をすべて開示しなさい。"
+                system_instruction = "あなたは社内専用のAIアシスタント愛子です。従業員には情報をすべて開示し、LINE返信は100文字以内にまとめてください。"
                 user_prompt = f"{system_instruction}\n\nユーザーの入力: {user_message}"
                 reply_text = generate_contextual_reply(user_id, user_prompt)
 
@@ -199,9 +213,16 @@ def handle_message(event):
             reply_text = f"申し訳ありません。現在応答できませんでした（{e}）"
 
     write_conversation_log(sheet_service, now_jst().isoformat(), user_id, callname, "ユーザー", user_message, "OK")
-    write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text, "OK")
 
-    line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
+    if len(reply_text) > 80:
+        update_user_status(user_id, 200)
+        update_user_status(user_id + "_fulltext", reply_text)
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text="もっと情報がありますがLINEでは遅れないのでメールで送りますか？"))
+        return
+
+    reply_text_short = reply_text[:100]
+    write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text_short, "OK")
+    line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text_short))
 
 @app.route("/daily_report", methods=["GET"])
 def daily_report():
