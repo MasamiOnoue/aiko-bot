@@ -33,7 +33,8 @@ from company_info import (
     write_company_info,
     load_all_user_ids,
     get_user_callname_from_uid,
-    get_google_sheets_service
+    get_google_sheets_service,
+    get_user_email_from_uid
 )
 from aiko_diary_report import generate_daily_report, send_daily_report
 from mask_word import (
@@ -43,6 +44,7 @@ from mask_word import (
     rephrase_with_masked_text
 )
 from aiko_self_study import generate_contextual_reply
+from mailer import draft_email_for_user, send_email_with_confirmation
 
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -85,8 +87,33 @@ def handle_message(event):
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=email_text))
         return
 
+    # ✉️ メール送信依頼：「xxにメールを送って」形式
+    if "にメールを送って" in user_message:
+        target = user_message.replace("にメールを送って", "").strip()
+        draft_body = draft_email_for_user(user_id, target)
+        update_user_status(user_id, 100)
+        update_user_status(user_id + "_target", target)
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=f"この内容で{target}さんにメールを送りますか？"))
+        return
+
+    # ✉️ メール送信確認フロー
     status = get_user_status(user_id)
     step = status.get("step", 0)
+    if step == 100:
+        target = get_user_status(user_id + "_target").get("step")
+        user_email = get_user_email_from_uid(user_id)
+        if user_message == "はい":
+            send_email_with_confirmation(sender_uid=user_id, to_name=target, cc=user_email)
+            reset_user_status(user_id)
+            reset_user_status(user_id + "_target")
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text=f"{target}さんにメールを送信しました。"))
+            return
+        elif user_message == "いいえ":
+            send_email_with_confirmation(sender_uid=user_id, to_name=target, cc=None)
+            reset_user_status(user_id)
+            reset_user_status(user_id + "_target")
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text="メールはあなたにだけ送信しました。内容を確認してください。"))
+            return
 
     # 出社・遅刻関連メッセージへの対応ループ
     if step == 0 and is_attendance_related(user_message):
