@@ -181,7 +181,7 @@ def search_employee_info_by_keywords(user_message, employee_info_list):
     }
 
     found = False
-            user_message = user_message.replace("ちゃん", "さん").replace("君", "さん").replace("くん", "さん")
+    user_message = user_message.replace("ちゃん", "さん").replace("君", "さん").replace("くん", "さん")
     # 愛称が含まれていれば正式名に置換
     for alias, real_name in alias_dict.items():
         if alias in user_message:
