@@ -6,7 +6,6 @@ from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
 from dotenv import load_dotenv
-import openai
 from openai import OpenAI
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -14,7 +13,6 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 from aiko_greeting import (
     now_jst,
     get_time_based_greeting,
-    #get_user_callname,
     is_attendance_related,
     is_topic_changed,
     get_user_status,
@@ -49,7 +47,6 @@ from mask_word import (
 from aiko_self_study import generate_contextual_reply
 
 load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
 
 app = Flask(__name__)
 line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
@@ -74,7 +71,6 @@ def handle_message(event):
     user_id = event.source.user_id
     user_message = event.message.text
 
-    # 🔐 UID認証チェック（社員でない場合は応答しない）
     registered_uids = load_all_user_ids()
     if user_id not in registered_uids:
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text="申し訳ありません。このサービスは社内専用です。"))
@@ -83,13 +79,11 @@ def handle_message(event):
     callname = get_user_callname_from_uid(user_id)
     greeting = get_time_based_greeting()
 
-    # 📩 メール確認キーワードへの応答
     if "最新メール" in user_message or "メール見せて" in user_message:
         email_text = fetch_latest_email()
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=email_text))
         return
 
-    # ✉️ メール送信依頼：「xxにメールを送って」形式
     if "にメールを送って" in user_message:
         target = user_message.replace("にメールを送って", "").strip()
         draft_body = draft_email_for_user(user_id, target)
@@ -98,7 +92,6 @@ def handle_message(event):
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=f"この内容で{target}さんにメールを送りますか？"))
         return
 
-    # ✉️ メール送信確認フロー
     status = get_user_status(user_id)
     step = status.get("step", 0)
     if step == 100:
@@ -117,7 +110,6 @@ def handle_message(event):
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text="メールはあなたにだけ送信しました。内容を確認してください。"))
             return
 
-    # 出社・遅刻関連メッセージへの対応ループ
     if step == 0 and is_attendance_related(user_message):
         update_user_status(user_id, 1)
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text="わかりました。どなたかにお伝えしますか？"))
