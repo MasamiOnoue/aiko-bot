@@ -1,4 +1,4 @@
-# aiko_greeting.py
+# aiko_greeting.py　愛子の挨拶関連関数
 
 from datetime import datetime, timedelta
 import pytz
