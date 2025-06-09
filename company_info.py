@@ -91,10 +91,10 @@ def get_experience_log(sheet_values):
         return []
 
 def load_all_user_ids():
-    sheet = get_google_sheets_service().spreadsheets().values()
+    sheet = get_google_sheets_service() 
     result = sheet.get(
-        spreadsheetId=SPREADSHEET_ID2,  # 従業員情報があるシートID
-        range="従業員情報!L2:L"         # M列にUIDがある前提
+        spreadsheetId=SPREADSHEET_ID2,
+        range="従業員情報!L2:L"
     ).execute()
     values = result.get("values", [])
     return [row[0].strip() for row in values if row and row[0].strip().startswith("U")]
