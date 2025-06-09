@@ -18,6 +18,15 @@ def get_gmail_service():
     delegated_creds = creds.with_subject(AIKO_EMAIL)
     return build('gmail', 'v1', credentials=delegated_creds)
 
+# UIDからメールアドレスを検索する補助関数
+def get_user_email_from_uid(uid):
+    sheet_service = get_google_sheets_service()
+    employees = get_employee_info(sheet_service)
+    for emp in employees:
+        if len(emp) >= 12 and emp[11] == uid:  # L列（インデックス11）と一致
+            return emp[9] if len(emp) >= 10 else None  # J列（インデックス9）にメール
+    return None
+
 # 下書きの生成（LINE発言者と対象名からメール内容を作成）
 def draft_email_for_user(sender_uid, target_name):
     sheet_service = get_google_sheets_service()
