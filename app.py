@@ -8,7 +8,18 @@ from linebot.models import MessageEvent, TextMessage, TextSendMessage
 from dotenv import load_dotenv
 import openai
 
-from aiko_greeting import now_jst, get_time_based_greeting, get_user_callname
+from aiko_greeting import (
+    now_jst,
+    get_time_based_greeting,
+    get_user_callname,
+    is_attendance_related,
+    is_topic_changed,
+    get_user_status,
+    update_user_status,
+    reset_user_status,
+    forward_message_to_others,
+    get_user_name_for_sheet
+)
 from company_info import (
     get_employee_info,
     get_partner_info,
@@ -58,10 +69,59 @@ def handle_message(event):
     user_message = event.message.text
 
     callname = get_user_callname_from_uid(user_id)
-    greeting = get_time_based_greeting(user_id)
+    greeting = get_time_based_greeting()
+
+    status = get_user_status(user_id)
+    step = status.get("step", 0)
+
+    # 出社・遅刻関連メッセージへの対応ループ
+    if step == 0 and is_attendance_related(user_message):
+        update_user_status(user_id, 1)
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text="わかりました。どなたかにお伝えしますか？"))
+        return
+
+    if step == 1:
+        if user_message == "はい":
+            update_user_status(user_id, 2)
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text="全員でいいですか？"))
+            return
+        elif user_message == "いいえ":
+            reset_user_status(user_id)
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text="了解しました。お気をつけて。"))
+            return
+        elif is_topic_changed(user_message):
+            reset_user_status(user_id)
+
+    elif step == 2:
+        if user_message == "はい":
+            all_user_ids = load_all_user_ids()
+            forward_message_to_others(line_bot_api, callname, "出社予定・遅刻連絡がありました。", [uid for uid in all_user_ids if uid != user_id])
+            reset_user_status(user_id)
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text="全員にお伝えしました。お気をつけて。"))
+            return
+        elif user_message == "いいえ":
+            update_user_status(user_id, 3)
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text="誰に送りますか？"))
+            return
+        elif is_topic_changed(user_message):
+            reset_user_status(user_id)
+
+    elif step == 3:
+        recipients = []
+        employee_info = get_employee_info(sheet_service)
+        for row in employee_info:
+            if len(row) >= 4 and any(name in user_message for name in row[3:4]):
+                if len(row) >= 12:
+                    recipients.append(row[11])
+        if recipients:
+            forward_message_to_others(line_bot_api, callname, "出社予定・遅刻連絡がありました。", recipients)
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text=f"{row[3]}さんに送ります。お気をつけて。"))
+        else:
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text="該当者が見つかりませんでした。"))
+        reset_user_status(user_id)
+        return
 
     try:
-        # 個人情報が含まれる場合はマスク処理へ
         if contains_sensitive_info(user_message):
             sources = [
                 get_employee_info(sheet_service),
@@ -82,27 +142,8 @@ def handle_message(event):
     except Exception as e:
         reply_text = f"申し訳ありません。現在応答できませんでした（{e}）"
 
-    # 会話ログの記録（ユーザー）
-    write_conversation_log(
-        sheet_service,
-        timestamp=now_jst().isoformat(),
-        user_id=user_id,
-        user_name=DEFAULT_USER_NAME,
-        speaker="ユーザー",
-        message=user_message,
-        status="OK"
-    )
-
-    # 会話ログの記録（愛子）
-    write_conversation_log(
-        sheet_service,
-        timestamp=now_jst().isoformat(),
-        user_id=user_id,
-        user_name=DEFAULT_USER_NAME,
-        speaker="愛子",
-        message=reply_text,
-        status="OK"
-    )
+    write_conversation_log(sheet_service, now_jst().isoformat(), user_id, DEFAULT_USER_NAME, "ユーザー", user_message, "OK")
+    write_conversation_log(sheet_service, now_jst().isoformat(), user_id, DEFAULT_USER_NAME, "愛子", reply_text, "OK")
 
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
 
