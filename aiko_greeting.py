@@ -4,6 +4,9 @@ from datetime import datetime, timedelta
 import pytz
 import re
 from company_info import get_user_callname_from_uid, get_employee_info, get_google_sheets_service
+from linebot import LineBotApi
+from linebot.models import TextSendMessage
+import os
 
 # JST取得関数
 def now_jst():
@@ -77,3 +80,13 @@ def get_user_name_for_sheet(user_id):
         if len(emp) >= 12 and emp[11] == user_id:
             return emp[3]  # D列: 愛子からの呼ばれ方
     return get_user_callname_from_uid(user_id) or user_id
+
+# LINEメッセージ転送機能（他の社員へ）
+def forward_message_to_others(line_bot_api: LineBotApi, sender_name: str, message: str, recipients: list):
+    intro = f"{sender_name}さんから伝言です"
+    full_message = f"{intro}\n{message}"
+    for user_id in recipients:
+        try:
+            line_bot_api.push_message(user_id, TextSendMessage(text=full_message))
+        except Exception as e:
+            print(f"❌ 転送失敗: {user_id}: {e}")
