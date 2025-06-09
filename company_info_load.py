@@ -69,9 +69,12 @@ def get_experience_log(sheet_values):
     except Exception as e:
         logging.error(f"❌ 経験ログの取得に失敗: {e}")
         return []
-
+        
 def load_all_user_ids():
     sheet = get_google_sheets_service()
+    if not sheet:
+        logging.error("❌ シートサービスの取得に失敗しました")
+        return []
     result = sheet.get(spreadsheetId=SPREADSHEET_ID2, range="従業員情報!L2:L").execute()
     values = result.get("values", [])
     return [row[0].strip() for row in values if row and row[0].strip().startswith("U")]
