@@ -44,7 +44,8 @@ from company_info_save import (
     write_conversation_log,
     write_aiko_experience_log,
     write_company_info,
-    write_employee_info
+    write_employee_info,
+    write_partner_info
 )
 from aiko_diary_report import generate_daily_report, send_daily_report
 from aiko_mailer import draft_email_for_user, send_email_with_confirmation, get_user_email_from_uid
