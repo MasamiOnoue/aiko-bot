@@ -95,7 +95,7 @@ def handle_message(event):
         greeting = get_time_based_greeting(user_id)
         record_greeting_time(user_id, now_jst(), category)
         write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text_short, "OK")
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=f"{greeting}、{callname}さん。"))
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=f"{greeting}{callname}"))
         return
 
     if "最新メール" in user_message or "メール見せて" in user_message:
@@ -110,7 +110,7 @@ def handle_message(event):
         update_user_status(user_id, 100)
         update_user_status(user_id + "_target", target)
         write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text_short, "OK")
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=f"この内容で{target}さんにメールを送りますか？"))
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=f"この内容で{target}にメールを送りますか？"))
         return
 
     status = get_user_status(user_id)
@@ -123,7 +123,7 @@ def handle_message(event):
             reset_user_status(user_id)
             reset_user_status(user_id + "_target")
             write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text_short, "OK")
-            line_bot_api.reply_message(event.reply_token, TextSendMessage(text=f"{target}さんにメールを送信しました。"))
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text=f"{target}にメールを送信しました。"))
             return
         elif user_message == "いいえ":
             send_email_with_confirmation(sender_uid=user_id, to_name=target, cc=None)
@@ -196,7 +196,7 @@ def handle_message(event):
         if recipients:
             forward_message_to_others(line_bot_api, callname, "出社予定・遅刻連絡がありました。", recipients)
             write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text_short, "OK")
-            line_bot_api.reply_message(event.reply_token, TextSendMessage(text=f"{row[3]}さんに送ります。お気をつけて。"))
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text=f"{row[3]}に送ります。お気をつけて。"))
         else:
             write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text_short, "OK")
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text="該当者が見つかりませんでした。"))
