@@ -1,4 +1,4 @@
-# app.py（完全統合版）
+# app.py　メインのPythonアプリコード（統合版） Render上で常に動作する設計
 
 import os
 from flask import Flask, request, abort
