@@ -155,6 +155,14 @@ def write_aiko_experience_log(sheet_values, values):
     except Exception as e:
         logging.error(f"❌ 愛子の経験ログ書き込みエラー: {e}")
 def search_employee_info_by_keywords(user_message, employee_info_list):
+    # 愛称辞書を定義
+    alias_dict = {
+        "おきく": "菊田京子",
+        "まさみ": "政美",
+        "たかし": "高橋",
+        "ともこ": "友子",
+        # 必要に応じて追加
+    }
     attributes = {
         "役職": 4,
         "入社年": 5,
@@ -173,7 +181,11 @@ def search_employee_info_by_keywords(user_message, employee_info_list):
     }
 
     found = False
-    user_message = user_message.replace("ちゃん", "さん")  # ニックネーム対応
+            user_message = user_message.replace("ちゃん", "さん").replace("君", "さん").replace("くん", "さん")
+    # 愛称が含まれていれば正式名に置換
+    for alias, real_name in alias_dict.items():
+        if alias in user_message:
+            user_message = user_message.replace(alias, real_name)  # ニックネーム対応
 
     for row in employee_info_list:
         if len(row) < 18:
