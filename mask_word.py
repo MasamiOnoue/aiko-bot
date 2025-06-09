@@ -1,8 +1,11 @@
 # mask_word.py　OpenAIに個人情報や会社の機密情報を渡さずに処理をさせるためのマスクとマスク解除処理ルーチン
 
 import re
-import openai
 import uuid
+from openai import OpenAI
+import os
+
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # 個人情報らしいワード（OpenAI経由禁止）
 SENSITIVE_KEYWORDS = [
@@ -35,7 +38,7 @@ def unmask_sensitive_data(text, mask_map):
 # OpenAIで自然な日本語に整形（マスク付き）
 def rephrase_with_masked_text(masked_input):
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
                 {"role": "system", "content": "あなたはサンネームで自然な日本語に直すAIアシスタント愛子です。以下は社内情報の候補です。自然な日本語でまとめてください。ただし個人情報はマスク済みです。"},
@@ -43,6 +46,6 @@ def rephrase_with_masked_text(masked_input):
             ],
             temperature=0.7
         )
-        return response["choices"][0]["message"]["content"].strip()
+        return response.choices[0].message.content.strip()
     except Exception as e:
         return f"[マスク応答失敗]: {e}"
