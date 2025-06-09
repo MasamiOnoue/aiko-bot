@@ -2,12 +2,14 @@
 
 from datetime import datetime, timedelta
 import pytz
-import openai
 import os
 import random
+from openai import OpenAI
 from company_info import get_conversation_log, write_company_info
 from linebot import LineBotApi
 from linebot.models import TextSendMessage
+
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # JST取得関数
 def now_jst():
@@ -42,7 +44,6 @@ def generate_daily_report():
         f"{text}"
     )
 
-    # ツンデレ愛子の気分別メッセージリスト
     closing_messages = [
         "……今日もよくがんばったのっ！（ドヤァ）",
         "ふん、別にサンネームのためにまとめたんじゃないんだからねっ！",
@@ -58,9 +59,8 @@ def generate_daily_report():
     ]
     ending = random.choice(closing_messages)
 
-    # OpenAIへ問い合わせ
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
                 {"role": "system", "content": "あなたはAIアシスタント愛子です。"},
