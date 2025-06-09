@@ -5,9 +5,9 @@ import logging
 from company_info_load import get_google_sheets_service
 
 # === 会話ログ書き込み関数 ===
-def write_conversation_log(sheet_values, timestamp, user_id, user_name, speaker, message, category):
+def write_conversation_log(sheet_values, timestamp, user_id, user_name, speaker, message, category, message_type, topics, status):
     try:
-        row = [timestamp, user_id, user_name, speaker, message, category, "text", "", "OK", ""]
+        row = [timestamp, user_id, user_name, speaker, message, category, "text", "", "OK"]
         body = {"values": [row]}
         sheet_values.append(
             spreadsheetId=os.getenv("SPREADSHEET_ID1"),
