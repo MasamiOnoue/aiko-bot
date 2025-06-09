@@ -11,7 +11,7 @@ from company_info_load import (
     get_user_callname_from_uid,
     get_google_sheets_service
 )
-from company_info_save import (write_conversation_log)
+from company_info_load import write_conversation_log, get_user_callname_from_uid
 
 import pytz
 
