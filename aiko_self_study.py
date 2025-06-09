@@ -18,7 +18,8 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 
 SPREADSHEET_ID4 = os.getenv('SPREADSHEET_ID4')
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
-creds = Credentials.from_service_account_file("service_account.json", scopes=SCOPES)
+json_path = os.path.join(os.path.dirname(__file__), "aiko-bot-log-cfbf23e039fd.json")
+creds = Credentials.from_service_account_file(json_path, scopes=SCOPES)
 sheet_service = build("sheets", "v4", credentials=creds)
 
 user_conversation_cache = {}
