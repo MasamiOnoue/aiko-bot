@@ -27,17 +27,6 @@ from aiko_greeting import (
     normalize_greeting
 )
 from company_info import (
-    get_employee_info,
-    get_partner_info,
-    get_company_info,
-    get_conversation_log,
-    get_experience_log,
-    write_conversation_log,
-    write_aiko_experience_log,
-    write_company_info,
-    load_all_user_ids,
-    get_user_callname_from_uid,
-    get_google_sheets_service,
     search_employee_info_by_keywords,
     classify_conversation_category
 )
