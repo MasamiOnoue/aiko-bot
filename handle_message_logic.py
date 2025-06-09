@@ -1,4 +1,4 @@
-# LINEメッセージを受け取ったときのメイン処理
+# handle_message_logic.py  LINEメッセージを受け取ったときのメイン処理
 
 from linebot.models import TextSendMessage
 from aiko_greeting import (
