@@ -2,6 +2,7 @@
 
 from datetime import datetime, timedelta
 import pytz
+import re
 
 # JST取得関数
 def now_jst():
@@ -34,3 +35,35 @@ def get_time_based_greeting():
         return "おっつ〜。"
     else:
         return "ねむねむ。"
+
+# 出社・遅刻関連メッセージの確認ループ管理
+user_status_flags = {}
+
+# メッセージが出社・遅刻関連かを判定
+def is_attendance_related(text):
+    keywords = ["行きます", "出社します", "遅れます"]
+    return any(word in text for word in keywords)
+
+# 話題が変わったかどうかを判定（単純なキーワード除外）
+def is_topic_changed(text):
+    if text in ["はい", "いいえ"]:
+        return False
+    return not is_attendance_related(text)
+
+# フラグ管理処理（初期化・取得・更新）
+def get_user_status(user_id):
+    return user_status_flags.get(user_id, {"step": 0, "timestamp": now_jst()})
+
+def reset_user_status(user_id):
+    if user_id in user_status_flags:
+        del user_status_flags[user_id]
+
+def update_user_status(user_id, step):
+    user_status_flags[user_id] = {"step": step, "timestamp": now_jst()}
+
+# 2時間経過したら自動リセット（外部スケジューリング想定）
+def reset_expired_statuses():
+    now = now_jst()
+    expired = [uid for uid, data in user_status_flags.items() if (now - data["timestamp"]) > timedelta(hours=2)]
+    for uid in expired:
+        del user_status_flags[uid]
