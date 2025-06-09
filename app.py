@@ -128,7 +128,7 @@ def handle_message(event):
             return
 
     if step == 200:
-        fulltext = get_user_status(user_id + "_fulltext").get("step")
+        fulltext = get_user_status(user_id + "_fulltext")
         if user_message == "はい":
             user_email = get_user_email_from_uid(user_id)
             send_email_with_confirmation(sender_uid=user_id, to_name=user_email, cc=None, body=fulltext)
