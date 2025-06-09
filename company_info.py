@@ -215,3 +215,32 @@ def search_employee_info_by_keywords(user_message, employee_info_list):
     if not found:
         logging.warning(f"❗該当する従業員または属性が見つかりませんでした: '{user_message}'")
     return "申し訳ありませんが、該当の情報が見つかりませんでした。"
+
+############## 補助系 ###########################
+
+def classify_conversation_category(message):
+    from openai import OpenAI
+    import os
+
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+    prompt = (
+        "以下の会話の内容をカテゴリ分けしてください。候補は「重要」「日常会話」「あいさつ」「業務情報」「その他」です。\n"
+        "カテゴリ名のみを1単語で出力してください。\n\n"
+        f"会話内容:\n{message}"
+    )
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=10,
+            temperature=0
+        )
+        category = response.choices[0].message.content.strip()
+        return category
+    except Exception as e:
+        logging.error(f"❌ カテゴリ分類失敗: {e}")
+        return "未分類"
+
+
