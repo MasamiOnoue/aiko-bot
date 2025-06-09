@@ -1,4 +1,4 @@
-# app.py　メインのPythonアプリコード（統合版） Render上で常に動作する設計
+# app.py
 
 import os
 from flask import Flask, request, abort
@@ -21,7 +21,10 @@ from aiko_greeting import (
     forward_message_to_others,
     get_user_name_for_sheet,
     get_aiko_official_email,
-    fetch_latest_email
+    fetch_latest_email,
+    has_recent_greeting,
+    record_greeting_time,
+    normalize_greeting
 )
 from company_info import (
     get_employee_info,
@@ -78,7 +81,14 @@ def handle_message(event):
         return
 
     callname = get_user_callname_from_uid(user_id)
-    greeting = get_time_based_greeting()
+
+    # === 挨拶制御 ===
+    category = normalize_greeting(user_message)
+    if category and not has_recent_greeting(user_id, category):
+        greeting = get_time_based_greeting()
+        record_greeting_time(user_id, now_jst(), category)
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=f"{greeting}、{callname}さん。"))
+        return
 
     if "最新メール" in user_message or "メール見せて" in user_message:
         email_text = fetch_latest_email()
