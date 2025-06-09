@@ -1,4 +1,5 @@
-# mask_word.py
+# mask_word.py　OpenAIに個人情報や会社の機密情報を渡さずに処理をさせるためのマスクとマスク解除処理ルーチン
+
 import re
 import openai
 import uuid
