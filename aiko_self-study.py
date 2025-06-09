@@ -12,35 +12,25 @@ from google.oauth2.service_account import Credentials
 import openai
 import threading
 
-# OpenAI APIキー（RenderのEnvironmentに登録されている）
+from company_info import get_conversation_log, load_all_user_ids, get_user_callname_from_uid
+
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-# Spreadsheet ID（会社情報）
-SPREADSHEET_ID4 = os.getenv('SPREADSHEET_ID4')  # 会社情報
-
-# 使用するスコープと認証情報
+SPREADSHEET_ID4 = os.getenv('SPREADSHEET_ID4')
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 creds = Credentials.from_service_account_file("service_account.json", scopes=SCOPES)
 sheet_service = build("sheets", "v4", credentials=creds)
 
-# 会話ログ関連の読み込み
-from company_info import get_conversation_log, load_all_user_ids
-
-# キャッシュ（全体会話ログ50件、個別ログ20件）
 user_conversation_cache = {}
 full_conversation_cache = []
 
-# 特定のワードを含む重要会話フラグ
 IMPORTANT_PATTERNS = [
     "重要", "緊急", "至急", "要確認", "トラブル", "対応して", "すぐに", "大至急"
 ]
 
-# 重要な会話を「会社情報」スプレッドシートに保存する関数
 def is_important_message(text):
     pattern = "|".join(map(re.escape, IMPORTANT_PATTERNS))
     return re.search(pattern, text, re.IGNORECASE) is not None
-
-# 不要表現の除去
 
 def clean_log_message(text):
     patterns = [
@@ -51,11 +41,10 @@ def clean_log_message(text):
     pattern = "|".join(map(re.escape, patterns))
     return re.sub(pattern, "", text, flags=re.IGNORECASE).strip()
 
-# 重要会話を会社情報に保存（H列：登録者名＝愛子、D列：回答内容、I列：使用回数=1、J列：担当者=ユーザー名、K列：開示範囲=全員）
-
 def store_important_message_to_company_info(message, user_id):
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-    row_data = [["", message, "", "愛子", "", "", "", now, 1, user_id, "全員"]]
+    callname = get_user_callname_from_uid(user_id) or "不明"
+    row_data = [["", message, "", "愛子", "", "", "", now, 1, callname, "全員"]]
     sheet_service.spreadsheets().values().append(
         spreadsheetId=SPREADSHEET_ID4,
         range="会社情報!A2",
@@ -64,8 +53,6 @@ def store_important_message_to_company_info(message, user_id):
         body={"values": row_data}
     ).execute()
 
-# 全体キャッシュ更新
-
 def cache_all_user_conversations():
     logs = get_conversation_log()
     all_user_ids = load_all_user_ids()
@@ -73,19 +60,15 @@ def cache_all_user_conversations():
     global full_conversation_cache
     full_conversation_cache = []
 
-    # 全体の最新50件をキャッシュ
     for log in logs[-100:]:
         if len(log) > 4:
             speaker = log[3]
             message = clean_log_message(log[4])
             flag = " [重要]" if is_important_message(message) else ""
             full_conversation_cache.append(f"{speaker}: {message}{flag}")
-
-            # 重要会話を会社情報に保存
             if is_important_message(message):
                 store_important_message_to_company_info(message, log[1])
 
-    # 各ユーザーの最新20件もキャッシュ
     for user_id in all_user_ids:
         user_logs = [
             f"{log[3]}: {clean_log_message(log[4])}{' [重要]' if is_important_message(log[4]) else ''}"
@@ -95,8 +78,6 @@ def cache_all_user_conversations():
 
     print("🧠 会話キャッシュを更新しました")
 
-# 10分ごとにキャッシュを更新
-
 def periodic_cache_update(interval):
     while True:
         cache_all_user_conversations()
@@ -104,13 +85,12 @@ def periodic_cache_update(interval):
 
 cache_thread = threading.Thread(target=lambda: periodic_cache_update(600), daemon=True)
 
-# 直近の会話の精査
-
 def generate_contextual_reply(user_id, user_message):
     user_context = user_conversation_cache.get(user_id, "")
     others_context = "\n".join(full_conversation_cache)
     prompt = (
-        f"以下はこのユーザーとの直近の会話と、社内で交わされた他の会話の記録です。文脈を踏まえて、自然に応答してください。\n"
+        "あなたは社内専用のAIアシスタント愛子です。従業員には情報をすべて開示しなさい。\n"
+        "以下はこのユーザーとの直近の会話と、社内で交わされた他の会話の記録です。文脈を踏まえて、自然に応答してください。\n"
         f"【このユーザーの履歴】\n{user_context}\n\n"
         f"【他の人の話題や社内背景】\n{others_context}\n\n"
         f"ユーザーの入力: {user_message}"
@@ -126,8 +106,6 @@ def generate_contextual_reply(user_id, user_message):
         return response.choices[0].message.content.strip()
     except Exception as e:
         return f"[応答失敗]: {e}"
-
-# 補足情報列の取得と書き込み
 
 def get_existing_links():
     result = sheet_service.spreadsheets().values().get(
@@ -153,8 +131,6 @@ def update_links_and_log_diff(new_links_text, diff_summary):
         body={"values": [[now, diff_summary]]}
     ).execute()
 
-# サイト全体からリンクと中身を取得
-
 def crawl_all_pages(base_url):
     try:
         response = requests.get(base_url)
@@ -176,8 +152,6 @@ def crawl_all_pages(base_url):
     except Exception as e:
         return f"[巡回エラー]: {e}"
 
-# OpenAIで差分要約
-
 def summarize_diff(old_text, new_text):
     prompt = (
         "以下はWebページの古い内容と新しい内容です。何が変更されたかを簡潔に日本語で要約してください。\n"
@@ -198,8 +172,6 @@ def summarize_diff(old_text, new_text):
     except Exception as e:
         return f"[要約失敗]: {e}"
 
-# メイン処理（毎日1回）
-
 def check_full_site_update():
     print("🌐 サイト全体の巡回を開始します...")
     base_url = "https://sun-name.com/"
@@ -213,7 +185,6 @@ def check_full_site_update():
     else:
         print("変化なし：更新はありませんでした。")
 
-# 実行開始
 if __name__ == "__main__":
     cache_thread.start()
     while True:
