@@ -174,17 +174,20 @@ def search_employee_info_by_keywords(user_message, employee_info_list):
 
     found = False
     user_message = user_message.replace("ちゃん", "さん")  # ニックネーム対応
+
     for row in employee_info_list:
         if len(row) < 18:
             continue
         name = row[3]
         if not name:
             continue
+
         for keyword, index in attributes.items():
             if keyword in user_message and name in user_message:
-                value = row[index] if index < len(row) else "不明"
+                value = row[index] if index < len(row) and row[index].strip() != "" else "不明"
                 found = True
                 return f"{name}さんの{keyword}は {value} です。"
+
     if not found:
         logging.warning(f"❗該当する従業員または属性が見つかりませんでした: '{user_message}'")
-    return None
+    return "申し訳ありませんが、該当の情報が見つかりませんでした。"
