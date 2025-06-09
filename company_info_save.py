@@ -71,19 +71,4 @@ def write_aiko_experience_log(sheet_values, values):
     except Exception as e:
         logging.error(f"❌ 愛子の経験ログ書き込みエラー: {e}")
 
-def write_conversation_log(user_id, user_name, message, status="OK"):
-    sheet = get_google_sheets_service()
-    if not sheet:
-        logging.error("❌ シートサービス取得に失敗しました")
-        return
-    try:
-        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        sheet.append(
-            spreadsheetId=SPREADSHEET_ID1,
-            range="会話ログ!A2",
-            valueInputOption="RAW",
-            body={"values": [[now, user_id, user_name, "ユーザー", message, status, "", "", "", ""]]}
-        ).execute()
-    except Exception as e:
-        logging.error(f"❌ 会話ログの書き込みに失敗: {e}")
 
