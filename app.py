@@ -11,7 +11,7 @@ import openai
 from aiko_greeting import (
     now_jst,
     get_time_based_greeting,
-    get_user_callname,
+    #get_user_callname,
     is_attendance_related,
     is_topic_changed,
     get_user_status,
