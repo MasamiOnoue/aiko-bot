@@ -91,7 +91,7 @@ def load_all_user_ids():
     sheet = get_google_sheets_service().spreadsheets().values()
     result = sheet.get(
         spreadsheetId=SPREADSHEET_ID2,  # 従業員情報があるシートID
-        range="従業員情報!M2:M"         # M列にUIDがある前提
+        range="従業員情報!L2:L"         # M列にUIDがある前提
     ).execute()
     values = result.get("values", [])
     return [row[0].strip() for row in values if row and row[0].strip().startswith("U")]
@@ -163,6 +163,7 @@ def write_aiko_experience_log(sheet_values, values):
         ).execute()
     except Exception as e:
         logging.error(f"❌ 愛子の経験ログ書き込みエラー: {e}")
+        
 def search_employee_info_by_keywords(user_message, employee_info_list):
     # 愛称辞書を定義
     alias_dict = {
