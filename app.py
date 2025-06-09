@@ -44,7 +44,7 @@ from mask_word import (
     rephrase_with_masked_text
 )
 from aiko_self_study import generate_contextual_reply
-from mailer import draft_email_for_user, send_email_with_confirmation
+from aiko_mailer import draft_email_for_user, send_email_with_confirmation
 
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
