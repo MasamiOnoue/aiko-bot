@@ -91,3 +91,15 @@ def get_user_callname_from_uid(user_id):
         logging.error(f"❌ 呼び名取得失敗: {e}")
     return "不明"
 
+def get_user_callname_from_uid(user_id):
+    sheet = get_google_sheets_service()
+    if not sheet:
+        logging.error("❌ Google Sheetsサービス取得に失敗しました")
+        return "不明"
+    try:
+        result = sheet.get(spreadsheetId=SPREADSHEET_ID2, range="従業員情報!D2:L").execute()
+        values = result.get("values", [])
+        for row in values:
+            if len(row) >= 9 and row[8].strip() == user_id:
+                return row[0].strip() if row[0].strip() else "不明"
+
