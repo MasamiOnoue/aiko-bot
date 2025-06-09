@@ -91,7 +91,7 @@ def handle_message(event):
 
     category = normalize_greeting(user_message)
     if category and not has_recent_greeting(user_id, category):
-        greeting = get_time_based_greeting()
+        greeting = get_time_based_greeting(user_id)
         record_greeting_time(user_id, now_jst(), category)
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=f"{greeting}、{callname}さん。"))
         return
