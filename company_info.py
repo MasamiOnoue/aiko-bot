@@ -162,7 +162,7 @@ def load_all_user_ids():
         service = get_google_sheets_service()
         result = service.values().get(
             spreadsheetId=SPREADSHEET_ID2,
-            range="従業員情報!M2:M"
+            range="従業員情報!L2:L"
         ).execute()
         values = result.get("values", [])
         return [row[0].strip() for row in values if row and row[0].strip().startswith("U") and len(row[0].strip()) >= 10]
