@@ -7,11 +7,11 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
 # 環境変数からスプレッドシートIDを取得
-SPREADSHEET_ID1 = os.getenv('SPREADSHEET_ID1')  # 会話ログ
-SPREADSHEET_ID2 = os.getenv('SPREADSHEET_ID2')  # 従業員情報
-SPREADSHEET_ID3 = os.getenv('SPREADSHEET_ID3')  # 取引先情報
-SPREADSHEET_ID4 = os.getenv('SPREADSHEET_ID4')  # 会社情報
-SPREADSHEET_ID5 = os.getenv('SPREADSHEET_ID5')  # 愛子の経験ログ
+SPREADSHEET_ID1 = os.getenv('SPREADSHEET_ID1')
+SPREADSHEET_ID2 = os.getenv('SPREADSHEET_ID2')
+SPREADSHEET_ID3 = os.getenv('SPREADSHEET_ID3')
+SPREADSHEET_ID4 = os.getenv('SPREADSHEET_ID4')
+SPREADSHEET_ID5 = os.getenv('SPREADSHEET_ID5')
 
 # Google Sheets 接続サービスの取得
 def get_google_sheets_service():
@@ -28,7 +28,6 @@ def get_google_sheets_service():
         return None
 
 ################ 読み込み関数 ################
-
 def get_conversation_log(sheet_service):
     try:
         result = sheet_service.values().get(
@@ -88,7 +87,6 @@ def get_experience_log(sheet_service):
         return []
 
 ################ 書き込み関数 ################
-
 def write_conversation_log(sheet_service, timestamp, user_id, user_name, speaker, message, status):
     try:
         row = [timestamp, user_id, user_name, speaker, message, "", "text", "", status, ""]
@@ -156,7 +154,6 @@ def write_aiko_experience_log(sheet_service, values):
         logging.error(f"❌ 愛子の経験ログ書き込みエラー: {e}")
 
 ################ 補助関数 ################
-
 def load_all_user_ids():
     try:
         service = get_google_sheets_service()
@@ -187,18 +184,29 @@ def get_user_callname_from_uid(user_id):
 
 #キーワードで従業員の情報を検索する
 def search_employee_info_by_keywords(user_message, employee_info_list):
-    """
-    ユーザーからの質問メッセージと従業員リストをもとに、該当情報を返す関数。
-    例：「折戸さんの役職は？」→「折戸さんの役職は 工場長 です」
-    """
+    attributes = {
+        "役職": 4,
+        "入社年": 5,
+        "生年月日": 6,
+        "性別": 7,
+        "メールアドレス": 8,
+        "個人メールアドレス": 9,
+        "携帯電話番号": 10,
+        "自宅電話": 11,
+        "住所": 12,
+        "郵便番号": 13,
+        "緊急連絡先": 14,
+        "ペット情報": 15,
+        "性格": 16,
+        "家族構成": 17
+    }
+
     for row in employee_info_list:
-        if len(row) < 5:
-            continue  # 安全にスキップ
-
-        name = row[3]  # 呼ばれ方
-        position = row[4]  # 役職
-
-        if name and name in user_message and "役職" in user_message:
-            return f"{name}さんの役職は {position} です。"
-
-    return None  # 該当なし
+        if len(row) < 18:
+            continue
+        name = row[3]
+        for keyword, index in attributes.items():
+            if name and keyword in user_message and name in user_message:
+                value = row[index] if index < len(row) else "不明"
+                return f"{name}さんの{keyword}は {value} です。"
+    return None
