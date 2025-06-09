@@ -80,6 +80,10 @@ def load_all_user_ids():
     return [row[0].strip() for row in values if row and row[0].strip().startswith("U")]
 
 def get_user_callname_from_uid(user_id):
+    greetings_only = ["こんばんは", "こんばんわ", "こんにちわ", "こんにちは", "おはよう", "はろはろ","ハロー","おっはー","やっはろー","ばんわ","こんちわ"]
+    if user_id.strip() in greetings_only:
+        return ""
+
     sheet = get_google_sheets_service()
     if not sheet:
         logging.error("❌ Google Sheetsサービス取得に失敗しました")
@@ -90,11 +94,6 @@ def get_user_callname_from_uid(user_id):
             range="従業員情報!D2:L"
         ).execute()
         values = result.get("values", [])
-
-        greetings_only = ["こんばんは", "こんばんわ", "こんにちわ", "こんにちは", "おはよう"]
-        if user_id.strip() in greetings_only:
-            return ""
-
         for row in values:
             if len(row) >= 9 and row[8].strip() == user_id:
                 name = row[0].strip() if row[0].strip() else "不明"
