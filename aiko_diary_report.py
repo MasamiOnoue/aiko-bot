@@ -5,9 +5,11 @@ import pytz
 import os
 import random
 from openai import OpenAI
-from company_info import get_conversation_log, write_company_info
 from linebot import LineBotApi
 from linebot.models import TextSendMessage
+from company_info_load import get_conversation_log, get_google_sheets_service
+from company_info_save import write_company_info
+
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
