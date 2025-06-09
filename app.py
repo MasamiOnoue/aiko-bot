@@ -82,7 +82,8 @@ def handle_message(event):
     user_id = event.source.user_id
     user_message = event.message.text
     user_name = get_user_callname_from_uid(user_id)  # ← ユーザー名を取得
-    category = classify_conversation_category(user_message)
+    category = "試験中（一時カテゴリ化停止）"
+    #category = classify_conversation_category(user_message)
     write_conversation_log(now_jst().isoformat(), user_id, user_name, "ユーザー", user_message, category, "テキスト", "テスト", "OK")
     
     registered_uids = load_all_user_ids()
