@@ -34,9 +34,9 @@ from company_info import (
     load_all_user_ids,
     get_user_callname_from_uid,
     get_google_sheets_service,
-    get_user_email_from_uid
 )
 from aiko_diary_report import generate_daily_report, send_daily_report
+from aiko_mailer import draft_email_for_user, send_email_with_confirmation, get_user_email_from_uid
 from mask_word import (
     contains_sensitive_info,
     mask_sensitive_data,
@@ -44,7 +44,6 @@ from mask_word import (
     rephrase_with_masked_text
 )
 from aiko_self_study import generate_contextual_reply
-from aiko_mailer import draft_email_for_user, send_email_with_confirmation
 
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
