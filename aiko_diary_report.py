@@ -1,4 +1,4 @@
-# aiko_diary_report.py
+# aiko_diary_report.py　愛子が毎朝日本時間の3時にその日あった出来事を日記にする関数群
 
 from datetime import datetime, timedelta
 import pytz
