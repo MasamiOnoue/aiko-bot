@@ -1,3 +1,5 @@
+# LINEメッセージを受け取ったときのメイン処理
+
 from linebot.models import TextSendMessage
 from aiko_greeting import (
     now_jst, get_time_based_greeting, is_attendance_related, is_topic_changed,
@@ -71,7 +73,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         return
 
     # メール送信確認
-    status = get_user_status(user_id)
+    status = get_user_status(user_id) or {}
     step = status.get("step", 0)
     if step == 100:
         target = get_user_status(user_id + "_target")
