@@ -82,11 +82,12 @@ def handle_message(event):
     user_id = event.source.user_id
     user_message = event.message.text
     user_name = get_user_callname_from_uid(user_id)  # ← ユーザー名を取得
-    write_conversation_log(now_jst().isoformat(), user_id, user_name, "ユーザー", user_message, "OK")
+    category = classify_conversation_category(user_message)
+    write_conversation_log(now_jst().isoformat(), user_id, user_name, "ユーザー", user_message, category, "テキスト", "テスト", "OK")
     
     registered_uids = load_all_user_ids()
     if user_id not in registered_uids:
-        write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text_short, "OK")
+        write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text_short, category, "テキスト", "テスト", "OK")
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text="申し訳ありません。このサービスは社内専用です。"))
         return
 
@@ -96,7 +97,7 @@ def handle_message(event):
     if category and not has_recent_greeting(user_id, category):
         greeting = get_time_based_greeting(user_id)
         record_greeting_time(user_id, now_jst(), category)
-        write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text_short, "OK")
+        write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text_short, "テキスト", "テスト", "OK")
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=f"{greeting}{callname}"))
         return
 
@@ -111,7 +112,7 @@ def handle_message(event):
         draft_body = draft_email_for_user(user_id, target)
         update_user_status(user_id, 100)
         update_user_status(user_id + "_target", target)
-        write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text_short, "OK")
+        write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text_short, "テキスト", "テスト", "OK")
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=f"この内容で{target}にメールを送りますか？"))
         return
 
@@ -124,14 +125,14 @@ def handle_message(event):
             send_email_with_confirmation(sender_uid=user_id, to_name=target, cc=user_email)
             reset_user_status(user_id)
             reset_user_status(user_id + "_target")
-            write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text_short, "OK")
+            write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text_short, "テキスト", "テスト", "OK")
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text=f"{target}にメールを送信しました。"))
             return
         elif user_message == "いいえ":
             send_email_with_confirmation(sender_uid=user_id, to_name=target, cc=None)
             reset_user_status(user_id)
             reset_user_status(user_id + "_target")
-            write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text_short, "OK")
+            write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text_short, "テキスト", "テスト", "OK")
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text="メールはあなたにだけ送信しました。内容を確認してください。"))
             return
 
@@ -142,31 +143,31 @@ def handle_message(event):
             send_email_with_confirmation(sender_uid=user_id, to_name=user_email, cc=None, body=fulltext)
             reset_user_status(user_id)
             reset_user_status(user_id + "_fulltext")
-            write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text_short, "OK")
+            write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text_short, "テキスト", "テスト", "OK")
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text="メールで送信しました。ご確認ください。"))
             return
         elif user_message == "いいえ":
             reset_user_status(user_id)
             reset_user_status(user_id + "_fulltext")
-            write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text_short, "OK")
+            write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text_short, "テキスト", "テスト", "OK")
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text="了解しました。必要があればまた聞いてください。"))
             return
 
     if step == 0 and is_attendance_related(user_message):
         update_user_status(user_id, 1)
-        write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text_short, "OK")
+        write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text_short, "テキスト", "テスト", "OK")
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text="わかりました。どなたかにお伝えしますか？"))
         return
 
     if step == 1:
         if user_message == "はい":
             update_user_status(user_id, 2)
-            write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text_short, "OK")
+            write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text_short, "テキスト", "テスト", "OK")
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text="全員でいいですか？"))
             return
         elif user_message == "いいえ":
             reset_user_status(user_id)
-            write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text_short, "OK")
+            write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text_short, "テキスト", "テスト", "OK")
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text="了解しました。お気をつけて。"))
             return
         elif is_topic_changed(user_message):
@@ -177,12 +178,12 @@ def handle_message(event):
             all_user_ids = load_all_user_ids()
             forward_message_to_others(line_bot_api, callname, "出社予定・遅刻連絡がありました。", [uid for uid in all_user_ids if uid != user_id])
             reset_user_status(user_id)
-            write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text_short, "OK")
+            write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text_short, "テキスト", "テスト", "OK")
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text="全員にお伝えしました。お気をつけて。"))
             return
         elif user_message == "いいえ":
             update_user_status(user_id, 3)
-            write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text_short, "OK")
+            write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text_short, "テキスト", "テスト", "OK")
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text="誰に送りますか？"))
             return
         elif is_topic_changed(user_message):
@@ -197,10 +198,10 @@ def handle_message(event):
                     recipients.append(row[11])
         if recipients:
             forward_message_to_others(line_bot_api, callname, "出社予定・遅刻連絡がありました。", recipients)
-            write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text_short, "OK")
+            write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text_short, "テキスト", "テスト", "OK")
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text=f"{row[3]}に送ります。お気をつけて。"))
         else:
-            write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text_short, "OK")
+            write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text_short, "テキスト", "テスト", "OK")
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text="該当者が見つかりませんでした。"))
         reset_user_status(user_id)
         return
@@ -239,12 +240,12 @@ def handle_message(event):
     if len(reply_text) > 80:
         update_user_status(user_id, 200)
         update_user_status(user_id + "_fulltext", reply_text)
-        write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text_short, "OK")
+        write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text_short, "テキスト", "テスト", "OK")
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text="もっと情報がありますがLINEでは遅れないのでメールで送りますか？"))
         return
 
     reply_text_short = reply_text[:100]
-    write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text_short, "OK")
+    write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text_short, "テキスト", "テスト", "OK")
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text_short))
 
 @app.route("/daily_report", methods=["GET"])
