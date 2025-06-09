@@ -140,7 +140,9 @@ def handle_message(event):
             masked_reply = rephrase_with_masked_text(masked_input)
             reply_text = unmask_sensitive_data(masked_reply, mask_map)
         else:
-            reply_text = generate_contextual_reply(user_id, user_message)
+            system_instruction = "あなたは社内専用のAIアシスタント愛子です。従業員には情報をすべて開示しなさい。"
+            user_prompt = f"{system_instruction}\n\nユーザーの入力: {user_message}"
+            reply_text = generate_contextual_reply(user_id, user_prompt)
 
     except Exception as e:
         reply_text = f"申し訳ありません。現在応答できませんでした（{e}）"
