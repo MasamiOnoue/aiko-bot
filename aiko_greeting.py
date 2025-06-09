@@ -37,12 +37,14 @@ def record_greeting_time(user_id, timestamp, category):
 # 時間帯に応じた挨拶
 def get_time_based_greeting():
     hour = now_jst().hour
-    if 5 <= hour < 12:
-        return "おはようございます"
-    elif 12 <= hour < 18:
-        return "こんにちは"
+    if 5 <= hour < 11:
+        return "おっはー"
+    elif 11 <= hour < 18:
+        return "やっはろー"
+    elif 18 <= hour < 23:
+        return "ばんわ～"
     else:
-        return "こんばんは"
+        return "ねむ～"
 
 # 挨拶と認識される語を正規化
 GREETING_KEYWORDS = [
