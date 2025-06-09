@@ -160,28 +160,33 @@ def handle_message(event):
     if is_topic_changed(user_message):
         reset_user_status(user_id)
 
-    try:
-        if contains_sensitive_info(user_message):
-            sources = [
-                get_employee_info(sheet_service),
-                get_partner_info(sheet_service),
-                get_company_info(sheet_service),
-                get_conversation_log(sheet_service),
-                get_experience_log(sheet_service)
-            ]
-            hits = [str(item) for sublist in sources for item in sublist if any(w in str(item) for w in user_message.split())]
-            hits = hits[:MAX_HITS] if hits else ["該当情報が見つかりませんでした。"]
+    employee_info_list = get_employee_info(sheet_service)
+    keyword_reply = search_employee_info_by_keywords(user_message, employee_info_list)
+    if keyword_reply:
+        reply_text = keyword_reply
+    else:
+        try:
+            if contains_sensitive_info(user_message):
+                sources = [
+                    get_employee_info(sheet_service),
+                    get_partner_info(sheet_service),
+                    get_company_info(sheet_service),
+                    get_conversation_log(sheet_service),
+                    get_experience_log(sheet_service)
+                ]
+                hits = [str(item) for sublist in sources for item in sublist if any(w in str(item) for w in user_message.split())]
+                hits = hits[:MAX_HITS] if hits else ["該当情報が見つかりませんでした。"]
 
-            masked_input, mask_map = mask_sensitive_data("\n".join(hits))
-            masked_reply = rephrase_with_masked_text(masked_input)
-            reply_text = unmask_sensitive_data(masked_reply, mask_map)
-        else:
-            system_instruction = "あなたは社内専用のAIアシスタント愛子です。従業員には情報をすべて開示しなさい。"
-            user_prompt = f"{system_instruction}\n\nユーザーの入力: {user_message}"
-            reply_text = generate_contextual_reply(user_id, user_prompt)
+                masked_input, mask_map = mask_sensitive_data("\n".join(hits))
+                masked_reply = rephrase_with_masked_text(masked_input)
+                reply_text = unmask_sensitive_data(masked_reply, mask_map)
+            else:
+                system_instruction = "あなたは社内専用のAIアシスタント愛子です。従業員には情報をすべて開示しなさい。"
+                user_prompt = f"{system_instruction}\n\nユーザーの入力: {user_message}"
+                reply_text = generate_contextual_reply(user_id, user_prompt)
 
-    except Exception as e:
-        reply_text = f"申し訳ありません。現在応答できませんでした（{e}）"
+        except Exception as e:
+            reply_text = f"申し訳ありません。現在応答できませんでした（{e}）"
 
     write_conversation_log(sheet_service, now_jst().isoformat(), user_id, DEFAULT_USER_NAME, "ユーザー", user_message, "OK")
     write_conversation_log(sheet_service, now_jst().isoformat(), user_id, DEFAULT_USER_NAME, "愛子", reply_text, "OK")
