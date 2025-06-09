@@ -41,6 +41,21 @@ from company_info import (
     search_employee_info_by_keywords,
     classify_conversation_category
 )
+from company_info_load import (
+    get_employee_info,
+    get_partner_info,
+    get_company_info,
+    get_conversation_log,
+    get_experience_log,
+    load_all_user_ids,
+    get_user_callname_from_uid,
+    get_google_sheets_service,
+)
+from company_info_save import (
+    write_conversation_log,
+    write_aiko_experience_log,
+    write_company_info,
+)
 from aiko_diary_report import generate_daily_report, send_daily_report
 from aiko_mailer import draft_email_for_user, send_email_with_confirmation, get_user_email_from_uid
 from mask_word import (
