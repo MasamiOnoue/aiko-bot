@@ -31,18 +31,37 @@ def has_recent_greeting(user_id):
         return True
     return False
 
-# 時間帯による挨拶関数
+# ユーザーIDから「愛子からの呼ばれ方」を取得
+def get_aiko_callname(user_id):
+    sheet_service = get_google_sheets_service()
+    employees = get_employee_info(sheet_service)
+    for emp in employees:
+        if len(emp) >= 12 and emp[11] == user_id:
+            return emp[3]  # D列: 愛子からの呼ばれ方
+    return get_user_callname_from_uid(user_id) or ""
+
+# 時間帯による挨拶関数（強化版）
 def get_time_based_greeting():
-    current_time = now_jst()
-    hour = current_time.hour
+    hour = now_jst().hour
     if 5 <= hour < 10:
         return "おっはー。"
     elif 10 <= hour < 18:
         return "やっはろー。"
     elif 18 <= hour < 23:
-        return "おっつ〜。"
+        return "ばんわ〜。"
     else:
         return "ねむねむ。"
+
+# 挨拶キーワードが含まれているかを判定
+def is_greeting(text):
+    greeting_keywords = ["おはよう", "こんにちは", "こんばんは", "やあ", "おっはー", "やっはろー", "ばんわ", "こんちゃ"]
+    return any(word in text for word in greeting_keywords)
+
+# ユーザーIDを元にフル挨拶を生成
+def generate_personal_greeting(user_id):
+    callname = get_aiko_callname(user_id)
+    greeting = get_time_based_greeting()
+    return f"{callname}さん、{greeting}"
 
 # 出社・遅刻関連メッセージの確認ループ管理
 user_status_flags = {}
