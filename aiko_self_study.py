@@ -9,11 +9,11 @@ import re
 from bs4 import BeautifulSoup
 from googleapiclient.discovery import build
 from google.oauth2.service_account import Credentials
-import openai
+from openai import OpenAI
 import threading
 from company_info import get_conversation_log, load_all_user_ids, get_user_callname_from_uid, get_google_sheets_service
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 SPREADSHEET_ID4 = os.getenv('SPREADSHEET_ID4')
 sheet_service = get_google_sheets_service()
@@ -93,7 +93,7 @@ def generate_contextual_reply(user_id, user_message):
         f"ユーザーの入力: {user_message}"
     )
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
                 {"role": "system", "content": "あなたはAIアシスタント愛子です。"},
@@ -158,7 +158,7 @@ def summarize_diff(old_text, new_text):
         f"{new_text[:3000]}"
     )
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
                 {"role": "system", "content": "あなたは変更点を要約するアシスタントです。"},
