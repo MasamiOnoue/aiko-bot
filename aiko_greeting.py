@@ -3,10 +3,14 @@
 from datetime import datetime, timedelta
 import pytz
 import re
+import os
+import base64
+import google.auth
+from googleapiclient.discovery import build
+from google.auth.transport.requests import Request
 from company_info import get_user_callname_from_uid, get_employee_info, get_google_sheets_service
 from linebot import LineBotApi
 from linebot.models import TextSendMessage
-import os
 
 # JST取得関数
 def now_jst():
@@ -99,3 +103,36 @@ def get_aiko_official_email():
         if len(emp) >= 10 and emp[3] == "愛子":
             return emp[9]  # J列 = index 9
     return ""
+
+# Gmailの認証と読み込み準備（ここではトークン取得までは省略）
+def get_aiko_email_service():
+    try:
+        creds, _ = google.auth.default(scopes=["https://www.googleapis.com/auth/gmail.readonly"])
+        if not creds.valid:
+            if creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+        return build('gmail', 'v1', credentials=creds)
+    except Exception as e:
+        print(f"Gmail接続失敗: {e}")
+        return None
+
+# 最新の受信メールを取得
+def fetch_latest_email():
+    service = get_aiko_email_service()
+    if not service:
+        return "メールサービスに接続できませんでした。"
+
+    try:
+        results = service.users().messages().list(userId='me', labelIds=['INBOX'], maxResults=1).execute()
+        messages = results.get('messages', [])
+        if not messages:
+            return "新着メールはありません。"
+
+        msg = service.users().messages().get(userId='me', id=messages[0]['id'], format='full').execute()
+        headers = msg['payload'].get('headers', [])
+        subject = next((h['value'] for h in headers if h['name'] == 'Subject'), '(件名なし)')
+        snippet = msg.get('snippet', '(本文なし)')
+
+        return f"📧 件名: {subject}\n本文: {snippet}"
+    except Exception as e:
+        return f"メール取得エラー: {e}"
