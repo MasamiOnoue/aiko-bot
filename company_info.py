@@ -184,3 +184,21 @@ def get_user_callname_from_uid(user_id):
     except Exception as e:
         logging.error(f"ユーザー名取得失敗: {e}")
     return "LINEのIDが不明な方"
+
+#キーワードで従業員の情報を検索する
+def search_employee_info_by_keywords(user_message, employee_info_list):
+    """
+    ユーザーからの質問メッセージと従業員リストをもとに、該当情報を返す関数。
+    例：「折戸さんの役職は？」→「折戸さんの役職は 工場長 です」
+    """
+    for row in employee_info_list:
+        if len(row) < 5:
+            continue  # 安全にスキップ
+
+        name = row[3]  # 呼ばれ方
+        position = row[4]  # 役職
+
+        if name and name in user_message and "役職" in user_message:
+            return f"{name}さんの役職は {position} です。"
+
+    return None  # 該当なし
