@@ -90,10 +90,14 @@ def get_user_callname_from_uid(user_id):
             range="従業員情報!D2:L"
         ).execute()
         values = result.get("values", [])
+
+        greetings_only = ["こんばんは", "こんばんわ", "こんにちわ", "こんにちは", "おはよう"]
+        if user_id.strip() in greetings_only:
+            return ""
+
         for row in values:
             if len(row) >= 9 and row[8].strip() == user_id:
                 name = row[0].strip() if row[0].strip() else "不明"
-                # 「さん」が重複しないように整形
                 return name.replace("さん", "")
     except Exception as e:
         logging.error(f"❌ UIDの読み込みに失敗しました: {e}")
