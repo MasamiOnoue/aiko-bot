@@ -90,3 +90,12 @@ def forward_message_to_others(line_bot_api: LineBotApi, sender_name: str, messag
             line_bot_api.push_message(user_id, TextSendMessage(text=full_message))
         except Exception as e:
             print(f"❌ 転送失敗: {user_id}: {e}")
+
+# 愛子のメールアドレスを取得
+def get_aiko_official_email():
+    sheet_service = get_google_sheets_service()
+    employees = get_employee_info(sheet_service)
+    for emp in employees:
+        if len(emp) >= 10 and emp[3] == "愛子":
+            return emp[9]  # J列 = index 9
+    return ""
