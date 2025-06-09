@@ -27,9 +27,133 @@ def get_google_sheets_service():
         logging.error(f"❌ Google Sheets認証エラー: {e}")
         return None
 
-...（中略、他の関数はそのまま）...
+# === 各種データ取得関数 ===
 
-#キーワードで従業員の情報を検索する
+def get_conversation_log(sheet_values):
+    try:
+        result = sheet_values.get(
+            spreadsheetId=SPREADSHEET_ID1,
+            range="会話ログ!A2:J"
+        ).execute()
+        return result.get("values", [])
+    except Exception as e:
+        logging.error(f"❌ 会話ログの取得に失敗: {e}")
+        return []
+
+@lru_cache(maxsize=1)
+def get_employee_info(sheet_values):
+    try:
+        result = sheet_values.get(
+            spreadsheetId=SPREADSHEET_ID2,
+            range="従業員情報!A2:Z"
+        ).execute()
+        return result.get("values", [])
+    except Exception as e:
+        logging.error(f"❌ 従業員情報の取得に失敗: {e}")
+        return []
+
+@lru_cache(maxsize=1)
+def get_partner_info(sheet_values):
+    try:
+        result = sheet_values.get(
+            spreadsheetId=SPREADSHEET_ID3,
+            range="取引先情報!A2:Z"
+        ).execute()
+        return result.get("values", [])
+    except Exception as e:
+        logging.error(f"❌ 取引先情報の取得に失敗: {e}")
+        return []
+
+@lru_cache(maxsize=1)
+def get_company_info(sheet_values):
+    try:
+        result = sheet_values.get(
+            spreadsheetId=SPREADSHEET_ID4,
+            range="会社情報!A2:Z"
+        ).execute()
+        return result.get("values", [])
+    except Exception as e:
+        logging.error(f"❌ 会社情報の取得に失敗: {e}")
+        return []
+
+def get_experience_log(sheet_values):
+    try:
+        result = sheet_values.get(
+            spreadsheetId=SPREADSHEET_ID5,
+            range="経験ログ!A2:E"
+        ).execute()
+        return result.get("values", [])
+    except Exception as e:
+        logging.error(f"❌ 経験ログの取得に失敗: {e}")
+        return []
+
+# === 書き込み関数 ===
+
+def write_conversation_log(sheet_values, timestamp, user_id, user_name, speaker, message, status):
+    try:
+        row = [timestamp, user_id, user_name, speaker, message, "", "text", "", status, ""]
+        body = {"values": [row]}
+        sheet_values.append(
+            spreadsheetId=SPREADSHEET_ID1,
+            range="会話ログ!A:J",
+            valueInputOption="USER_ENTERED",
+            insertDataOption="INSERT_ROWS",
+            body=body
+        ).execute()
+    except Exception as e:
+        logging.error(f"❌ 会話ログ書き込みエラー: {e}")
+
+def write_employee_info(sheet_values, values):
+    try:
+        body = {"values": [values]}
+        sheet_values.append(
+            spreadsheetId=SPREADSHEET_ID2,
+            range="従業員情報!A:Z",
+            valueInputOption="USER_ENTERED",
+            insertDataOption="INSERT_ROWS",
+            body=body
+        ).execute()
+    except Exception as e:
+        logging.error(f"❌ 従業員情報書き込みエラー: {e}")
+
+def write_partner_info(sheet_values, values):
+    try:
+        body = {"values": [values]}
+        sheet_values.append(
+            spreadsheetId=SPREADSHEET_ID3,
+            range="取引先情報!A:Z",
+            valueInputOption="USER_ENTERED",
+            insertDataOption="INSERT_ROWS",
+            body=body
+        ).execute()
+    except Exception as e:
+        logging.error(f"❌ 取引先情報書き込みエラー: {e}")
+
+def write_company_info(sheet_values, values):
+    try:
+        body = {"values": [values]}
+        sheet_values.append(
+            spreadsheetId=SPREADSHEET_ID4,
+            range="会社情報!A:Z",
+            valueInputOption="USER_ENTERED",
+            insertDataOption="INSERT_ROWS",
+            body=body
+        ).execute()
+    except Exception as e:
+        logging.error(f"❌ 会社情報書き込みエラー: {e}")
+
+def write_aiko_experience_log(sheet_values, values):
+    try:
+        body = {"values": [values]}
+        sheet_values.append(
+            spreadsheetId=SPREADSHEET_ID5,
+            range="愛子の経験ログ!A:E",
+            valueInputOption="USER_ENTERED",
+            insertDataOption="INSERT_ROWS",
+            body=body
+        ).execute()
+    except Exception as e:
+        logging.error(f"❌ 愛子の経験ログ書き込みエラー: {e}")
 def search_employee_info_by_keywords(user_message, employee_info_list):
     attributes = {
         "役職": 4,
@@ -49,12 +173,15 @@ def search_employee_info_by_keywords(user_message, employee_info_list):
     }
 
     found = False
+    user_message = user_message.replace("ちゃん", "さん")  # ニックネーム対応
     for row in employee_info_list:
         if len(row) < 18:
             continue
         name = row[3]
+        if not name:
+            continue
         for keyword, index in attributes.items():
-            if keyword in user_message and name.replace("さん", "") in user_message:
+            if keyword in user_message and name in user_message:
                 value = row[index] if index < len(row) else "不明"
                 found = True
                 return f"{name}さんの{keyword}は {value} です。"
