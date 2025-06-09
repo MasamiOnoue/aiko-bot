@@ -81,7 +81,8 @@ def callback():
 def handle_message(event):
     user_id = event.source.user_id
     user_message = event.message.text
-
+    write_conversation_log(now_jst().isoformat(), user_id, user_name, "ユーザー", user_message, "OK")
+    
     registered_uids = load_all_user_ids()
     if user_id not in registered_uids:
         write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text_short, "OK")
