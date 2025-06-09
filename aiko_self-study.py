@@ -35,8 +35,7 @@ IMPORTANT_PATTERNS = [
     "重要", "緊急", "至急", "要確認", "トラブル", "対応して", "すぐに", "大至急"
 ]
 
-# 重要な会話を保存関数
-
+# 重要な会話を「会社情報」スプレッドシートに保存する関数
 def is_important_message(text):
     pattern = "|".join(map(re.escape, IMPORTANT_PATTERNS))
     return re.search(pattern, text, re.IGNORECASE) is not None
