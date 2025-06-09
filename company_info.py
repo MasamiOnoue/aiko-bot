@@ -6,6 +6,7 @@ from functools import lru_cache
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from openai import OpenAI
+from company_info_load import get_conversation_log, load_all_user_ids, get_user_callname_from_uid, get_google_sheets_service
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
