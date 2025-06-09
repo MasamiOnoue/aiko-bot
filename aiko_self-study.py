@@ -36,11 +36,13 @@ IMPORTANT_PATTERNS = [
 ]
 
 # 重要な会話を保存関数
+
 def is_important_message(text):
     pattern = "|".join(map(re.escape, IMPORTANT_PATTERNS))
     return re.search(pattern, text, re.IGNORECASE) is not None
 
-# 重要な会話を保存関数
+# 不要表現の除去
+
 def clean_log_message(text):
     patterns = [
         "覚えてください", "覚えて", "おぼえておいて", "覚えてね",
@@ -50,14 +52,28 @@ def clean_log_message(text):
     pattern = "|".join(map(re.escape, patterns))
     return re.sub(pattern, "", text, flags=re.IGNORECASE).strip()
 
-# 重要な会話を保存関数
+# 重要会話を会社情報に保存
+
+def store_important_message_to_company_info(message, user_id):
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+    row_data = [[now, user_id, message]]
+    sheet_service.spreadsheets().values().append(
+        spreadsheetId=SPREADSHEET_ID4,
+        range="会社情報!H2",  # 必要に応じて列位置を調整
+        valueInputOption="USER_ENTERED",
+        insertDataOption="INSERT_ROWS",
+        body={"values": row_data}
+    ).execute()
+
+# 全体キャッシュ更新
+
 def cache_all_user_conversations():
     logs = get_conversation_log()
     all_user_ids = load_all_user_ids()
 
     global full_conversation_cache
     full_conversation_cache = []
-    
+
     # 全体の最新50件をキャッシュ
     for log in logs[-100:]:
         if len(log) > 4:
@@ -65,6 +81,10 @@ def cache_all_user_conversations():
             message = clean_log_message(log[4])
             flag = " [重要]" if is_important_message(message) else ""
             full_conversation_cache.append(f"{speaker}: {message}{flag}")
+
+            # 重要会話を会社情報に保存
+            if is_important_message(message):
+                store_important_message_to_company_info(message, log[1])
 
     # 各ユーザーの最新20件もキャッシュ
     for user_id in all_user_ids:
@@ -77,15 +97,16 @@ def cache_all_user_conversations():
     print("🧠 会話キャッシュを更新しました")
 
 # 10分ごとにキャッシュを更新
-cache_thread = threading.Thread(target=lambda: periodic_cache_update(600), daemon=True)
 
-# キャッシュ
 def periodic_cache_update(interval):
     while True:
         cache_all_user_conversations()
         time.sleep(interval)
 
+cache_thread = threading.Thread(target=lambda: periodic_cache_update(600), daemon=True)
+
 # 直近の会話の精査
+
 def generate_contextual_reply(user_id, user_message):
     user_context = user_conversation_cache.get(user_id, "")
     others_context = "\n".join(full_conversation_cache)
@@ -108,6 +129,7 @@ def generate_contextual_reply(user_id, user_message):
         return f"[応答失敗]: {e}"
 
 # 補足情報列の取得と書き込み
+
 def get_existing_links():
     result = sheet_service.spreadsheets().values().get(
         spreadsheetId=SPREADSHEET_ID4,
@@ -133,6 +155,7 @@ def update_links_and_log_diff(new_links_text, diff_summary):
     ).execute()
 
 # サイト全体からリンクと中身を取得
+
 def crawl_all_pages(base_url):
     try:
         response = requests.get(base_url)
@@ -155,6 +178,7 @@ def crawl_all_pages(base_url):
         return f"[巡回エラー]: {e}"
 
 # OpenAIで差分要約
+
 def summarize_diff(old_text, new_text):
     prompt = (
         "以下はWebページの古い内容と新しい内容です。何が変更されたかを簡潔に日本語で要約してください。\n"
@@ -176,6 +200,7 @@ def summarize_diff(old_text, new_text):
         return f"[要約失敗]: {e}"
 
 # メイン処理（毎日1回）
+
 def check_full_site_update():
     print("🌐 サイト全体の巡回を開始します...")
     base_url = "https://sun-name.com/"
