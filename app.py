@@ -29,7 +29,7 @@ from company_info import (
     get_conversation_log,
     get_experience_log,
     write_conversation_log,
-    write_experience_log,
+    write_aiko_experience_log,
     write_company_info,
     load_all_user_ids,
     get_user_callname_from_uid,
