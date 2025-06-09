@@ -97,7 +97,7 @@ def handle_message(event):
         return
 
     if "最新メール" in user_message or "メール見せて" in user_message:
-        email_text = fetch_latest_email()
+        email_text = fetch_latest_email() or "最新のメールは見つかりませんでした。"
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=email_text[:100]))
         return
 
