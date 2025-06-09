@@ -16,10 +16,7 @@ from company_info import get_conversation_log, load_all_user_ids, get_user_calln
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 SPREADSHEET_ID4 = os.getenv('SPREADSHEET_ID4')
-SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
-json_path = os.path.join(os.path.dirname(__file__), "aiko-bot-log-cfbf23e039fd.json")
-creds = Credentials.from_service_account_file(json_path, scopes=SCOPES)
-sheet_service = build("sheets", "v4", credentials=creds)
+sheet_service = get_google_sheets_service()
 
 user_conversation_cache = {}
 full_conversation_cache = []
