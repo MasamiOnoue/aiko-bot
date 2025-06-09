@@ -112,7 +112,7 @@ def handle_message(event):
     status = get_user_status(user_id)
     step = status.get("step", 0)
     if step == 100:
-        target = get_user_status(user_id + "_target").get("step")
+        target = get_user_status(user_id + "_target")
         user_email = get_user_email_from_uid(user_id)
         if user_message == "はい":
             send_email_with_confirmation(sender_uid=user_id, to_name=target, cc=user_email)
