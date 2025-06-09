@@ -5,6 +5,9 @@ import logging
 from functools import lru_cache
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
+from openai import OpenAI
+
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # 環境変数からスプレッドシートIDを取得
 SPREADSHEET_ID1 = os.getenv('SPREADSHEET_ID1')
@@ -219,11 +222,6 @@ def search_employee_info_by_keywords(user_message, employee_info_list):
 ############## 補助系 ###########################
 
 def classify_conversation_category(message):
-    from openai import OpenAI
-    import os
-
-    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
     prompt = (
         "以下の会話の内容をカテゴリ分けしてください。候補は「重要」「日常会話」「あいさつ」「業務情報」「その他」です。\n"
         "カテゴリ名のみを1単語で出力してください。\n\n"
