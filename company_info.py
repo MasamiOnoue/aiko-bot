@@ -87,6 +87,15 @@ def get_experience_log(sheet_values):
         logging.error(f"❌ 経験ログの取得に失敗: {e}")
         return []
 
+def load_all_user_ids():
+    sheet = get_google_sheets_service().spreadsheets().values()
+    result = sheet.get(
+        spreadsheetId=SPREADSHEET_ID2,  # 従業員情報があるシートID
+        range="従業員情報!M2:M"         # M列にUIDがある前提
+    ).execute()
+    values = result.get("values", [])
+    return [row[0].strip() for row in values if row and row[0].strip().startswith("U")]
+
 # === 書き込み関数 ===
 
 def write_conversation_log(sheet_values, timestamp, user_id, user_name, speaker, message, status):
