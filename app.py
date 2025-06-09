@@ -121,6 +121,9 @@ def handle_message(event):
         reset_user_status(user_id)
         return
 
+    if is_topic_changed(user_message):
+        reset_user_status(user_id)
+
     try:
         if contains_sensitive_info(user_message):
             sources = [
