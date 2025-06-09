@@ -1,4 +1,4 @@
-# mailer.py
+# mailer.py　愛子がメールの監視や送受信を賄う関数群
 
 import base64
 from email.mime.text import MIMEText
