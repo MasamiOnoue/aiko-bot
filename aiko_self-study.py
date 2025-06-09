@@ -1,4 +1,4 @@
-# aiko_self_study.py
+# aiko_self_study.py　愛子が自分で勉強をする関数群
 
 import requests
 import hashlib
