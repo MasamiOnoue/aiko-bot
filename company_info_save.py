@@ -1,5 +1,6 @@
 #company_info_save.py
 
+import os
 import logging
 from company_info_load import get_google_sheets_service
 
@@ -22,7 +23,7 @@ def write_employee_info(sheet_values, values):
     try:
         body = {"values": [values]}
         sheet_values.append(
-            spreadsheetId=SPREADSHEET_ID2,
+            spreadsheetId=os.getenv("SPREADSHEET_ID2"),
             range="従業員情報!A:Z",
             valueInputOption="USER_ENTERED",
             insertDataOption="INSERT_ROWS",
@@ -35,7 +36,7 @@ def write_partner_info(sheet_values, values):
     try:
         body = {"values": [values]}
         sheet_values.append(
-            spreadsheetId=SPREADSHEET_ID3,
+            spreadsheetId=os.getenv("SPREADSHEET_ID3"),
             range="取引先情報!A:Z",
             valueInputOption="USER_ENTERED",
             insertDataOption="INSERT_ROWS",
@@ -48,7 +49,7 @@ def write_company_info(sheet_values, values):
     try:
         body = {"values": [values]}
         sheet_values.append(
-            spreadsheetId=SPREADSHEET_ID4,
+            spreadsheetId=os.getenv("SPREADSHEET_ID4"),
             range="会社情報!A:Z",
             valueInputOption="USER_ENTERED",
             insertDataOption="INSERT_ROWS",
@@ -61,7 +62,7 @@ def write_aiko_experience_log(sheet_values, values):
     try:
         body = {"values": [values]}
         sheet_values.append(
-            spreadsheetId=SPREADSHEET_ID5,
+            spreadsheetId=os.getenv("SPREADSHEET_ID5"),
             range="愛子の経験ログ!A:E",
             valueInputOption="USER_ENTERED",
             insertDataOption="INSERT_ROWS",
@@ -69,3 +70,4 @@ def write_aiko_experience_log(sheet_values, values):
         ).execute()
     except Exception as e:
         logging.error(f"❌ 愛子の経験ログ書き込みエラー: {e}")
+
