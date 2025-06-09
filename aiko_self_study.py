@@ -11,8 +11,7 @@ from googleapiclient.discovery import build
 from google.oauth2.service_account import Credentials
 import openai
 import threading
-
-from company_info import get_conversation_log, load_all_user_ids, get_user_callname_from_uid
+from company_info import get_conversation_log, load_all_user_ids, get_user_callname_from_uid, get_google_sheets_service
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
