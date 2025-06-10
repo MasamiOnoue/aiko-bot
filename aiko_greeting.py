@@ -82,7 +82,7 @@ def normalize_greeting(text):
 
 # 挨拶以外の処理系（省略）
 def is_attendance_related(message):
-    return any(kw in message for kw in ["遅刻", "休み", "休暇", "出社", "在宅", "早退"])
+    return any(kw in message for kw in ["遅刻", "休み", "休暇", "出社", "在宅", "早退", "遅れます", "遅れる", "遅れそう", "遅くなります", "遅れて"])
 
 def is_topic_changed(message):
     return any(kw in message for kw in ["やっぱり", "ちなみに", "ところで", "別件", "変更", "違う話"])
