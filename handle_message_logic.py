@@ -110,10 +110,9 @@ def handle_message_logic(event, sheet_service, line_bot_api):
 
     # 軽い雑談に反応
     if is_smalltalk(user_message):
-        prompt = f"ユーザーからの軽い雑談があります。自然な会話で返してください。
-
-発言: {user_message}"
-        reply_text = rephrase_with_masked_text(prompt)
+        prompt = f"ユーザーからの軽い雑談があります。自然な会話で返してください。\n\n発言: {user_message}"
+        reply_text = ask_openai_polite_rephrase(prompt)
+        write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text, "雑談応答", "テキスト", "雑談", "OK")
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
         return
 
