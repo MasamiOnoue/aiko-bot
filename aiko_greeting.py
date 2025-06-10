@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from linebot import LineBotApi
 from linebot.models import TextSendMessage
 import pytz
+import re
 
 from company_info_load import (
     get_employee_info,
@@ -32,6 +33,15 @@ def has_recent_greeting(user_id, category):
         if (now - last_time).total_seconds() < 3 * 3600 and last_category == category:
             return True
     return False
+
+# 同じ語が2回繰り返されていたら1回だけに
+def clean_user_name(name: str) -> str:
+    name = re.sub(r"(.+?)\1", r"\1", name)
+
+    # 「さんさん」や「君君」などの繰り返し接尾辞を防ぐ
+    name = re.sub(r"(さん|君|くん|ちゃん)\1", r"\1", name)
+
+    return name
 
 # 挨拶の時刻とカテゴリを記録
 def record_greeting_time(user_id, timestamp, category):
