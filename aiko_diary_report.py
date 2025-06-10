@@ -1,52 +1,48 @@
-# aiko_diary_report.py　愛子が毎朝日本時間の3時にその日あった出来事を日記にする関数群
+# aiko_diary_report.py 　AI愛子が日報を生成しLINEで送信
 
-from datetime import datetime, timedelta
-import pytz
 import os
 import random
-from openai import OpenAI
+from datetime import datetime, timedelta
+import pytz
 from linebot import LineBotApi
 from linebot.models import TextSendMessage
 from company_info_load import get_conversation_log, get_google_sheets_service
 from company_info_save import write_company_info
+from openai_client import client  # OpenAIクライアント
 
+# JSTを使用
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
-# JST取得関数
 def now_jst():
     return datetime.now(pytz.timezone("Asia/Tokyo"))
 
-# JST時刻を文字列からパース
 def parse_jst(timestamp_str):
     try:
         naive_dt = datetime.strptime(timestamp_str, "%Y-%m-%dT%H:%M:%S")
         return pytz.timezone("Asia/Tokyo").localize(naive_dt)
     except Exception:
-        return now_jst()  # フォーマットが異なる場合は現在時刻で代用
+        return now_jst()
 
-# 愛子の日報を作成する関数
+# === AI愛子の日報を生成 ===
 def generate_daily_report():
     now = now_jst()
     one_day_ago = now - timedelta(hours=24)
 
-    # 会話ログを取得
-    logs = get_conversation_log()
-    recent_logs = [log for log in logs if 'タイムスタンプ' in log and parse_jst(log['タイムスタンプ']) > one_day_ago]
+    sheet = get_google_sheets_service()
+    logs = get_conversation_log(sheet)
+    recent_logs = [log for log in logs if len(log) >= 5 and parse_jst(log[0]) > one_day_ago]
 
     if not recent_logs:
         return "この24時間で記録された会話が見つかりませんでした。"
 
-    # OpenAIに渡すプロンプトを作成
-    text = "\n".join([f"{log['発言者']}: {log['メッセージ内容']}" for log in recent_logs])
+    text = "\n".join([f"{log[3]}: {log[4]}" for log in recent_logs])
     prompt = (
-        "以下は愛子とユーザーの会話ログです。"
-        "これらをもとに『この24時間でどんな仕事をしたのか』を2000文字以内でまとめてください。"
-        "文体は愛子らしく、口調は柔らかく、わかりやすくしてください。\n\n"
+        "以下は愛子とユーザーの会話ログです\n"
+        "これらをもとに『この24時間でどんな仕事をしたのか』を2000文字以内でまとめてください\n"
+        "文体は愛子らしく、口調は柔らかく、わかりやすくしてください\n\n"
         f"{text}"
     )
 
-    closing_messages = [
+    endings = [
         "……今日もよくがんばったのっ！（ドヤァ）",
         "ふん、別にサンネームのためにまとめたんじゃないんだからねっ！",
         "ちょっとだけ、やりきった気がするかも…なんてね♪",
@@ -59,7 +55,7 @@ def generate_daily_report():
         "あーんもう嫌！誰かに癒されたい！",
         "今日もやりきったでござる"
     ]
-    ending = random.choice(closing_messages)
+    ending = random.choice(endings)
 
     try:
         response = client.chat.completions.create(
@@ -72,12 +68,12 @@ def generate_daily_report():
         summary = response.choices[0].message.content.strip()
         date_str = now.strftime("%Y-%m-%d")
         summary_with_ending = f"{summary}\n\n{ending}"
-        write_company_info(date_str, summary_with_ending)
+        write_company_info(sheet, [date_str, summary_with_ending])
         return summary_with_ending
     except Exception as e:
         return f"要約の作成に失敗しました: {e}"
 
-# LINEで日報を送信する処理（任意のタイミングで呼び出す）
+# === LINEで日報を送信 ===
 def send_daily_report(line_bot_api: LineBotApi, user_id: str):
     summary = generate_daily_report()
     message = f"📋 愛子の日報です：\n\n{summary}"
