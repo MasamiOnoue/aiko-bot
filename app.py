@@ -71,11 +71,12 @@ DEFAULT_USER_NAME = "不明"
 def callback():
     signature = request.headers.get("X-Line-Signature")
     body = request.get_data(as_text=True)
+    print("✅ LINE Webhook受信:", body)
     try:
         handler.handle(body, signature)
     except InvalidSignatureError:
         abort(400)
-    return "OK"
+    return "OK", 200
 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
@@ -255,4 +256,5 @@ def daily_report():
     return "日報を送信しました"
 
 if __name__ == "__main__":
-    app.run(debug=False, host="0.0.0.0", port=10000)
+    port = int(os.environ.get("PORT", 10000))  # RenderはPORT環境変数を使う
+    app.run(host="0.0.0.0", port=port)
