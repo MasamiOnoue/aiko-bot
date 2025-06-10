@@ -30,8 +30,8 @@ SHEET_MAP = {
 #Google Cloud Functionでファイルにアクセスできるようにする。
 def get_google_sheets_service():
     credentials = service_account.Credentials.from_service_account_file(
-        filename=os.getenv("GOOGLE_APPLICATION_CREDENTIALS"),
-        scopes=["https://www.googleapis.com/auth/spreadsheets"]
+        'aiko-bot-log-2fc8779943bc.json',  # https://console.cloud.google.com/iam-admin/でDLしたJSONファイル
+        scopes=['https://www.googleapis.com/auth/spreadsheets']
     )
     service = build("sheets", "v4", credentials=credentials)
     return service.spreadsheets()
