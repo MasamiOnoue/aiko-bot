@@ -1,0 +1,223 @@
+import os
+import traceback
+import logging
+import datetime
+import threading
+import time
+from flask import Flask, request, abort, jsonify
+from linebot import LineBotApi, WebhookHandler
+from linebot.exceptions import InvalidSignatureError
+from linebot.models import MessageEvent, TextMessage, TextSendMessage, FollowEvent
+from dotenv import load_dotenv
+from openai import OpenAI
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+import pytz
+
+load_dotenv()
+
+# 日本標準時 (JST) タイムゾーン
+JST = pytz.timezone('Asia/Tokyo')
+
+SERVICE_ACCOUNT_FILE = 'aiko-bot-log-cfbf23e039fd.json'
+SPREADSHEET_ID1 = os.getenv('SPREADSHEET_ID1')  # 会話ログ
+SPREADSHEET_ID2 = os.getenv('SPREADSHEET_ID2')  # 従業員情報
+SPREADSHEET_ID3 = os.getenv('SPREADSHEET_ID3')  # 取引先情報
+SPREADSHEET_ID4 = os.getenv('SPREADSHEET_ID4')  # 会社ノウハウ情報
+SPREADSHEET_ID5 = os.getenv('SPREADSHEET_ID5')  # 愛子の経験サマリー記録
+
+cache_lock = threading.Lock()
+recent_user_logs = {}
+employee_info_map = {}
+last_greeting_time = {}
+
+
+def now_jst():
+    return datetime.datetime.now(JST)
+
+
+def get_time_based_greeting():
+    hour = now_jst().hour
+    if 5 <= hour < 10:
+        return "おっはー。"
+    elif 10 <= hour < 18:
+        return "やっはろー。"
+    elif 18 <= hour < 23:
+        return "おっつ〜。"
+    else:
+        return "ねむねむ。"
+
+
+def log_conversation(timestamp, user_id, user_name, speaker, message, status="OK"):
+    try:
+        values = [[
+            timestamp,
+            user_id,
+            user_name or "不明",
+            speaker,
+            message,
+            "未分類",
+            "text",
+            "",
+            status,
+            ""
+        ]]
+        sheet.values().append(
+            spreadsheetId=SPREADSHEET_ID1,
+            range='会話ログ!A:J',
+            valueInputOption='USER_ENTERED',
+            body={'values': values}
+        ).execute()
+    except Exception as e:
+        logging.error("ログ保存失敗: %s", e)
+
+
+def refresh_cache():
+    global recent_user_logs
+    try:
+        result = sheet.values().get(
+            spreadsheetId=SPREADSHEET_ID1,
+            range='会話ログ!A2:J'
+        ).execute()
+        rows = result.get("values", [])[-100:]
+        with cache_lock:
+            recent_user_logs = {
+                row[1]: [r for r in rows if r[1] == row[1] and r[3] == "ユーザー"][-10:]
+                for row in rows if len(row) >= 4
+            }
+    except Exception as e:
+        logging.error("キャッシュ更新失敗: %s", e)
+
+
+def load_employee_info():
+    global employee_info_map
+    try:
+        result = sheet.values().get(
+            spreadsheetId=SPREADSHEET_ID2,
+            range='従業員情報!A1:Z'
+        ).execute()
+        rows = result.get("values", [])
+        headers = rows[0]
+        for row in rows[1:]:
+            data = dict(zip(headers, row))
+            uid = data.get("LINEのUID")
+            if uid:
+                employee_info_map[uid] = data
+    except Exception as e:
+        logging.error("従業員情報の読み込み失敗: %s", e)
+
+threading.Thread(target=lambda: (lambda: [refresh_cache() or load_employee_info() or time.sleep(300) for _ in iter(int, 1)])(), daemon=True).start()
+
+app = Flask(__name__)
+
+line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
+handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
+creds = service_account.Credentials.from_service_account_file(
+    SERVICE_ACCOUNT_FILE, scopes=SCOPES
+)
+sheets_service = build('sheets', 'v4', credentials=creds)
+sheet = sheets_service.spreadsheets()
+
+SPREADSHEET_IDS = [
+    SPREADSHEET_ID1,
+    SPREADSHEET_ID2,
+    SPREADSHEET_ID3,
+    SPREADSHEET_ID4,
+    SPREADSHEET_ID5
+]
+
+@app.route("/callback", methods=["POST"])
+def callback():
+    signature = request.headers["X-Line-Signature"]
+    body = request.get_data(as_text=True)
+    try:
+        handler.handle(body, signature)
+    except InvalidSignatureError:
+        abort(400)
+    except Exception:
+        traceback.print_exc()
+        abort(500)
+    return "OK", 200
+
+
+@handler.add(FollowEvent)
+def handle_follow(event):
+    line_bot_api.reply_message(
+        event.reply_token,
+        TextSendMessage(text="愛子です。お友だち登録ありがとうございます。")
+    )
+
+
+def search_employee_info_by_keywords(query):
+    keywords = query.split()
+    for data in employee_info_map.values():
+        if any(k in str(data.values()) for k in keywords):
+            return "🔎 社内情報から見つけました: " + ", ".join(f"{k}: {v}" for k, v in data.items())
+    return "⚠️ 社内情報でも見つかりませんでした。"
+
+
+@handler.add(MessageEvent, message=TextMessage)
+def handle_message(event):
+    user_message = event.message.text.strip()
+    user_id = event.source.user_id
+    timestamp = now_jst()
+    user_data = employee_info_map.get(user_id, {})
+    user_name = user_data.get("名前", "")
+
+    greeting = get_time_based_greeting()
+    greeting_keywords = ["おっはー", "やっはろー", "おっつ〜", "ねむねむ"]
+    ai_greeting_phrases = ["こんにちは", "こんにちわ", "おはよう", "こんばんは", "ごきげんよう", "お疲れ様", "おつかれさま"]
+
+    log_conversation(timestamp.isoformat(), user_id, user_name, "ユーザー", user_message)
+
+    with cache_lock:
+        user_recent = recent_user_logs.get(user_id, [])
+
+    context = "\n".join(row[4] for row in user_recent if len(row) >= 5)
+
+    # 最後の挨拶から2時間以内なら greeting を削除
+    show_greeting = True
+    if user_id in last_greeting_time:
+        elapsed = (timestamp - last_greeting_time[user_id]).total_seconds()
+        if elapsed < 7200:
+            show_greeting = False
+    if show_greeting:
+        last_greeting_time[user_id] = timestamp
+
+    messages = [
+        {"role": "system", "content": (
+            "あなたは社内アシスタントAI『愛子』です。次のルールを守ってください。\n"
+            "・最初の挨拶はユーザーがしていれば繰り返さない。\n"
+            "・挨拶メッセージ（例:やっはろー）は30文字以内に。\n"
+            "・質問回答などは丁寧に100文字程度で。"
+        )},
+        {"role": "user", "content": context + "\n" + user_message}
+    ]
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=messages
+        )
+        reply_text = response.choices[0].message.content.strip()
+
+        if any(kw in reply_text for kw in ["申し訳", "できません"]):
+            reply_text = search_employee_info_by_keywords(user_message)
+
+        if show_greeting and not any(reply_text.startswith(g) for g in greeting_keywords + ai_greeting_phrases):
+            reply_text = f"{greeting}{user_name}。" + reply_text
+
+    except Exception as e:
+        logging.error("OpenAI 応答失敗: %s", e)
+        reply_text = "⚠️ 応答に失敗しました。政美さんにご連絡ください。"
+
+    log_conversation(now_jst().isoformat(), user_id, user_name, "AI", reply_text)
+
+    line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
