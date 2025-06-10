@@ -16,7 +16,7 @@ SPREADSHEET_ID5 = os.getenv('SPREADSHEET_ID5')
 # Google Sheets 接続サービスの取得
 def get_google_sheets_service():
     try:
-        json_path = os.path.join(os.path.dirname(__file__), 'aiko-bot-log-2a00f2939b99.json')
+        json_path = os.path.join(os.path.dirname(__file__), 'aiko-bot-log-cfbf23e039fd.json')
         credentials = service_account.Credentials.from_service_account_file(
             json_path,
             scopes=["https://www.googleapis.com/auth/spreadsheets"]
@@ -26,6 +26,7 @@ def get_google_sheets_service():
     except Exception as e:
         logging.error(f"❌ Google Sheets認証エラー: {e}")
         return None
+
         
 # 会話ログを取得
 def get_conversation_log(sheet_values):
