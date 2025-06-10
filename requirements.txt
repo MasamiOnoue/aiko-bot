@@ -9,3 +9,4 @@ pytz==2024.1
 scikit-learn==1.4.2
 feedparser==6.0.11
 beautifulsoup4==4.12.3
+functions-framework==3.4.0
