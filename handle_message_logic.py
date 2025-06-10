@@ -4,7 +4,8 @@ from linebot.models import TextSendMessage
 from aiko_greeting import (
     now_jst, get_time_based_greeting, is_attendance_related, is_topic_changed,
     get_user_status, update_user_status, reset_user_status, forward_message_to_others,
-    fetch_latest_email, has_recent_greeting, record_greeting_time, normalize_greeting
+    fetch_latest_email, has_recent_greeting, record_greeting_time, normalize_greeting,
+    is_smalltalk
 )
 from company_info import (
     search_employee_info_by_keywords, classify_conversation_category
@@ -105,6 +106,12 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply, "メール送信確認", "テキスト", "AI応答", "OK")
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
+
+    # 軽い雑談に反応
+    if is_smalltalk(user_message):
+    prompt = f"ユーザーからの軽い雑談があります。自然な会話で返してください。\n\n発言: {user_message}"
+    reply_text = ask_openai_polite_rephrase(prompt)
+    return reply_text
 
     # キーワード一致（従業員情報）
     employee_info = get_employee_info(sheet_service)
