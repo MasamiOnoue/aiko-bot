@@ -27,6 +27,7 @@ SHEET_MAP = {
     "経験ログ": SPREADSHEET_ID5,
 }
 
+#Google Cloud Functionでファイルにアクセスできるようにする。
 def get_google_sheets_service():
     credentials = service_account.Credentials.from_service_account_file(
         filename=os.getenv("GOOGLE_APPLICATION_CREDENTIALS"),
