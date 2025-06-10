@@ -85,7 +85,7 @@ def handle_message(event):
     user_id = event.source.user_id
     user_message = event.message.text
     user_name = get_user_callname_from_uid(user_id)  # ← ユーザー名を取得
-
+    print("📥 ユーザーメッセージ:", event.message.text)  # デバッグ用
     # 🛠️ reply_testとshortの両パラメータを安全に初期化
     reply_text = ""
     reply_text_short = ""
