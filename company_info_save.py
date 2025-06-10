@@ -1,5 +1,8 @@
+# company_info_save.py
+
 import os
 import logging
+from company_info_load import get_google_sheets_service
 
 # === 会話ログ書き込み関数 ===
 def write_conversation_log(sheet_service, timestamp, user_id, user_name, speaker, message, category, message_type, topics, status):
