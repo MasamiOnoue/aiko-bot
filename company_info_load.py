@@ -4,6 +4,10 @@ import os
 import logging
 from functools import lru_cache
 import requests
+from flask import jsonify, Request
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+import functions_framework
 
 # 環境変数からスプレッドシートIDを取得
 SPREADSHEET_ID1 = os.getenv('SPREADSHEET_ID1')
@@ -14,7 +18,67 @@ SPREADSHEET_ID5 = os.getenv('SPREADSHEET_ID5')
 GCF_ENDPOINT = os.getenv('GCF_ENDPOINT')  # Cloud FunctionsのURL
 PRIVATE_API_KEY = os.getenv('PRIVATE_API_KEY')
 
-# Google Sheets APIのラッパー（Cloud Functions経由）
+# Cloud Functions本体（GCF上に配置する部分）
+SHEET_MAP = {
+    "会話ログ": SPREADSHEET_ID1,
+    "従業員情報": SPREADSHEET_ID2,
+    "取引先情報": SPREADSHEET_ID3,
+    "会社情報": SPREADSHEET_ID4,
+    "経験ログ": SPREADSHEET_ID5,
+}
+
+def get_sheets_service():
+    credentials = service_account.Credentials.from_service_account_file(
+        "service_account.json",
+        scopes=["https://www.googleapis.com/auth/spreadsheets"]
+    )
+    return build("sheets", "v4", credentials=credentials).spreadsheets().values()
+
+@functions_framework.http
+def sheets_api_handler(request: Request):
+    try:
+        data = request.get_json()
+        if not data or data.get("api_key") != PRIVATE_API_KEY:
+            return jsonify({"status": "unauthorized"}), 403
+
+        action = data.get("action")
+        sheet_name = data.get("sheet_name")
+        spreadsheet_id = SHEET_MAP.get(sheet_name)
+
+        if not spreadsheet_id:
+            return jsonify({"status": "error", "message": "Invalid sheet name"}), 400
+
+        service = get_sheets_service()
+
+        if action == "read":
+            result = service.get(
+                spreadsheetId=spreadsheet_id,
+                range=f"{sheet_name}!A2:Z"
+            ).execute()
+            return jsonify({"status": "success", "rows": result.get("values", [])})
+
+        elif action == "write":
+            row = data.get("row")
+            if not row or not isinstance(row, list):
+                return jsonify({"status": "error", "message": "No row data provided"}), 400
+
+            service.append(
+                spreadsheetId=spreadsheet_id,
+                range=f"{sheet_name}!A:Z",
+                valueInputOption="RAW",
+                insertDataOption="INSERT_ROWS",
+                body={"values": [row]}
+            ).execute()
+            return jsonify({"status": "success", "mode": "write"})
+
+        else:
+            return jsonify({"status": "error", "message": "Unknown action"}), 400
+
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+# Cloud Functionsを呼び出すクライアント側ラッパー
+
 def call_cloud_function(action, sheet_name, payload=None):
     if not GCF_ENDPOINT or not PRIVATE_API_KEY:
         logging.error("❌ GCFの環境変数が設定されていません")
