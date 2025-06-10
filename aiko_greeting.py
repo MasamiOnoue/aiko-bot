@@ -122,7 +122,7 @@ def reset_user_status(user_id):
 
 def forward_message_to_others(api: LineBotApi, from_name: str, message: str, uids: list):
     for uid in uids:
-        api.push_message(uid, TextSendMessage(text=f"{from_name}さんより: {message}"))
+        api.push_message(uid, TextSendMessage(text=f"{from_name}より: {message}"))
 
 def get_user_name_for_sheet(user_id):
     return "不明"
