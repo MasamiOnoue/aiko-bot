@@ -84,8 +84,13 @@ def normalize_greeting(text):
 def is_attendance_related(message):
     #return any(kw in message for kw in ["遅刻", "休み", "休暇", "出社", "在宅", "早退", "遅れます", "遅れる", "遅れそう", "遅くなります", "遅れて", "休んで"])
     patterns = [
-        r"遅(刻|れ).*", r"休(み|暇)", r"有給", r"欠勤",
-        r"(出社|在宅|テレワーク|早退|外出|直行|直帰)"
+        r"遅(刻|れ).*",             # 遅刻、遅れます、遅れて etc.
+        r"休(み|暇)",               # 休み、休暇
+        r"有給", r"欠勤",            # 有給、欠勤
+        r"(出社|在宅|テレワーク)",    # 出社、在宅、テレワーク
+        r"(早退|外出|直行|直帰)",     # 早退、外出など
+        r"(午前|午後)?半休",         # 午前半休、午後半休、半休
+        r"午後休",                  # 午後休
     ]
     return any(re.search(pat, message) for pat in patterns)
     
