@@ -86,9 +86,9 @@ def handle_message(event):
     user_message = event.message.text
     user_name = get_user_callname_from_uid(user_id)  # ← ユーザー名を取得
 
-    # ✅ これを追加（エラー回避）
-    reply_text = "こんにちは！あなたのメッセージ「" + user_message + "」受け取りました"
-    reply_text_short = reply_text[:100]
+    # 🛠️ reply_testとshortの両パラメータを安全に初期化
+    reply_text = ""
+    reply_text_short = ""
 
     category = classify_conversation_category(user_message)
     write_conversation_log(now_jst().isoformat(), user_id, user_name, "ユーザー", user_message, category, "テキスト", "テスト", "OK")
