@@ -9,7 +9,7 @@ def write_conversation_log(sheet_service, timestamp, user_id, user_name, speaker
     try:
         row = [timestamp, user_id, user_name, speaker, message, category, message_type, topics, status]
         body = {"values": [row]}
-        sheet_service.append(
+        sheet_service.spreadsheets().values().append(
             spreadsheetId=os.getenv("SPREADSHEET_ID1"),
             range="会話ログ!A:J",
             valueInputOption="USER_ENTERED",
