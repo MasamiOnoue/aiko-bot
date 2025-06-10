@@ -1,6 +1,10 @@
 # aiko_greeting.py
 
 from datetime import datetime, timedelta
+from linebot import LineBotApi
+from linebot.models import TextSendMessage
+import pytz
+
 from company_info_load import (
     get_employee_info,
     get_partner_info,
@@ -11,8 +15,6 @@ from company_info_load import (
     get_user_callname_from_uid,
     get_google_sheets_service
 )
-
-import pytz
 
 # ユーザーごとの挨拶履歴を記録する辞書（時刻＋カテゴリ）
 recent_greeting_users = {}
@@ -63,6 +65,8 @@ def normalize_greeting(text):
     for word in GREETING_KEYWORDS:
         if word in text:
             return word[:3]  # カテゴリ例: "おは", "こん", "おつ"
+    if "お疲" in text or "おつかれ" in text:
+        return "おつ"
     return None
 
 # 挨拶以外の処理系（省略）
@@ -74,7 +78,7 @@ def is_topic_changed(message):
 
 # ユーザー状態のダミー関数群（本番では他モジュールと連携）
 def get_user_status(user_id):
-    return {}
+    return {}  # 本番運用時には外部ステータス管理モジュールで上書きされます
 
 def update_user_status(user_id, step):
     pass
@@ -82,11 +86,9 @@ def update_user_status(user_id, step):
 def reset_user_status(user_id):
     pass
 
-def forward_message_to_others(api, from_name, message, uids):
+def forward_message_to_others(api: LineBotApi, from_name: str, message: str, uids: list):
     for uid in uids:
         api.push_message(uid, TextSendMessage(text=f"{from_name}さんより: {message}"))
-
-from linebot.models import TextSendMessage
 
 def get_user_name_for_sheet(user_id):
     return "不明"
