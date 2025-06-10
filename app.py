@@ -91,7 +91,7 @@ def handle_message(event):
     reply_text_short = ""
     
     category = classify_conversation_category(user_message)
-    write_conversation_log(now_jst().isoformat(), user_id, user_name, "ユーザー", user_message, category, "テキスト", "テスト", "OK")
+    write_conversation_log(sheet_service, now_jst().isoformat(), user_id, user_name, "ユーザー", user_message, category, "テキスト", "テスト", "OK")
     
     registered_uids = load_all_user_ids()
     if user_id not in registered_uids:
