@@ -28,6 +28,7 @@ from openai_client import client  # OpenAIクライアント共通化
 MAX_HITS = 10
 DEFAULT_USER_NAME = "不明"
 
+##########################受信したときのメイン関数################################
 def handle_message_logic(event, sheet_service, line_bot_api):
     user_id = event.source.user_id
     user_message = event.message.text.strip()
