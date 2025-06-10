@@ -1,3 +1,4 @@
+
 # handle_message_logic.py  LINEメッセージを受け取ったときのメイン処理
 
 from linebot.models import TextSendMessage
@@ -109,9 +110,12 @@ def handle_message_logic(event, sheet_service, line_bot_api):
 
     # 軽い雑談に反応
     if is_smalltalk(user_message):
-    prompt = f"ユーザーからの軽い雑談があります。自然な会話で返してください。\n\n発言: {user_message}"
-    reply_text = ask_openai_polite_rephrase(prompt)
-    return reply_text
+        prompt = f"ユーザーからの軽い雑談があります。自然な会話で返してください。
+
+発言: {user_message}"
+        reply_text = rephrase_with_masked_text(prompt)
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
+        return
 
     # キーワード一致（従業員情報）
     employee_info = get_employee_info(sheet_service)
