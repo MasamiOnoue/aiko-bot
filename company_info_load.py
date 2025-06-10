@@ -16,14 +16,9 @@ SPREADSHEET_ID5 = os.getenv('SPREADSHEET_ID5')
 # Google Sheets 接続サービスの取得
 def get_google_sheets_service():
     try:
-        base64_json = os.getenv("GOOGLE_SERVICE_ACCOUNT_BASE64")
-        if not base64_json:
-            raise ValueError("環境変数 GOOGLE_SERVICE_ACCOUNT_BASE64 が設定されていません")
-
-        # Base64デコードしてJSONを読み込む
-        service_account_info = json.loads(base64.b64decode(base64_json))
-        credentials = service_account.Credentials.from_service_account_info(
-            service_account_info,
+        json_path = os.path.join(os.path.dirname(__file__), 'aiko-bot-log-2a00f2939b99.json')
+        credentials = service_account.Credentials.from_service_account_file(
+            json_path,
             scopes=["https://www.googleapis.com/auth/spreadsheets"]
         )
         service = build("sheets", "v4", credentials=credentials)
