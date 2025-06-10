@@ -37,6 +37,9 @@ def get_conversation_log(sheet_values):
 
 @lru_cache(maxsize=1)
 def get_employee_info(sheet_values):
+    if not sheet_service:
+        logging.critical("❌ Google Sheets サービスが取得できていません。")
+        return []
     try:
         result = sheet_values.get(spreadsheetId=SPREADSHEET_ID2, range="従業員情報!A2:Z").execute()
         return result.get("values", [])
