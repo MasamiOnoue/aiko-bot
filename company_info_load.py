@@ -16,7 +16,8 @@ SPREADSHEET_ID5 = os.getenv('SPREADSHEET_ID5')
 # Google Sheets 接続サービスの取得
 def get_google_sheets_service():
     try:
-        json_path = os.path.join(os.path.dirname(__file__), 'aiko-bot-log-2a00f2939b99.json')
+        json_path = r"C:\Users\masma\Documents\AIKO-bot-project\aiko-bot-log-2a00f2939b99.json"
+
         credentials = service_account.Credentials.from_service_account_file(
             json_path,
             scopes=["https://www.googleapis.com/auth/spreadsheets"]
