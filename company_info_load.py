@@ -31,6 +31,10 @@ SHEET_MAP = {
 #Google Cloud Functionでファイルにアクセスできるようにする。
 def get_google_sheets_service():
     credentials_info = json.loads(os.environ["GOOGLE_SERVICE_ACCOUNT_JSON"])
+    
+     # 修正ポイント：\\n → \n に戻す（この行が重要！）
+    credentials_info["private_key"] = credentials_info["private_key"].replace("\\n", "\n")
+
     credentials = service_account.Credentials.from_service_account_info(
         credentials_info,
         scopes=["https://www.googleapis.com/auth/spreadsheets"]
