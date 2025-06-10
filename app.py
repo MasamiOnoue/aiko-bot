@@ -75,6 +75,7 @@ def callback():
     try:
         handler.handle(body, signature)
     except InvalidSignatureError:
+        print("❌ 署名不一致エラー")
         abort(400)
     return "OK", 200
 
