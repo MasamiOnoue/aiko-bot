@@ -1,0 +1,12 @@
+# 機密ファイルは除外
+#aiko-bot-log-*.json
+.env
+*.env
+escaped_key.txt
+
+# Pythonキャッシュ除外
+__pycache__/
+*.pyc
+
+# VSCodeの設定（ある場合）
+.vscode/
