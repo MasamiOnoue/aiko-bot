@@ -2,20 +2,26 @@
 
 import os
 import logging
+import requests
 from company_info_load import get_google_sheets_service
 
 # === 会話ログ書き込み関数 ===
 def write_conversation_log(sheet_service, timestamp, user_id, user_name, speaker, message, category, message_type, topics, status):
     try:
-        row = [timestamp, user_id, user_name, speaker, message, category, message_type, topics, status]
-        body = {"values": [row]}
-        sheet_service.spreadsheets().values().append(
-            spreadsheetId=os.getenv("SPREADSHEET_ID1"),
-            range="会話ログ!A:J",
-            valueInputOption="USER_ENTERED",
-            insertDataOption="INSERT_ROWS",
-            body=body
-        ).execute()
+        if "GCF_ENDPOINT" not in os.environ or "PRIVATE_API_KEY" not in os.environ:
+            logging.error("❌ GCFの環境変数が設定されていません")
+            return
+
+        payload = {
+            "sheet": "会話ログ",
+            "values": [[timestamp, user_id, user_name, speaker, message, category, message_type, topics, status]]
+        }
+        headers = {"x-api-key": os.environ["PRIVATE_API_KEY"]}
+        response = requests.post(os.environ["GCF_ENDPOINT"], json=payload, headers=headers)
+
+        if response.status_code != 200:
+            logging.error(f"❌ GCF書き込み失敗: {response.status_code} - {response.text}")
+
     except Exception as e:
         logging.error(f"❌ 会話ログ書き込みエラー: {e}")
 
