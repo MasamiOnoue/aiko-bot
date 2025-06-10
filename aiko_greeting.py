@@ -69,7 +69,8 @@ def get_time_based_greeting(user_id=None):
 # 挨拶と認識される語を正規化
 GREETING_KEYWORDS = [
     "おはよう", "おっはー", "おは", "おっは", "お早う", "お早うございます",
-    "こんにちは", "こんばんは", "お疲れさま", "おつかれ"
+    "こんにちは", "こんばんは", "こんばんわ",
+    "お疲れさま", "おつかれ"
 ]
 
 def normalize_greeting(text):
