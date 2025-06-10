@@ -27,12 +27,13 @@ SHEET_MAP = {
     "経験ログ": SPREADSHEET_ID5,
 }
 
-def get_sheets_service():
+def get_google_sheets_service():
     credentials = service_account.Credentials.from_service_account_file(
-        "service_account.json",
+        filename=os.getenv("GOOGLE_APPLICATION_CREDENTIALS"),
         scopes=["https://www.googleapis.com/auth/spreadsheets"]
     )
-    return build("sheets", "v4", credentials=credentials).spreadsheets().values()
+    service = build("sheets", "v4", credentials=credentials)
+    return service.spreadsheets()
 
 @functions_framework.http
 def sheets_api_handler(request: Request):
