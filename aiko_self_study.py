@@ -1,21 +1,21 @@
-# aiko_self_study.py　愛子が自分で勉強をする関数群
+# aiko_self_study.py 改善版
 
-import requests
-import hashlib
-import time
-import datetime
 import os
+import time
 import re
-from bs4 import BeautifulSoup
-from googleapiclient.discovery import build
-from google.oauth2.service_account import Credentials
-from openai import OpenAI
+import datetime
+import requests
 import threading
-from company_info_load import get_user_callname_from_uid, load_all_user_ids, get_conversation_log, get_google_sheets_service
-from company_info_save import write_company_info
+from bs4 import BeautifulSoup
+from company_info_load import (
+    get_user_callname_from_uid,
+    load_all_user_ids,
+    get_conversation_log,
+    get_google_sheets_service
+)
+from openai_client import client
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
+# Google Sheets
 SPREADSHEET_ID4 = os.getenv('SPREADSHEET_ID4')
 sheet_service = get_google_sheets_service()
 
@@ -26,9 +26,11 @@ IMPORTANT_PATTERNS = [
     "重要", "緊急", "至急", "要確認", "トラブル", "対応して", "すぐに", "大至急"
 ]
 
+
 def is_important_message(text):
     pattern = "|".join(map(re.escape, IMPORTANT_PATTERNS))
     return re.search(pattern, text, re.IGNORECASE) is not None
+
 
 def clean_log_message(text):
     patterns = [
@@ -38,6 +40,7 @@ def clean_log_message(text):
     ]
     pattern = "|".join(map(re.escape, patterns))
     return re.sub(pattern, "", text, flags=re.IGNORECASE).strip()
+
 
 def store_important_message_to_company_info(message, user_id):
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -50,6 +53,7 @@ def store_important_message_to_company_info(message, user_id):
         insertDataOption="INSERT_ROWS",
         body={"values": row_data}
     ).execute()
+
 
 def cache_all_user_conversations():
     logs = get_conversation_log()
@@ -76,12 +80,17 @@ def cache_all_user_conversations():
 
     print("🧠 会話キャッシュを更新しました")
 
+
+def start_cache_thread():
+    thread = threading.Thread(target=lambda: periodic_cache_update(600), daemon=True)
+    thread.start()
+
+
 def periodic_cache_update(interval):
     while True:
         cache_all_user_conversations()
         time.sleep(interval)
 
-cache_thread = threading.Thread(target=lambda: periodic_cache_update(600), daemon=True)
 
 def generate_contextual_reply(user_id, user_message):
     user_context = user_conversation_cache.get(user_id, "")
@@ -105,6 +114,7 @@ def generate_contextual_reply(user_id, user_message):
     except Exception as e:
         return f"[応答失敗]: {e}"
 
+
 def get_existing_links():
     result = sheet_service.spreadsheets().values().get(
         spreadsheetId=SPREADSHEET_ID4,
@@ -112,6 +122,7 @@ def get_existing_links():
     ).execute()
     values = result.get("values", [])
     return values[0][0] if values else ""
+
 
 def update_links_and_log_diff(new_links_text, diff_summary):
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -129,6 +140,7 @@ def update_links_and_log_diff(new_links_text, diff_summary):
         body={"values": [[now, diff_summary]]}
     ).execute()
 
+
 def crawl_all_pages(base_url):
     try:
         response = requests.get(base_url)
@@ -141,14 +153,15 @@ def crawl_all_pages(base_url):
             try:
                 page = requests.get(link)
                 page.raise_for_status()
-                page_soup = BeautifulSoup(page.text, "html.parser")
-                page_text = page_soup.get_text().strip()
+                page_text = BeautifulSoup(page.text, "html.parser").get_text().strip()
                 all_content += f"\n\n--- {link} ---\n{page_text}"
-            except:
+            except Exception as e:
+                print(f"❌ {link} 読み込み失敗: {e}")
                 continue
         return all_content
     except Exception as e:
         return f"[巡回エラー]: {e}"
+
 
 def summarize_diff(old_text, new_text):
     prompt = (
@@ -170,6 +183,7 @@ def summarize_diff(old_text, new_text):
     except Exception as e:
         return f"[要約失敗]: {e}"
 
+
 def check_full_site_update():
     print("🌐 サイト全体の巡回を開始します...")
     base_url = "https://sun-name.com/"
@@ -183,12 +197,13 @@ def check_full_site_update():
     else:
         print("変化なし：更新はありませんでした。")
 
+
 if __name__ == "__main__":
-    cache_thread.start()
+    start_cache_thread()
     while True:
         now = datetime.datetime.now()
         if now.hour == 3:
             check_full_site_update()
-            time.sleep(24 * 60 * 60)
+            time.sleep(86400)
         else:
-            time.sleep(60 * 30)
+            time.sleep(1800)
