@@ -23,6 +23,7 @@ from mask_word import (
     unmask_sensitive_data, rephrase_with_masked_text
 )
 from aiko_self_study import generate_contextual_reply
+from openai_client import client  # OpenAIクライアント共通化
 
 MAX_HITS = 10
 DEFAULT_USER_NAME = "不明"
