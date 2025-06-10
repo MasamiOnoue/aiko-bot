@@ -93,6 +93,14 @@ def normalize_greeting(text):
         return "おつ"
     return None
 
+# 雑談とみなすキーワード・パターンを抽出
+def is_smalltalk(message):
+    smalltalk_patterns = [
+        r"寝(てた|てる|たの)", r"起き(た|てる|てた)", r"元気", r"どう(して|だった)", r"なにしてる", r"なにしてた",
+        r"暇", r"ひま", r"調子", r"疲れ", r"眠い", r"眠かった", r"お腹すいた", r"ねむい", r"さみしい", r"孤独"
+    ]
+    return any(re.search(pat, message.lower()) for pat in smalltalk_patterns)
+    
 # 挨拶以外の処理系（省略）
 def is_attendance_related(message):
     #return any(kw in message for kw in ["遅刻", "休み", "休暇", "出社", "在宅", "早退", "遅れます", "遅れる", "遅れそう", "遅くなります", "遅れて", "休んで"])
