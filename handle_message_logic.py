@@ -33,7 +33,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
     user_message = event.message.text.strip()
     user_name = get_user_callname_from_uid(user_id) or DEFAULT_USER_NAME
 
-    # ユーザー発言を記録
+    # ユーザー発言を会話ログへ記録
     category = classify_conversation_category(user_message) or "未分類"
     write_conversation_log(sheet_service, now_jst().isoformat(), user_id, user_name, "ユーザー", user_message, category, "テキスト", "未設定", "OK")
 
