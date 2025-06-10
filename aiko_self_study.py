@@ -26,11 +26,9 @@ IMPORTANT_PATTERNS = [
     "重要", "緊急", "至急", "要確認", "トラブル", "対応して", "すぐに", "大至急"
 ]
 
-
 def is_important_message(text):
     pattern = "|".join(map(re.escape, IMPORTANT_PATTERNS))
     return re.search(pattern, text, re.IGNORECASE) is not None
-
 
 def clean_log_message(text):
     patterns = [
@@ -40,7 +38,6 @@ def clean_log_message(text):
     ]
     pattern = "|".join(map(re.escape, patterns))
     return re.sub(pattern, "", text, flags=re.IGNORECASE).strip()
-
 
 def store_important_message_to_company_info(message, user_id):
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
