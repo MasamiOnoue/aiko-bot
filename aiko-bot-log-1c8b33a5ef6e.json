@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "aiko-bot-log",
+  "private_key_id": "1c8b33a5ef6ebfb28e86554d0e62fff62adfcc34",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCA5nftzV2+KdDs\nD5pZNXxbCxDRUXe5+e12SHl8k/PSwh8Xoq4fu77V+AhUoh/7Q0J2DUnGg0I1Dpva\nYg5RD6FH+o2l1XiYow7SYA2n41fmduNdhFRo/Eped+sa7dEVWKwD/aQUoT75jtm1\nBD0j7DNPtgLwuIdAaZCRhx9jQv6icGIHnI/tFiImLP4TMPrpw6Khi6JGFGI7Rpqo\nveIQ+WhTCEmHyx7vuO/pm2SyDXQG81m8OMoep2bVpALCTJlk/oQDSAz5hL/9YA+V\n+wBeVoEE+crsPrYlKeTJFFUd5jeKF6EA0g6BkjAq+DX1MUwGslfyZH5J1mLGZ5G9\n9uLIeNUvAgMBAAECggEAA0Lm3ZHuIW3DwaKYGFIQSOoWmAKJ1x9Ei6huxnZPMNHE\n4UoLl3WecPclws/Co7lXw6PiGM82YXWdVOED6rd3WwUIXh3wv1qUzpbWkZ0LcCMp\nl91NbhtACHQxSHekQXgtC1bODCWTnH3UR/kI+6aHb9NeRK1D4snTpL2jT4Ag8DGC\n4DZNcwCOZhgrFaN6uohi85e+8ImgZU69qSzSfhkTYyJajIObNiAGtur3Tj0JqYfm\nU1rGFqH6JjcHeqka+lorwL7di/6kjOakfGfZH9ioJgiLHWX3lPDjXoCS9YKQRmrt\n/gRejdf06jhit+Fk7hAb0i008xejnmJbYPT6COBM+QKBgQC155gwGxQfRyB5Tddj\nzjuvbNhnBga1qt8KnO9lOP9W3HMalFVmyzd6oOyuywgxjzvmDklcFnSxYRF3UotW\nUame2cI0r1D81Gf/n5AkGwoVysJQ1Zg9jNvhwoFTGa3eHGIsKsSuJY+Dxw9lGBhn\nm3oQ8nEgKSUadLCta4awQYWSWQKBgQC1Z8ECwUGH+z1uiw8RQHacDrC7A3I3XlYS\nAHY0I7gR5Nr2xkB46TXBgin0Ug+X2+eKO3ESkmqHHAeKU5eHwjrDAQeCx+VNBW4b\n5Pi2R4Aw3YdmpQjEdvzIK2eHMDePIeyp7YpeI67g2srzj0ta0JhMaSlOfQc3y9AX\n97TgFM5ixwKBgQCSFS5kG6r6P2213SyHy3ylMf1MJ0vGIzZB2KxsluyAPkP16X/4\nMGUahxfse8LVwhixdXG2kZYfSTv0noalyKk2l9xd4RliIdZvNB5W0Jw1ygJpVk+P\nxopi8IhZSzsVL6grniEbVbC+fGNBpasbsYHDEGCHGmPgriug6cRd0hDJ6QKBgEnd\ny6wRgVubpDIlEaeWtjVpjfE4wANnuGhwI7GrccJni/m8VHhnjeoT1H2WBJ9zfd69\nwZcsY5BMi4156FPxdPf+rU5Fk0s/kMxu+g9PIhXDvuS/AsjtIpVnhyp3Kchwqeuv\nvA4FPap1rPpsOOTr13gVwiohoxTHOx7nUJGGJ1v1AoGAAe7A5B/O/C2AEvgxYxh0\nZfheRhf3gq/Au3YgH4yqsoAO2f5X+F7IwduotC+9LDjcvGAxzRNo/g72+9Z8oIBV\n9yTjeDF6k4P1s/Hyh2pdF8G81dsuwEF4CqCbPpQ0b6Mm/IWkkwL7bZGipfWmfHXU\n1pVEZO69W/OYCkMboWZO+6g=\n-----END PRIVATE KEY-----\n",
+  "client_email": "line-logger@aiko-bot-log.iam.gserviceaccount.com",
+  "client_id": "110060426892215553177",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/line-logger%40aiko-bot-log.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
