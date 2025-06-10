@@ -1,6 +1,7 @@
 # company_info_load.py
 
 import os
+import json
 import logging
 from functools import lru_cache
 import requests
