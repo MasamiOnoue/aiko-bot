@@ -1,0 +1,6 @@
+# pack-refs with: peeled fully-peeled sorted 
+ffb8bc231e37aee0fbe58cbac79b814ff1734d52 refs/heads/AIKO-bot-v1.0.0.0.1
+6ddde68036c43bb36d4e49f9cb91fd670ffef403 refs/heads/AIKO-bot-v1.0.0.0.2
+a9ec70fb91f07d2c2303c28f0ba70b3736f1cceb refs/heads/main
+6ddde68036c43bb36d4e49f9cb91fd670ffef403 refs/pull/1/head
+cf2843de684db7840a57cce61de11fb72c2c14d2 refs/pull/1/merge

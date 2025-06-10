@@ -1,0 +1,440 @@
+import os
+import traceback
+import logging
+import datetime
+import threading
+import time
+import re
+from flask import Flask, request, abort, jsonify
+from linebot import LineBotApi, WebhookHandler
+from linebot.exceptions import InvalidSignatureError
+from linebot.models import MessageEvent, TextMessage, TextSendMessage, FollowEvent
+from dotenv import load_dotenv
+from openai import OpenAI
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+import pytz
+
+load_dotenv()
+
+# 日本標準時 (JST) タイムゾーン
+JST = pytz.timezone('Asia/Tokyo')
+
+SERVICE_ACCOUNT_FILE = 'aiko-bot-log-cfbf23e039fd.json'
+SPREADSHEET_ID1 = os.getenv('SPREADSHEET_ID1')  # 会話ログ
+SPREADSHEET_ID2 = os.getenv('SPREADSHEET_ID2')  # 従業員情報
+SPREADSHEET_ID3 = os.getenv('SPREADSHEET_ID3')  # 取引先情報
+SPREADSHEET_ID4 = os.getenv('SPREADSHEET_ID4')  # 会社情報
+SPREADSHEET_ID5 = os.getenv('SPREADSHEET_ID5')  # 愛子の経験ログ
+
+cache_lock = threading.Lock()
+recent_user_logs = {}
+employee_info_map = {}
+last_greeting_time = {}
+
+SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
+creds = service_account.Credentials.from_service_account_file(
+    SERVICE_ACCOUNT_FILE, scopes=SCOPES
+)
+sheets_service = build('sheets', 'v4', credentials=creds)
+sheet = sheets_service.spreadsheets()
+
+def now_jst():
+    return datetime.datetime.now(pytz.timezone("Asia/Tokyo"))
+
+def get_time_based_greeting():
+    current_time = now_jst()
+    logging.info(f"現在のJST時刻: {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
+    hour = current_time.hour
+    if 5 <= hour < 10:
+        return "おっはー。"
+    elif 10 <= hour < 18:
+        return "やっはろー。"
+    elif 18 <= hour < 23:
+        return "おっつ〜。"
+    else:
+        return "ねむねむ。"
+
+def get_user_summary(user_id):
+    try:
+        result = sheet.values().get(
+            spreadsheetId=SPREADSHEET_ID5,
+            range='経験ログ!A2:D'
+        ).execute()
+        rows = result.get("values", [])
+        for row in reversed(rows):
+            if row[1] == user_id and len(row) >= 4:
+                return row[3]  # 要約内容
+    except Exception as e:
+        logging.error(f"{user_id} の経験ログ取得失敗: {e}")
+    return ""
+    
+# 愛子の経験ログ＝つまり日記の情報を読み込む
+def get_recent_summaries(count=5):
+    try:
+        result = sheet.values().get(
+            spreadsheetId=SPREADSHEET_ID5,
+            range='経験ログ!A2:C'
+        ).execute()
+        rows = result.get("values", [])[-count:]
+        return "\n".join(f"【{r[2]}】{r[3]}" for r in rows if len(r) >= 4)
+    except Exception as e:
+        logging.error(f"全体の経験ログ取得失敗: {e}")
+        return ""
+        
+# 会話ログの情報を保存する関数       
+def log_conversation(timestamp, user_id, user_name, speaker, message, status="OK"):
+    try:
+        values = [[
+            timestamp,
+            user_id,
+            user_name or "不明",
+            speaker,
+            message,
+            "重要" if status == "重要" else "未分類",  # ← ここで重要を反映
+            "text",
+            "",
+            status,
+            ""
+        ]]
+        sheet.values().append(
+            spreadsheetId=SPREADSHEET_ID1,
+            range='会話ログ!A:J',
+            valueInputOption='USER_ENTERED',
+            body={'values': values}
+        ).execute()
+    except Exception as e:
+        logging.error("ログ保存失敗: %s", e)
+        
+def refresh_cache():
+    global recent_user_logs
+    try:
+        result = sheet.values().get(
+            spreadsheetId=SPREADSHEET_ID1,
+            range='会話ログ!A2:J'
+        ).execute()
+        rows = result.get("values", [])[-100:]
+        with cache_lock:
+            recent_user_logs = {
+                row[1]: [r for r in rows if r[1] == row[1] and r[3] == "ユーザー"][-10:]
+                for row in rows if len(row) >= 4
+            }
+    except Exception as e:
+        logging.error("キャッシュ更新失敗: %s", e)
+
+def load_employee_info():
+    global employee_info_map
+    try:
+        result = sheet.values().get(
+            spreadsheetId=SPREADSHEET_ID2,
+            range='従業員情報!A1:Z'
+        ).execute()
+        rows = result.get("values", [])
+        headers = rows[0]
+        for row in rows[1:]:
+            data = dict(zip(headers, row))
+            uid = data.get("LINEのUID")
+            if uid:
+                employee_info_map[uid] = data
+    except Exception as e:
+        logging.error("従業員情報の読み込み失敗: %s", e)
+
+threading.Thread(target=lambda: (lambda: [refresh_cache() or load_employee_info() or time.sleep(300) for _ in iter(int, 1)])(), daemon=True).start()
+
+app = Flask(__name__)
+
+line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
+handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+SPREADSHEET_IDS = [
+    SPREADSHEET_ID1,
+    SPREADSHEET_ID2,
+    SPREADSHEET_ID3,
+    SPREADSHEET_ID4,
+    SPREADSHEET_ID5
+]
+
+@app.route("/callback", methods=["POST"])
+def callback():
+    signature = request.headers["X-Line-Signature"]
+    body = request.get_data(as_text=True)
+    try:
+        handler.handle(body, signature)
+    except InvalidSignatureError:
+        abort(400)
+    except Exception:
+        traceback.print_exc()
+        abort(500)
+    return "OK", 200
+
+@handler.add(FollowEvent)
+def handle_follow(event):
+    line_bot_api.reply_message(
+        event.reply_token,
+        TextSendMessage(text="愛子です。お友だち登録ありがとうございます。")
+    )
+
+def search_employee_info_by_keywords(query):
+    keywords = query.split()
+    for data in employee_info_map.values():
+        if any(k in str(data.values()) for k in keywords):
+            return "🔎 社内情報から見つけました: " + ", ".join(f"{k}: {v}" for k, v in data.items())
+    return "⚠️ 社内情報でも見つかりませんでした。"
+
+# ==== 自動日記をOpenAIにやらせる関数（毎日3時に呼び出す） ====
+def generate_daily_summaries(logs_by_user, sheet, client, SPREADSHEET_ID5):
+    for (uid, name), messages in logs_by_user.items():
+        context = "\n".join(messages)
+        prompt = [
+            {"role": "system", "content": (
+                "あなたはLINEで社員と日々会話しているAIアシスタント『愛子』です。\n"
+                "以下はあなたが昨日、社員と交わした会話の記録です。\n"
+                "感情・思考・行動・課題・印象などを踏まえ、社員とのやり取りを振り返る日記として"
+                "自分の目線で2000文字以内で自然に要約してください。\n"
+                "主語は『私』を用い、社員を『○○さん』などと呼び、第三者視点ではなく主観的に書いてください。\n"
+                "また、要約文中に改行は使用せず、すべての内容を削除せずに情報を圧縮して簡潔に記述してください。"
+            )},
+            {"role": "user", "content": context}
+        ]
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=prompt,
+                max_tokens=800
+            )
+            summary = response.choices[0].message.content.strip().replace("\n", " ")  # 改行除去
+            sheet.values().append(
+                spreadsheetId=SPREADSHEET_ID5,
+                range='経験ログ!A:B',
+                valueInputOption='USER_ENTERED',
+                body={'values': [[now_jst().isoformat(), summary]]}
+            ).execute()
+            logging.info(f"{name} の要約を保存しました")
+        except Exception as e:
+            logging.error(f"{name} の要約失敗: {e}")
+
+# ==== 自動日記要約（毎日3時に実行） ====
+def summarize_daily_conversations():
+    try:
+        start_time = (now_jst() - datetime.timedelta(days=1)).replace(hour=3, minute=0, second=0, microsecond=0)
+        end_time = start_time + datetime.timedelta(hours=24)
+        logging.info(f"要約対象期間: {start_time} 〜 {end_time}")
+
+        result = sheet.values().get(
+            spreadsheetId=SPREADSHEET_ID1,
+            range='会話ログ!A2:J'
+        ).execute()
+        rows = result.get("values", [])
+
+        filtered = []
+        for r in rows:
+            if len(r) >= 5:
+                try:
+                    dt = datetime.datetime.fromisoformat(r[0])
+                    if dt.tzinfo is None:
+                        dt = JST.localize(dt)
+                    if start_time <= dt < end_time:
+                        filtered.append(r)
+                except Exception as e:
+                    logging.warning(f"日時変換エラー: {r[0]} - {e}")
+
+        if not filtered:
+            logging.info("対象期間の会話ログがありません。")
+            return
+
+        logs_by_user = {}
+        important_entries = []
+        for row in filtered:
+            uid = row[1]
+            name = row[2]
+            message = row[4]
+            status = row[9] if len(row) > 9 else ""
+            logs_by_user.setdefault((uid, name), []).append(message)
+            if status == "重要":
+                important_entries.append((uid, name, message))
+
+        # 要約生成
+        generate_daily_summaries(logs_by_user, sheet, client, SPREADSHEET_ID5)
+
+        # 重要情報を会社情報に記録
+        for uid, name, msg in important_entries:
+            try:
+                values = [[
+                    "会話メモ",   # カテゴリ
+                    "なし",       # キーワード
+                    msg[:20],    # 質問例（20文字程度）
+                    msg,         # 回答内容
+                    msg[:50],    # 回答要約（50文字程度）
+                    "LINE会話ログより自動登録",  # 補足情報
+                    now_jst().strftime("%Y-%m-%d"),  # 最終更新日
+                    name,        # 登録者名
+                    0,           # 使用回数
+                    "愛子",      # 担当者
+                ] + [""] * 16]  # 残りの予備1〜予備16を空で埋める
+                sheet.values().append(
+                    spreadsheetId=SPREADSHEET_ID4,
+                    range='会社情報!A:Z',
+                    valueInputOption='USER_ENTERED',
+                    body={'values': values}
+                ).execute()
+                logging.info(f"{name} の重要情報を会社情報に保存しました")
+            except Exception as e:
+                logging.error(f"{name} の会社情報登録失敗: {e}")
+    except Exception as e:
+        logging.error(f"日記集計エラー: {e}")
+
+# ==== 愛子日記から毎日の回答を参照とする ====
+def get_recent_experience_summary(sheet, user_name):
+    try:
+        result = sheet.values().get(
+            spreadsheetId=SPREADSHEET_ID5,
+            range='経験ログ!A:B'
+        ).execute().get("values", [])
+        # 最新の5件を逆順でフィルタ
+        recent_summaries = [
+            row[1] for row in reversed(result[-50:]) if user_name in row[1]
+        ][:5]
+        return " ".join(recent_summaries)
+    except Exception as e:
+        logging.error(f"経験ログの読み込み失敗: {e}")
+        return ""
+
+# ==== 自動実行スレッド ====
+def daily_summary_scheduler():
+    while True:
+        now = now_jst()
+        if now.hour == 3 and 0 <= now.minute < 5:
+            summarize_daily_conversations()
+            time.sleep(300)  # 5分待機（再実行防止）
+        time.sleep(60)  # 1分ごとにチェック
+
+# メインのLINEから受信が来た時のメッセージ処理のメインルーチン
+@handler.add(MessageEvent, message=TextMessage)
+def handle_message(event):
+    user_message = event.message.text.strip()
+    user_id = event.source.user_id
+    timestamp = now_jst()
+    user_data = employee_info_map.get(user_id, {})
+    user_name = user_data.get("愛子ちゃんからの呼ばれ方", user_data.get("名前", ""))
+    important_keywords = ["覚えておいて", "おぼえておいて", "覚えてね", "記録して", "メモして"]
+    is_important = any(kw in user_message for kw in important_keywords)
+    experience_context = get_recent_experience_summary(sheet, user_name)
+    
+    # タグ分類の簡易抽出（#タグ名形式を想定）
+    tags = re.findall(r"#(\w+)", user_message)
+    tag_str = ", ".join(tags) if tags else "未分類"
+
+    # ノウハウ記録：重要なメッセージは会社情報へも保存
+    if is_important:
+        try:
+            knowledge_values = [[
+                timestamp.isoformat(),
+                user_id,
+                user_name,
+                user_message,
+                tag_str  #情報タグ
+            ]]
+            sheet.values().append(
+                spreadsheetId=SPREADSHEET_ID4,
+                range='会社情報!A:Z',
+                valueInputOption='USER_ENTERED',
+                body={'values': knowledge_values}
+            ).execute()
+        except Exception as e:
+            logging.error("会社ノウハウへ記録失敗: %s", e)
+
+    # ノウハウ確認要求があるかチェック
+    confirm_knowledge_keywords = ["覚えた内容を確認", "ノウハウを確認", "記録した内容を見せて"]
+    if any(k in user_message for k in confirm_knowledge_keywords):
+        try:
+            result = sheet.values().get(
+                spreadsheetId=SPREADSHEET_ID4,
+                range='会社情報!A:Z'
+            ).execute()
+            rows = result.get("values", [])[-5:]  # 最新5件のみ
+            if rows:
+                reply_text = "📘最近の記録内容:\n" + "\n".join(f"・{r[3]} ({r[2]})【{r[4] if len(r) > 4 else 'タグなし'}】" for r in rows if len(r) >= 4)
+            else:
+                reply_text = "📘まだノウハウは記録されていません。"
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
+            return
+        except Exception as e:
+            logging.error("ノウハウ取得失敗: %s", e)
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text="⚠️ ノウハウの取得に失敗しました。"))
+            return
+
+    greeting = get_time_based_greeting()
+    greeting_keywords = ["おっはー", "やっはろー", "おっつ〜", "ねむねむ"]
+    ai_greeting_phrases = ["こんにちは", "こんにちわ", "おはよう", "こんばんは", "ごきげんよう", "お疲れ様", "おつかれさま"]
+
+    # ログ保存：status="重要" を渡す
+    log_conversation(timestamp.isoformat(), user_id, user_name, "ユーザー", user_message, status="重要" if is_important else "OK")
+            
+    with cache_lock:
+        user_recent = recent_user_logs.get(user_id, [])
+
+    context = "\n".join(row[4] for row in user_recent if len(row) >= 5)
+
+    # 経験ログ要約を文脈に加えOpenAIに伝える
+    shared_summaries = get_recent_summaries()
+    if shared_summaries:
+        context = f"【愛子が学習した最近の知識】\n{shared_summaries}\n\n" + context
+   
+    # ユーザーの個別のログ要約を文脈に加えOpenAIに伝える
+    user_summary = get_user_summary(user_id)
+    if user_summary:
+        context = f"【このユーザーの過去の要約情報】\n{user_summary}\n\n" + context
+
+    # 最後の挨拶から2時間以内なら greeting を削除
+    show_greeting = True
+    if user_id in last_greeting_time:
+        elapsed = (timestamp - last_greeting_time[user_id]).total_seconds()
+        if elapsed < 7200:
+            show_greeting = False
+    if show_greeting:
+        last_greeting_time[user_id] = timestamp
+
+    # ユーザーの発言にすでに挨拶が含まれているかチェック
+    if any(g in user_message for g in greeting_keywords + ai_greeting_phrases):
+        show_greeting = False
+
+    messages = [
+        {"role": "system", "content": (
+            "あなたは社内アシスタントAI『愛子』です。\n"
+            "過去の経験も踏まえて、親しみやすく丁寧な口調で答えてください。\n"
+            "次のルールを守ってください。\n"
+            "・最初の挨拶はユーザーがしていれば繰り返さない。\n"
+            "・挨拶メッセージ（例:やっはろー）は30文字以内に。\n"
+            "・質問回答などは丁寧に100文字程度で。\n"
+            "・すでに回答した内容については、再度説明したり繰り返したりしてはいけません。新しい視点や関連情報がない限り、回避してください"
+        )},
+        {"role": "user", "content": context + "\n" + user_message}
+    ]
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=messages
+        )
+        reply_text = response.choices[0].message.content.strip()
+
+        if reply_text.startswith("申し訳") or reply_text.startswith("できません"):
+            fallback = search_employee_info_by_keywords(user_message)
+            if "見つかりました" in fallback:
+                reply_text += "\n\n" + fallback
+
+        if show_greeting and not any(reply_text.startswith(g) for g in greeting_keywords + ai_greeting_phrases):
+            reply_text = f"{greeting}{user_name}。" + reply_text
+    except Exception as e:
+        logging.error("OpenAI 応答失敗: %s", e)
+        reply_text = "⚠️ 応答に失敗しました。政美さんにご連絡ください。"
+
+    log_conversation(now_jst().isoformat(), user_id, user_name, "AI", reply_text)
+    
+    line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
+
+# Flask起動直前にこの行を追加
+threading.Thread(target=daily_summary_scheduler, daemon=True).start()
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))

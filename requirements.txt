@@ -1,11 +1,9 @@
 flask==2.3.3
 python-dotenv==1.0.1
-line-bot-sdk==2.4.0
-openai==1.30.1
+line-bot-sdk
+openai>=1.0.0
 google-api-python-client==2.120.0
 google-auth==2.29.0
-google-auth-httplib2
-google-auth-oauthlib
 urllib3==2.0.7
 pytz==2024.1
 scikit-learn==1.4.2
