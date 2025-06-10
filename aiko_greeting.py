@@ -62,7 +62,8 @@ def get_time_based_greeting(user_id=None):
     if user_id:
         name = get_user_callname_from_uid(user_id)
         if name and name != "不明":
-            greeting += f"、{name}さん"
+            cleaned_name = clean_user_name(name)
+            greeting += f"、{cleaned_name}"
     return greeting
 
 # 挨拶と認識される語を正規化
