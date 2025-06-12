@@ -78,3 +78,9 @@ def send_email_with_confirmation(sender_uid, to_name, cc=None):
         print(f"✅ メール送信成功: {to_email}")
     except Exception as e:
         print(f"❌ メール送信失敗: {e}")
+
+def get_aiko_official_email():
+    return "aiko@sun-name.com"
+
+def fetch_latest_email():
+    return "最新のメール本文です。"
