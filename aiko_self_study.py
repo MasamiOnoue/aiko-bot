@@ -7,12 +7,13 @@ import datetime
 import requests
 import threading
 from bs4 import BeautifulSoup
-from company_info_load import (
-    get_user_callname_from_uid,
-    load_all_user_ids,
-    get_conversation_log,
-    get_google_sheets_service
-)
+from sheet_service import get_google_sheets_service
+#from company_info_load import (
+#    get_user_callname_from_uid,
+#    load_all_user_ids,
+#    get_conversation_log,
+#    get_google_sheets_service
+#)
 from openai_client import client
 
 # Google Sheets
