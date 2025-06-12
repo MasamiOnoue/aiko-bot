@@ -5,16 +5,17 @@ from linebot import LineBotApi
 from linebot.models import TextSendMessage
 import pytz
 
-from company_info_load import (
-    get_employee_info,
-    get_partner_info,
-    get_company_info,
-    get_conversation_log,
-    get_experience_log,
-    load_all_user_ids,
-    get_user_callname_from_uid,
-    get_google_sheets_service
-)
+from sheet_service import get_google_sheets_service
+#from company_info_load import (
+#    get_employee_info,
+#    get_partner_info,
+#    get_company_info,
+#    get_conversation_log,
+#    get_experience_log,
+#    load_all_user_ids,
+#    get_user_callname_from_uid,
+#    get_google_sheets_service
+#)
 
 # ユーザーごとの挨拶履歴を記録する辞書（時刻＋カテゴリ）
 recent_greeting_users = {}
