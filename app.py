@@ -37,6 +37,20 @@ from mask_word import (
     rephrase_with_masked_text
 )
 from aiko_self_study import generate_contextual_reply
+from aiko_greeting import (
+    now_jst,
+    classify_conversation_category,
+    normalize_greeting,
+    get_time_based_greeting,
+    has_recent_greeting,
+    record_greeting_time,
+    is_attendance_related,
+    is_topic_changed,
+    get_user_status,
+    update_user_status,
+    reset_user_status,
+    forward_message_to_others
+)
 
 load_dotenv()
 
