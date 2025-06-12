@@ -3,7 +3,7 @@
 import os
 import logging
 from functools import lru_cache
-from company_info_load import get_google_sheets_service
+#from company_info_load import get_google_sheets_service
 from openai_client import client  # OpenAIクライアントを共通管理
 
 # === 従業員情報検索 ===
