@@ -2,7 +2,7 @@ import os
 import requests
 import logging
 
-def send_conversation_log(timestamp, user_id, user_name, speaker, message, category, message_type, topic, status, sentiment=""):
+def write_conversation_log(timestamp, user_id, user_name, speaker, message, category, message_type, topic, status, sentiment=""):
     try:
         base_url = os.getenv("GCF_ENDPOINT")
         if not base_url:
@@ -32,7 +32,7 @@ def send_conversation_log(timestamp, user_id, user_name, speaker, message, categ
     except Exception as e:
         logging.error(f"❌ Cloud Function呼び出し失敗: {e}")
 
-def send_employee_info(values):
+def write_employee_info(values):
     try:
         base_url = os.getenv("GCF_ENDPOINT")
         if not base_url:
@@ -44,11 +44,85 @@ def send_employee_info(values):
             "Content-Type": "application/json",
             "x-api-key": api_key
         }
-        payload = {
-            "values": values
-        }
+        payload = {"values": values}
         response = requests.post(url, headers=headers, json=payload, timeout=10)
         response.raise_for_status()
         logging.info("✅ 従業員情報送信成功")
+    except Exception as e:
+        logging.error(f"❌ Cloud Function呼び出し失敗: {e}")
+
+def write_company_info(values):
+    try:
+        base_url = os.getenv("GCF_ENDPOINT")
+        if not base_url:
+            raise ValueError("GCF_ENDPOINT 環境変数が設定されていません")
+
+        url = base_url.rstrip("/") + "/write-company-info"
+        api_key = os.getenv("PRIVATE_API_KEY")
+        headers = {
+            "Content-Type": "application/json",
+            "x-api-key": api_key
+        }
+        payload = {"values": values}
+        response = requests.post(url, headers=headers, json=payload, timeout=10)
+        response.raise_for_status()
+        logging.info("✅ 会社情報送信成功")
+    except Exception as e:
+        logging.error(f"❌ Cloud Function呼び出し失敗: {e}")
+
+def write_partner_info(values):
+    try:
+        base_url = os.getenv("GCF_ENDPOINT")
+        if not base_url:
+            raise ValueError("GCF_ENDPOINT 環境変数が設定されていません")
+
+        url = base_url.rstrip("/") + "/write-partner-info"
+        api_key = os.getenv("PRIVATE_API_KEY")
+        headers = {
+            "Content-Type": "application/json",
+            "x-api-key": api_key
+        }
+        payload = {"values": values}
+        response = requests.post(url, headers=headers, json=payload, timeout=10)
+        response.raise_for_status()
+        logging.info("✅ 取引先情報送信成功")
+    except Exception as e:
+        logging.error(f"❌ Cloud Function呼び出し失敗: {e}")
+
+def write_experience_log(values):
+    try:
+        base_url = os.getenv("GCF_ENDPOINT")
+        if not base_url:
+            raise ValueError("GCF_ENDPOINT 環境変数が設定されていません")
+
+        url = base_url.rstrip("/") + "/write-experience-log"
+        api_key = os.getenv("PRIVATE_API_KEY")
+        headers = {
+            "Content-Type": "application/json",
+            "x-api-key": api_key
+        }
+        payload = {"values": values}
+        response = requests.post(url, headers=headers, json=payload, timeout=10)
+        response.raise_for_status()
+        logging.info("✅ 経験ログ送信成功")
+    except Exception as e:
+        logging.error(f"❌ Cloud Function呼び出し失敗: {e}")
+
+def write_task_info(values):
+    try:
+        base_url = os.getenv("GCF_ENDPOINT")
+        if not base_url:
+            raise ValueError("GCF_ENDPOINT 環境変数が設定されていません")
+
+        url = base_url.rstrip("/") + "/write-task-info"
+        api_key = os.getenv("PRIVATE_API_KEY")
+        headers = {
+            "Content-Type": "application/json",
+            "x-api-key": api_key
+        }
+        payload = values if isinstance(values, dict) else {"values": values}
+        response = requests.post(url, headers=headers, json=payload, timeout=10)
+        response.raise_for_status()
+        logging.info("✅ タスク情報送信成功")
     except Exception as e:
         logging.error(f"❌ Cloud Function呼び出し失敗: {e}")
