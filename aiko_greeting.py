@@ -92,9 +92,3 @@ def forward_message_to_others(api: LineBotApi, from_name: str, message: str, uid
 
 def get_user_name_for_sheet(user_id):
     return "不明"
-
-def get_aiko_official_email():
-    return "aiko@sun-name.com"
-
-def fetch_latest_email():
-    return "最新のメール本文です。"
