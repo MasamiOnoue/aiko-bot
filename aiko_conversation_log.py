@@ -1,26 +1,29 @@
+import os
 import requests
-import datetime
+import logging
 
-def send_conversation_log():
-    url = "https://write-read-commands-744246744291.asia-northeast1.run.app/write-conversation-log"
-    headers = {"Content-Type": "application/json"}
-
-    payload = {
-        "timestamp": datetime.datetime.now().isoformat(),
-        "user_id": "Uf1401051234b19ce0c53a10bb3f8433d",
-        "user_name": "愛子",
-        "speaker": "愛子",
-        "message": "テストですわよ",
-        "category": "テスト",
-        "message_type": "テキスト",
-        "topic": "テスト",
-        "status": "OK",
-        "sentiment": "テスト"
-    }
-
+def send_conversation_log(timestamp, user_id, user_name, speaker, message, category, message_type, topic, status, sentiment=""):
     try:
-        response = requests.post(url, headers=headers, json=payload)
-        response.raise_for_status()  # HTTPエラーがあれば例外を発生
-        print("✅ 書き込み成功:", response.json())
+        url = os.getenv("GCF_ENDPOINT") + "/write-conversation-log"
+        api_key = os.getenv("PRIVATE_API_KEY")
+        headers = {
+            "Content-Type": "application/json",
+            "x-api-key": api_key
+        }
+        payload = {
+            "timestamp": timestamp,
+            "user_id": user_id,
+            "user_name": user_name,
+            "speaker": speaker,
+            "message": message,
+            "category": category,
+            "message_type": message_type,
+            "topic": topic,
+            "status": status,
+            "sentiment": sentiment
+        }
+        response = requests.post(url, headers=headers, json=payload, timeout=10)
+        response.raise_for_status()
+        logging.info("✅ 会話ログ送信成功")
     except Exception as e:
-        print("❌ 書き込みエラー:", type(e).__name__, e)
+        logging.error(f"❌ Cloud Function呼び出し失敗: {e}")
