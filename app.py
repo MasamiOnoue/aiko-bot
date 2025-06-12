@@ -28,6 +28,7 @@ from information_writer import (
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+from company_info import search_employee_info_by_keywords
 from aiko_diary_report import generate_daily_report, send_daily_report
 from aiko_mailer import draft_email_for_user, send_email_with_confirmation, get_user_email_from_uid
 from mask_word import (
