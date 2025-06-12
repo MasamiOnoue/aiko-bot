@@ -5,7 +5,6 @@ from linebot import LineBotApi
 from linebot.models import TextSendMessage
 import pytz
 
-from sheet_service import get_google_sheets_service
 #from company_info_load import (
 #    get_employee_info,
 #    get_partner_info,
