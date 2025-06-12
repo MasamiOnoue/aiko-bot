@@ -12,6 +12,8 @@ from linebot import LineBotApi, WebhookHandler
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
 from linebot.exceptions import InvalidSignatureError
 from dotenv import load_dotenv
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+from openai import OpenAI
 
 from aiko_conversation_log import send_conversation_log
 from sheet_service import get_google_sheets_service
@@ -32,9 +34,6 @@ from information_writer import (
     write_experience_log,
     write_task_info
 )
-
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-from openai import OpenAI
 
 from company_info import search_employee_info_by_keywords
 from aiko_diary_report import generate_daily_report, send_daily_report
