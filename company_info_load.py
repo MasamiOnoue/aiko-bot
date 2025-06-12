@@ -86,7 +86,6 @@ def sheets_api_handler(request: Request):
         return jsonify({"status": "error", "message": str(e)}), 500
 
 # Cloud Functionsを呼び出すクライアント側ラッパー
-
 def call_cloud_function(action, sheet_name, payload=None):
     if not GCF_ENDPOINT or not PRIVATE_API_KEY:
         logging.error("❌ GCFの環境変数が設定されていません")
