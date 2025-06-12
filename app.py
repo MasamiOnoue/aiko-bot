@@ -10,7 +10,7 @@ from openai import OpenAI
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-from aiko_conversation_log import send_conversation_log
+from aiko_conversation_log import send_conversation_log, send_employee_info  # 追加
 from aiko_greeting import (
     now_jst,
     get_time_based_greeting,
