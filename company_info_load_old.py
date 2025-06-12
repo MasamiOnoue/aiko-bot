@@ -127,10 +127,6 @@ def get_company_info():
 def get_experience_log():
     return call_cloud_function("read", "経験ログ")
 
-def load_all_user_ids():
-    employees = call_cloud_function("read", "従業員情報")
-    return [row[11].strip() for row in employees if len(row) >= 12 and row[11].strip().startswith("U")]
-
 def get_user_callname_from_uid(user_id):
     greetings_only = ["こんばんは", "こんばんわ", "こんにちわ", "こんにちは", "おはよう", "はろはろ","ハロー","おっはー","やっはろー","ばんわ","こんちわ"]
     if user_id.strip() in greetings_only:
