@@ -3,6 +3,7 @@
 import os
 import sys
 import logging
+load_dotenv()
 
 # 相対パスで write_read_commands を追加
 sys.path.append(os.path.join(os.path.dirname(__file__), 'write_read_commands'))
@@ -60,8 +61,6 @@ from aiko_greeting import (
     reset_user_status,
     forward_message_to_others
 )
-
-load_dotenv()
 
 app = Flask(__name__)
 line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
