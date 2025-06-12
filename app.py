@@ -220,11 +220,11 @@ def handle_message(event):
         try:
             if contains_sensitive_info(user_message):
                 sources = [
-                    get_employee_info(sheet_service),
-                    get_partner_info(sheet_service),
-                    get_company_info(sheet_service),
-                    get_conversation_log(sheet_service),
-                    get_experience_log(sheet_service)
+                    get_employee_info(),
+                    get_partner_info(),
+                    get_company_info(),
+                    get_conversation_log(),
+                    get_experience_log()
                 ]
                 hits = [str(item) for sublist in sources for item in sublist if any(w in str(item) for w in user_message.split())]
                 hits = hits[:MAX_HITS] if hits else ["該当情報が見つかりませんでした。"]
