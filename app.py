@@ -35,7 +35,7 @@ from information_writer import (
     write_task_info
 )
 
-from company_info import search_employee_info_by_keywords, load_all_user_ids, get_user_callname_from_uid, classify_conversation_category
+from company_info import search_employee_info_by_keywords, load_all_user_ids, get_user_callname_from_uid
 from aiko_diary_report import generate_daily_report, send_daily_report
 from aiko_mailer import draft_email_for_user, send_email_with_confirmation, get_user_email_from_uid, fetch_latest_email
 from mask_word import (
@@ -47,6 +47,7 @@ from mask_word import (
 from aiko_self_study import generate_contextual_reply
 from aiko_greeting import (
     now_jst,
+    classify_conversation_category,
     normalize_greeting,
     get_time_based_greeting,
     has_recent_greeting,
