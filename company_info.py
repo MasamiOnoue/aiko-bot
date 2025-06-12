@@ -64,3 +64,8 @@ def classify_conversation_category(message):
     except Exception as e:
         logging.error(f"❌ カテゴリ分類失敗: {e}")
         return "未分類"
+
+def load_all_user_ids():
+    employees = call_cloud_function("read", "従業員情報")
+    return [row[11].strip() for row in employees if len(row) >= 12 and row[11].strip().startswith("U")]
+
