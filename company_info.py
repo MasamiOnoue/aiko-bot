@@ -5,6 +5,8 @@ import logging
 from functools import lru_cache
 #from company_info_load import get_google_sheets_service
 from openai_client import client  # OpenAIクライアントを共通管理
+from googleapiclient.discovery import build
+from google.oauth2 import service_account
 
 # === 従業員情報検索 ===
 def search_employee_info_by_keywords(user_message, employee_info_list):
@@ -65,7 +67,34 @@ def classify_conversation_category(message):
         logging.error(f"❌ カテゴリ分類失敗: {e}")
         return "未分類"
 
-def load_all_user_ids():
+def load_all_user_ids(sheet_service=None):
+    # シートID（環境変数から取得）
+    SPREADSHEET_ID = os.getenv("SPREADSHEET_ID2")  # 従業員情報シートのID
+
+    # sheet_service が渡されていない場合は作成
+    if sheet_service is None:
+        creds = service_account.Credentials.from_service_account_file(
+            "aiko-bot-log-2fc8779943bc.json",  # 適切な認証JSONに変更
+            scopes=["https://www.googleapis.com/auth/spreadsheets"]
+        )
+        sheet_service = build("sheets", "v4", credentials=creds).spreadsheets()
+
+    try:
+        result = sheet_service.values().get(
+            spreadsheetId=SPREADSHEET_ID,
+            range="従業員情報!M2:M"
+        ).execute()
+        values = result.get("values", [])
+
+        # UID形式（Uから始まり長さが10以上）のみを返す
+        return [
+            row[0].strip()
+            for row in values
+            if row and row[0].strip().startswith("U") and len(row[0].strip()) >= 10
+        ]
+    except Exception as e:
+        print(f"❌ UID読み込みエラー: {e}")
+        return []
     employees = call_cloud_function("read", "従業員情報")
     return [row[11].strip() for row in employees if len(row) >= 12 and row[11].strip().startswith("U")]
 
