@@ -25,7 +25,6 @@ from information_reader import (
     get_company_info,
     get_conversation_log,
     get_experience_log,
-    load_all_user_ids,
     get_user_callname_from_uid
 )
 from information_writer import (
@@ -37,7 +36,7 @@ from information_writer import (
     write_task_info
 )
 
-from company_info import search_employee_info_by_keywords
+from company_info import search_employee_info_by_keywords, load_all_user_ids
 from aiko_diary_report import generate_daily_report, send_daily_report
 from aiko_mailer import draft_email_for_user, send_email_with_confirmation, get_user_email_from_uid, fetch_latest_email
 from mask_word import (
