@@ -1,5 +1,10 @@
 # app.py
 
+from flask import Flask, request, abort
+from linebot import LineBotApi, WebhookHandler
+from linebot.models import MessageEvent, TextMessage, TextSendMessage
+from linebot.exceptions import InvalidSignatureError
+
 from aiko_conversation_log import send_conversation_log
 from sheet_service import get_google_sheets_service
 from information_reader import (
