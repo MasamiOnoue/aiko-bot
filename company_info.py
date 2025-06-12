@@ -3,10 +3,8 @@
 import os
 import logging
 from functools import lru_cache
-#from company_info_load import get_google_sheets_service
 from openai_client import client  # OpenAIクライアントを共通管理
-from googleapiclient.discovery import build
-from google.oauth2 import service_account
+import requests
 
 # === 従業員情報検索 ===
 def search_employee_info_by_keywords(user_message, employee_info_list):
@@ -39,54 +37,49 @@ def search_employee_info_by_keywords(user_message, employee_info_list):
     logging.warning(f"❗該当する従業員または属性が見つかりませんでした: '{user_message}'")
     return "申し訳ありませんが、該当の情報が見つかりませんでした。"
 
-def load_all_user_ids(sheet_service=None):
-    SPREADSHEET_ID = os.getenv("SPREADSHEET_ID2")  # 従業員情報シートのID
-
-    if sheet_service is None:
-        creds = service_account.Credentials.from_service_account_file(
-            "aiko-bot-log-2fc8779943bc.json",  # 適切なJSONファイル
-            scopes=["https://www.googleapis.com/auth/spreadsheets"]
-        )
-        sheet_service = build("sheets", "v4", credentials=creds).spreadsheets()
-
+def load_all_user_ids():
     try:
-        result = sheet_service.values().get(
-            spreadsheetId=SPREADSHEET_ID,
-            range="従業員情報!L2:L"  # ← L列がUIDならOK
-        ).execute()
-        values = result.get("values", [])
+        base_url = os.getenv("GCF_ENDPOINT")
+        if not base_url:
+            raise ValueError("GCF_ENDPOINT 環境変数が設定されていません")
+
+        url = base_url.rstrip("/") + "/read-employee-info"
+        api_key = os.getenv("PRIVATE_API_KEY")
+        headers = {
+            "x-api-key": api_key
+        }
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+        values = response.json().get("data", [])
 
         return [
-            row[0].strip()
+            row[11].strip()
             for row in values
-            if row and row[0].strip().startswith("U") and len(row[0].strip()) >= 10
+            if len(row) > 11 and row[11].strip().startswith("U") and len(row[11].strip()) >= 10
         ]
     except Exception as e:
         logging.error(f"❌ UID読み込みエラー: {e}")
         return []
 
-def get_user_callname_from_uid(user_id, sheet_service=None):
-    SPREADSHEET_ID = os.getenv("SPREADSHEET_ID2")
-
-    if sheet_service is None:
-        creds = service_account.Credentials.from_service_account_file(
-            "aiko-bot-log-2fc8779943bc.json",
-            scopes=["https://www.googleapis.com/auth/spreadsheets"]
-        )
-        sheet_service = build("sheets", "v4", credentials=creds).spreadsheets()
-
+def get_user_callname_from_uid(user_id):
     try:
-        result = sheet_service.values().get(
-            spreadsheetId=SPREADSHEET_ID,
-            range="従業員情報!D2:D"  # D列:愛子からの呼ばれ方
-        ).execute()
-        values = result.get("values", [])
+        base_url = os.getenv("GCF_ENDPOINT")
+        if not base_url:
+            raise ValueError("GCF_ENDPOINT 環境変数が設定されていません")
+
+        url = base_url.rstrip("/") + "/read-employee-info"
+        api_key = os.getenv("PRIVATE_API_KEY")
+        headers = {
+            "x-api-key": api_key
+        }
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+        values = response.json().get("data", [])
 
         for row in values:
-            if len(row) >= 3 and row[0].strip() == user_id:
-                return row[2]  # 呼ばれ方
+            if len(row) >= 13 and row[11].strip() == user_id:
+                return row[3]  # 呼ばれ方（D列）
         return "不明な方"
     except Exception as e:
         logging.error(f"❌ 呼び名取得エラー: {e}")
         return "エラー"
-
