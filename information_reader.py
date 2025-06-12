@@ -32,7 +32,7 @@ def get_conversation_log(timestamp, user_id, user_name, speaker, message, catego
     except Exception as e:
         logging.error(f"❌ Cloud Function呼び出し失敗: {e}")
 
-def send_employee_info(values):
+def get_employee_info(values):
     try:
         base_url = os.getenv("GCF_ENDPOINT")
         if not base_url:
