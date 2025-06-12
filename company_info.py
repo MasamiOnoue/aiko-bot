@@ -82,7 +82,7 @@ def load_all_user_ids(sheet_service=None):
     try:
         result = sheet_service.values().get(
             spreadsheetId=SPREADSHEET_ID,
-            range="従業員情報!M2:M"
+            range="従業員情報!L2:L"
         ).execute()
         values = result.get("values", [])
 
