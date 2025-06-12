@@ -69,7 +69,7 @@ def write_aiko_experience_log(sheet_service, values):
         body = {"values": [values]}
         sheet_service.append(
             spreadsheetId=os.getenv("SPREADSHEET_ID5"),
-            range="愛子の経験ログ!A:E",
+            range="経験ログ!A:E",
             valueInputOption="USER_ENTERED",
             insertDataOption="INSERT_ROWS",
             body=body
