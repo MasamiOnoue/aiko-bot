@@ -12,8 +12,9 @@ from linebot import LineBotApi, WebhookHandler
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
 from linebot.exceptions import InvalidSignatureError
 from dotenv import load_dotenv
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 from openai import OpenAI
+
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 from aiko_conversation_log import send_conversation_log
 from sheet_service import get_google_sheets_service
