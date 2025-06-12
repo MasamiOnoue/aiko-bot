@@ -27,6 +27,7 @@ from information_writer import (
 )
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+from openai import OpenAI
 
 from company_info import search_employee_info_by_keywords
 from aiko_diary_report import generate_daily_report, send_daily_report
@@ -211,7 +212,7 @@ def handle_message(event):
     if is_topic_changed(user_message):
         reset_user_status(user_id)
 
-    employee_info_list = get_employee_info(sheet_service)
+    employee_info_list = get_employee_info()
     keyword_reply = search_employee_info_by_keywords(user_message, employee_info_list)
     if keyword_reply:
         reply_text = keyword_reply
