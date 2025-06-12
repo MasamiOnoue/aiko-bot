@@ -6,8 +6,9 @@ from datetime import datetime, timedelta
 import pytz
 from linebot import LineBotApi
 from linebot.models import TextSendMessage
-from company_info_load import get_conversation_log, get_google_sheets_service
-from company_info_save import write_company_info
+from sheet_service import get_google_sheets_service
+#from company_info_load import get_conversation_log, get_google_sheets_service
+#from company_info_save import write_company_info
 from openai_client import client  # OpenAIクライアント
 
 # JSTを使用
