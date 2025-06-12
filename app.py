@@ -1,53 +1,27 @@
 # app.py
 
-import os
-from flask import Flask, request, abort
-from linebot import LineBotApi, WebhookHandler
-from linebot.exceptions import InvalidSignatureError
-from linebot.models import MessageEvent, TextMessage, TextSendMessage
-from dotenv import load_dotenv
-from openai import OpenAI
-
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
-from aiko_conversation_log import send_conversation_log, send_employee_info, get_employee_info  # 追加
-from aiko_greeting import (
-    now_jst,
-    get_time_based_greeting,
-    is_attendance_related,
-    is_topic_changed,
-    get_user_status,
-    update_user_status,
-    reset_user_status,
-    forward_message_to_others,
-    get_user_name_for_sheet,
-    get_aiko_official_email,
-    fetch_latest_email,
-    has_recent_greeting,
-    record_greeting_time,
-    normalize_greeting
-)
-from company_info import (
-    search_employee_info_by_keywords,
-    classify_conversation_category
-)
-from company_info_load import (
+from aiko_conversation_log import send_conversation_log
+from sheet_service import get_google_sheets_service
+from information_reader import (
     get_employee_info,
     get_partner_info,
     get_company_info,
     get_conversation_log,
     get_experience_log,
     load_all_user_ids,
-    get_user_callname_from_uid,
-    get_google_sheets_service
+    get_user_callname_from_uid
 )
-from company_info_save import (
+from information_writer import (
     write_conversation_log,
-    write_aiko_experience_log,
-    write_company_info,
     write_employee_info,
-    write_partner_info
+    write_partner_info,
+    write_company_info,
+    write_experience_log,
+    write_task_info
 )
+
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
 from aiko_diary_report import generate_daily_report, send_daily_report
 from aiko_mailer import draft_email_for_user, send_email_with_confirmation, get_user_email_from_uid
 from mask_word import (
