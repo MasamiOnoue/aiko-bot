@@ -39,34 +39,6 @@ def search_employee_info_by_keywords(user_message, employee_info_list):
     logging.warning(f"❗該当する従業員または属性が見つかりませんでした: '{user_message}'")
     return "申し訳ありませんが、該当の情報が見つかりませんでした。"
 
-# === 会話分類 ===
-def classify_conversation_category(message):
-    categories = {"重要", "日常会話", "あいさつ", "業務情報", "その他"}
-    prompt = (
-        "以下の会話内容を、次のいずれかのカテゴリで1単語だけで分類してください："
-        "「重要」「日常会話」「あいさつ」「業務情報」「その他」。\n\n"
-        f"会話内容:\n{message}\n\nカテゴリ名だけを返してください。"
-    )
-
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": "あなたは優秀な会話分類AIです。"},
-                {"role": "user", "content": prompt}
-            ],
-            max_tokens=10,
-            temperature=0
-        )
-        category = response.choices[0].message.content.strip()
-        if category not in categories:
-            logging.warning(f"⚠️ 不明なカテゴリ: {category}")
-            return "未分類"
-        return category
-    except Exception as e:
-        logging.error(f"❌ カテゴリ分類失敗: {e}")
-        return "未分類"
-
 def load_all_user_ids(sheet_service=None):
     SPREADSHEET_ID = os.getenv("SPREADSHEET_ID2")  # 従業員情報シートのID
 
