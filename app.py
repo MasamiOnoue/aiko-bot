@@ -18,7 +18,7 @@ from openai import OpenAI
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 from aiko_conversation_log import send_conversation_log
-from sheet_service import get_google_sheets_service
+from sheets_service import get_google_sheets_service
 from information_reader import (
     get_employee_info,
     get_partner_info,
@@ -65,7 +65,7 @@ from aiko_greeting import (
 app = Flask(__name__)
 line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
 handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
-sheet_service = get_google_sheets_service()
+sheets_service = get_google_sheets_service()
 
 MAX_HITS = 10
 DEFAULT_USER_NAME = "不明"
