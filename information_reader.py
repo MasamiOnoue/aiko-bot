@@ -2,7 +2,7 @@ import os
 import requests
 import logging
 
-def send_conversation_log(timestamp, user_id, user_name, speaker, message, category, message_type, topic, status, sentiment=""):
+def get_conversation_log(timestamp, user_id, user_name, speaker, message, category, message_type, topic, status, sentiment=""):
     try:
         base_url = os.getenv("GCF_ENDPOINT")
         if not base_url:
