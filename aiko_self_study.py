@@ -7,7 +7,7 @@ import datetime
 import requests
 import threading
 from bs4 import BeautifulSoup
-from sheet_service import get_google_sheets_service
+from sheets_service import get_google_sheets_service
 #from company_info_load import (
 #    get_user_callname_from_uid,
 #    load_all_user_ids,
@@ -18,7 +18,7 @@ from openai_client import client
 
 # Google Sheets
 SPREADSHEET_ID4 = os.getenv('SPREADSHEET_ID4')
-sheet_service = get_google_sheets_service()
+sheets_service = get_google_sheets_service()
 
 user_conversation_cache = {}
 full_conversation_cache = []
@@ -44,7 +44,7 @@ def store_important_message_to_company_info(message, user_id):
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
     callname = get_user_callname_from_uid(user_id) or "不明"
     row_data = [["", message, "", "愛子", "", "", "", now, 1, callname, "全員"]]
-    sheet_service.spreadsheets().values().append(
+    sheets_service.spreadsheets().values().append(
         spreadsheetId=SPREADSHEET_ID4,
         range="会社情報!A2",
         valueInputOption="USER_ENTERED",
@@ -114,7 +114,7 @@ def generate_contextual_reply(user_id, user_message):
 
 
 def get_existing_links():
-    result = sheet_service.spreadsheets().values().get(
+    result = sheets_service.spreadsheets().values().get(
         spreadsheetId=SPREADSHEET_ID4,
         range="会社情報!F2"
     ).execute()
@@ -124,13 +124,13 @@ def get_existing_links():
 
 def update_links_and_log_diff(new_links_text, diff_summary):
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-    sheet_service.spreadsheets().values().update(
+    sheets_service.spreadsheets().values().update(
         spreadsheetId=SPREADSHEET_ID4,
         range="会社情報!F2",
         valueInputOption="USER_ENTERED",
         body={"values": [[new_links_text]]}
     ).execute()
-    sheet_service.spreadsheets().values().append(
+    sheets_service.spreadsheets().values().append(
         spreadsheetId=SPREADSHEET_ID4,
         range="会社情報!G2",
         valueInputOption="USER_ENTERED",
