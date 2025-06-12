@@ -195,7 +195,7 @@ def handle_message(event):
 
     elif step == 3:
         recipients = []
-        employee_info = get_employee_info(sheet_service)
+        employee_info = get_employee_info()
         for row in employee_info:
             if len(row) >= 4 and any(name in user_message for name in row[3:4]):
                 if len(row) >= 12:
