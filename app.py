@@ -30,7 +30,7 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 from company_info import search_employee_info_by_keywords
 from aiko_diary_report import generate_daily_report, send_daily_report
-from aiko_mailer import draft_email_for_user, send_email_with_confirmation, get_user_email_from_uid
+from aiko_mailer import draft_email_for_user, send_email_with_confirmation, get_user_email_from_uid, fetch_latest_email
 from mask_word import (
     contains_sensitive_info,
     mask_sensitive_data,
