@@ -53,7 +53,7 @@ def send_employee_info(values):
     except Exception as e:
         logging.error(f"❌ Cloud Function呼び出し失敗: {e}")
 
-def read_employee_info():
+def get_employee_info():
     try:
         base_url = os.getenv("GCF_ENDPOINT")
         if not base_url:
