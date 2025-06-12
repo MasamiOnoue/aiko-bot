@@ -4,7 +4,11 @@ import logging
 
 def send_conversation_log(timestamp, user_id, user_name, speaker, message, category, message_type, topic, status, sentiment=""):
     try:
-        url = os.getenv("GCF_ENDPOINT") + "/write-conversation-log"
+        base_url = os.getenv("GCF_ENDPOINT")
+        if not base_url:
+            raise ValueError("GCF_ENDPOINT 環境変数が設定されていません")
+
+        url = base_url.rstrip("/") + "/write-conversation-log"
         api_key = os.getenv("PRIVATE_API_KEY")
         headers = {
             "Content-Type": "application/json",
