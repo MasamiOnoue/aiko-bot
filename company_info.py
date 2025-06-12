@@ -68,13 +68,11 @@ def classify_conversation_category(message):
         return "未分類"
 
 def load_all_user_ids(sheet_service=None):
-    # シートID（環境変数から取得）
     SPREADSHEET_ID = os.getenv("SPREADSHEET_ID2")  # 従業員情報シートのID
 
-    # sheet_service が渡されていない場合は作成
     if sheet_service is None:
         creds = service_account.Credentials.from_service_account_file(
-            "aiko-bot-log-2fc8779943bc.json",  # 適切な認証JSONに変更
+            "aiko-bot-log-2fc8779943bc.json",  # 適切なJSONファイル
             scopes=["https://www.googleapis.com/auth/spreadsheets"]
         )
         sheet_service = build("sheets", "v4", credentials=creds).spreadsheets()
@@ -82,19 +80,17 @@ def load_all_user_ids(sheet_service=None):
     try:
         result = sheet_service.values().get(
             spreadsheetId=SPREADSHEET_ID,
-            range="従業員情報!L2:L"
+            range="従業員情報!L2:L"  # ← L列がUIDならOK
         ).execute()
         values = result.get("values", [])
 
-        # UID形式（Uから始まり長さが10以上）のみを返す
         return [
             row[0].strip()
             for row in values
             if row and row[0].strip().startswith("U") and len(row[0].strip()) >= 10
         ]
     except Exception as e:
-        print(f"❌ UID読み込みエラー: {e}")
+        logging.error(f"❌ UID読み込みエラー: {e}")
         return []
-    employees = call_cloud_function("read", "従業員情報")
-    return [row[11].strip() for row in employees if len(row) >= 12 and row[11].strip().startswith("U")]
+
 
