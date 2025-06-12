@@ -4,6 +4,7 @@ import os
 import sys
 import logging
 load_dotenv()
+from dotenv import load_dotenv
 
 # 相対パスで write_read_commands を追加
 sys.path.append(os.path.join(os.path.dirname(__file__), 'write_read_commands'))
@@ -12,7 +13,6 @@ from flask import Flask, request, abort
 from linebot import LineBotApi, WebhookHandler
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
 from linebot.exceptions import InvalidSignatureError
-from dotenv import load_dotenv
 from openai import OpenAI
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
