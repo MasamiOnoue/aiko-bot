@@ -91,18 +91,21 @@ def handle_message(event):
     reply_text_short = ""
 
     category = classify_conversation_category(user_message)
-    send_conversation_log(
-        timestamp=now_jst().isoformat(),
-        user_id=user_id,
-        user_name=user_name,
-        speaker="ユーザー",
-        message=user_message,
-        category=category,
-        message_type="テキスト",
-        topic="テスト",
-        status="OK",
-        sentiment=""
-    )
+    try:
+        send_conversation_log(
+            timestamp=now_jst().isoformat(),
+            user_id=user_id,
+            user_name=user_name,
+            speaker="ユーザー",
+            message=user_message,
+            category=category,
+            message_type="テキスト",
+            topic="テスト",
+            status="OK",
+            sentiment=""
+        )
+    except Exception as e:
+        print(f"❌ 会話ログ送信失敗: {e}")
 
     registered_uids = load_all_user_ids()
     if user_id not in registered_uids:
@@ -255,16 +258,30 @@ def handle_message(event):
 
         except Exception as e:
             reply_text = f"申し訳ありません。現在応答できませんでした（{e}）"
-
+    
     if len(reply_text) > 80:
         update_user_status(user_id, 200)
         update_user_status(user_id + "_fulltext", reply_text)
-        #write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text_short, "テキスト", "テスト", "OK")
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text="もっと情報がありますがLINEでは遅れないのでメールで送りますか？"))
         return
 
     reply_text_short = reply_text[:100]
-    #write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply_text_short, "テキスト", "テスト", "OK")
+    try:
+        send_conversation_log(
+            timestamp=now_jst().isoformat(),
+            user_id=user_id,
+            user_name="愛子",
+            speaker="愛子",
+            message=reply_text_short,
+            category="テキスト",
+            message_type="テキスト",
+            topic="テスト",
+            status="OK",
+            sentiment=""
+        )
+    except Exception as e:
+        print(f"❌ 最終返信ログ送信失敗: {e}")
+
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text_short))
 
 @app.route("/daily_report", methods=["GET"])
@@ -274,5 +291,5 @@ def daily_report():
     return "日報を送信しました"
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))  # RenderはPORT環境変数を使う
+    port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
