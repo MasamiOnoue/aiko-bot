@@ -93,4 +93,28 @@ def load_all_user_ids(sheet_service=None):
         logging.error(f"❌ UID読み込みエラー: {e}")
         return []
 
+def get_user_callname_from_uid(user_id, sheet_service=None):
+    SPREADSHEET_ID = os.getenv("SPREADSHEET_ID2")
+
+    if sheet_service is None:
+        creds = service_account.Credentials.from_service_account_file(
+            "aiko-bot-log-2fc8779943bc.json",
+            scopes=["https://www.googleapis.com/auth/spreadsheets"]
+        )
+        sheet_service = build("sheets", "v4", credentials=creds).spreadsheets()
+
+    try:
+        result = sheet_service.values().get(
+            spreadsheetId=SPREADSHEET_ID,
+            range="従業員情報!L2:N"  # L列:UID, M列:氏名, N列:呼ばれ方
+        ).execute()
+        values = result.get("values", [])
+
+        for row in values:
+            if len(row) >= 3 and row[0].strip() == user_id:
+                return row[2]  # 呼ばれ方（例：「まさみさん」など）
+        return "不明な方"
+    except Exception as e:
+        logging.error(f"❌ 呼び名取得エラー: {e}")
+        return "エラー"
 
