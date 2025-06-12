@@ -106,13 +106,13 @@ def get_user_callname_from_uid(user_id, sheet_service=None):
     try:
         result = sheet_service.values().get(
             spreadsheetId=SPREADSHEET_ID,
-            range="従業員情報!L2:N"  # L列:UID, M列:氏名, N列:呼ばれ方
+            range="従業員情報!D2:D"  # D列:愛子からの呼ばれ方
         ).execute()
         values = result.get("values", [])
 
         for row in values:
             if len(row) >= 3 and row[0].strip() == user_id:
-                return row[2]  # 呼ばれ方（例：「まさみさん」など）
+                return row[2]  # 呼ばれ方
         return "不明な方"
     except Exception as e:
         logging.error(f"❌ 呼び名取得エラー: {e}")
