@@ -1,10 +1,10 @@
 # aiko_greeting.py
 import pytz
 import logging
+from openai_client import client
 from datetime import datetime, timedelta
 from linebot import LineBotApi
 from linebot.models import TextSendMessage
-from openai_client import client
 
 #from company_info_load import (
 #    get_employee_info,
