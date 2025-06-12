@@ -5,7 +5,8 @@ from email.mime.text import MIMEText
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
-from company_info_load import get_employee_info, get_google_sheets_service
+#from company_info_load import get_employee_info, get_google_sheets_service
+from sheet_servie import get_google_sheets_service
 
 # 認証とGmail API接続
 SCOPES = ['https://www.googleapis.com/auth/gmail.send']
