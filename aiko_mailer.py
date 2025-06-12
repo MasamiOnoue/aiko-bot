@@ -6,7 +6,7 @@ from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 #from company_info_load import get_employee_info, get_google_sheets_service
-from sheet_servie import get_google_sheets_service
+from sheets_servie import get_google_sheets_service
 
 # 認証とGmail API接続
 SCOPES = ['https://www.googleapis.com/auth/gmail.send']
@@ -21,8 +21,8 @@ def get_gmail_service():
 
 # UIDからメールアドレスを検索する補助関数
 def get_user_email_from_uid(uid):
-    sheet_service = get_google_sheets_service()
-    employees = get_employee_info(sheet_service)
+    sheets_service = get_google_sheets_service()
+    employees = get_employee_info(sheets_service)
     for emp in employees:
         if len(emp) >= 12 and emp[11] == uid:  # L列（インデックス11）と一致
             return emp[9] if len(emp) >= 10 else None  # J列（インデックス9）にメール
@@ -30,8 +30,8 @@ def get_user_email_from_uid(uid):
 
 # 下書きの生成（LINE発言者と対象名からメール内容を作成）
 def draft_email_for_user(sender_uid, target_name):
-    sheet_service = get_google_sheets_service()
-    employees = get_employee_info(sheet_service)
+    sheets_service = get_google_sheets_service()
+    employees = get_employee_info(sheets_service)
     sender_name = "匿名ユーザー"
 
     for emp in employees:
@@ -45,8 +45,8 @@ def draft_email_for_user(sender_uid, target_name):
 # メール送信
 
 def send_email_with_confirmation(sender_uid, to_name, cc=None):
-    sheet_service = get_google_sheets_service()
-    employees = get_employee_info(sheet_service)
+    sheets_service = get_google_sheets_service()
+    employees = get_employee_info(sheets_service)
     to_email = None
     sender_name = "愛子"
 
