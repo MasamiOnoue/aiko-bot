@@ -3,7 +3,7 @@ import requests
 import logging
 from aiko_greeting import now_jst
 
-def log_aiko_reply(user_id, user_name, message, speaker, category, message_type, topic, status, sentiment=""):
+def log_aiko_reply(timestamp, user_id, user_name, speaker, reply, category, message_type, topics, status, topic, sentiment):
     try:
         timestamp = now_jst().strftime("%Y-%m-%d %H:%M:%S")
         GCF_ENDPOINT = os.getenv("GCF_ENDPOINT")  # https://xxx.cloudfunctions.net or Cloud Run
