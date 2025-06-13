@@ -43,6 +43,8 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         sentiment="不明"
     )
     registered_uids = load_all_user_ids()
+    logging.info(f"✅ 取得済み社内UIDリスト: {registered_uids}")
+    logging.info(f"👤 現在のユーザーID: {user_id}")
     if user_id not in registered_uids:
         reply = "申し訳ありません。このサービスは社内専用です。"
         log_aiko_reply(
