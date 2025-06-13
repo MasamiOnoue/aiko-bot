@@ -4,6 +4,7 @@ import os
 import sys
 import logging
 from dotenv import load_dotenv
+print("📡 GCF_ENDPOINT =", os.getenv("GCF_ENDPOINT"))
 load_dotenv()
 
 logging.basicConfig(
