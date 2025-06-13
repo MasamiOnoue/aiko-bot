@@ -1,4 +1,4 @@
-# company_info.py（安定性強化版）
+# company_info.py（安定性強化版＋dict対応）
 
 import os
 import logging
@@ -59,17 +59,11 @@ def load_all_user_ids():
             logging.error("❌ スプレッドシートレスポンスが配列ではありません")
             return []
 
-        headers_row = values[0]
-        try:
-            uid_index = headers_row.index("LINEユーザーID")
-        except ValueError:
-            logging.error("❌ 'LINEユーザーID' 列が見つかりません")
-            return []
-
         result = [
-            row[uid_index].strip().upper()
-            for row in values[1:]
-            if len(row) > uid_index and row[uid_index] and row[uid_index].strip().startswith("U")
+            record.get("LINEユーザーID", "").strip().upper()
+            for record in values
+            if isinstance(record, dict)
+               and record.get("LINEユーザーID", "").strip().startswith("U")
         ]
 
         logging.info(f"✅ 読み込んだUID一覧: {result}")
@@ -103,28 +97,13 @@ def get_user_callname_from_uid(user_id):
             logging.error("❌ スプレッドシートレスポンスが配列ではありません")
             return "エラー"
 
-        headers_row = values[0]
-        try:
-            uid_index = headers_row.index("LINEユーザーID")
-            callname_index = headers_row.index("呼ばれ方")
-            name_index = headers_row.index("氏名")
-        except ValueError as e:
-            logging.error(f"❌ 必要な列が見つかりません: {e}")
-            return "エラー"
+        for record in values:
+            if not isinstance(record, dict):
+                continue
+            if record.get("LINEユーザーID", "").strip().upper() == user_id.strip().upper():
+                return record.get("呼ばれ方", "").strip() or record.get("氏名", "").strip()
 
-        matches = [
-            row for row in values[1:]
-            if len(row) > uid_index and row[uid_index].strip().upper() == user_id.strip().upper()
-        ]
-
-        if len(matches) > 1:
-            logging.warning(f"⚠️ 複数の行が同じUIDにマッチ: {user_id}")
-
-        if matches:
-            row = matches[0]
-            return row[callname_index].strip() if row[callname_index].strip() else row[name_index].strip()
-        else:
-            return "不明な方"
+        return "不明な方"
     except requests.exceptions.Timeout:
         logging.error("⏱️ 呼び名取得のAPIタイムアウト")
         return "タイムアウト"
