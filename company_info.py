@@ -1,4 +1,4 @@
-# company_info.py（安定性強化版＋dict対応）
+# company_info.py（安定性強化版＋dict対応＋呼び名取得修正）
 
 import os
 import logging
@@ -100,9 +100,14 @@ def get_user_callname_from_uid(user_id):
         for record in values:
             if not isinstance(record, dict):
                 continue
-            if record.get("LINEユーザーID", "").strip().upper() == user_id.strip().upper():
-                return record.get("呼ばれ方", "").strip() or record.get("氏名", "").strip()
+            uid = record.get("LINEユーザーID", "").strip().upper()
+            if uid == user_id.strip().upper():
+                callname = record.get("呼ばれ方", "").strip()
+                if callname:
+                    return callname
+                return record.get("氏名", "").strip()
 
+        logging.warning(f"⚠️ 該当するUIDが見つかりません: {user_id}")
         return "不明な方"
     except requests.exceptions.Timeout:
         logging.error("⏱️ 呼び名取得のAPIタイムアウト")
