@@ -46,6 +46,9 @@ def log_aiko_reply(user_id, user_name, message, speaker, category, message_type,
         import logging
         logging.error(f"❌ log_aiko_reply エラー: {e}")
 
+# ※ send_conversation_log は削除済み
+
+
 def handle_message_logic(event, sheet_service, line_bot_api):
     user_id = event.source.user_id
     user_message = event.message.text.strip()
