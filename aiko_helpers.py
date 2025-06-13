@@ -19,6 +19,7 @@ def log_aiko_reply(timestamp, user_id, user_name, speaker, reply, category, mess
             "x-api-key": API_KEY
         }
 
+        
         payload = {
             "timestamp": timestamp,
             "user_id": user_id,
