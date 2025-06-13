@@ -6,6 +6,11 @@ import logging
 from dotenv import load_dotenv
 load_dotenv()
 
+logging.basicConfig(
+    level=logging.INFO,  # ← INFO レベルを出力する設定
+    format="%(asctime)s %(levelname)s:%(message)s"
+)
+
 # 相対パスで write_read_commands を追加
 sys.path.append(os.path.join(os.path.dirname(__file__), 'write_read_commands'))
 
