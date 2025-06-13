@@ -68,7 +68,6 @@ def load_all_user_ids():
         return []
 
 def get_user_callname_from_uid(user_id):
-    logging.info(f"📥 従業員情報レスポンス: {response.text}")
     try:
         base_url = os.getenv("GCF_ENDPOINT")
         if not base_url:
@@ -82,6 +81,9 @@ def get_user_callname_from_uid(user_id):
         response = requests.get(url, headers=headers, timeout=10)
         response.raise_for_status()
         values = response.json().get("data", [])
+        
+        # 🔧 レスポンス内容をログ出力
+        logging.info(f"📥 従業員情報レスポンス: {response.text}")
 
         for row in values:
             if len(row) >= 12 and row[11].strip().upper() == user_id.strip().upper():
