@@ -41,10 +41,15 @@ def get_time_based_greeting(user_id=None):
     else:
         greeting = "ねむ～"
 
+
     if user_id:
         name = get_user_callname_from_uid(user_id)
         if name and name != "不明":
-            greeting += f"、{name}さん"
+            # nameに既に「さん」「様」などが含まれていれば付け足さない
+            if any(name.endswith(suffix) for suffix in ["さん", "様", "くん", "ちゃん"]):
+                greeting += f"、{name}"
+            else:
+                greeting += f"、{name}さん"
     return greeting
 
 # 挨拶と認識される語を正規化
