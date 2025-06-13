@@ -1,4 +1,5 @@
-# utils.py
+# aiko_helpers.py
+
 from aiko_conversation_log import send_conversation_log
 from aiko_greeting import now_jst
 
