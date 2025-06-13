@@ -1,4 +1,4 @@
-# company_info.py（安定性強化版＋dict対応＋呼び名取得修正）
+# company_info.py（安定版：UID取得の不具合修正＋「-」除去の処理追加）
 
 import os
 import logging
@@ -59,12 +59,15 @@ def load_all_user_ids():
             logging.error("❌ スプレッドシートレスポンスが配列ではありません")
             return []
 
-        result = [
-            record.get("LINEユーザーID", "").strip().upper()
-            for record in values
-            if isinstance(record, dict)
-               and record.get("LINEユーザーID", "").strip().startswith("U")
-        ]
+        result = []
+        for record in values:
+            if not isinstance(record, dict):
+                continue
+            uid = record.get("LINEユーザーID")
+            if isinstance(uid, str):
+                uid = uid.strip().upper()
+                if uid.startswith("U") and uid != "-":
+                    result.append(uid)
 
         logging.info(f"✅ 読み込んだUID一覧: {result}")
         return result
@@ -100,12 +103,10 @@ def get_user_callname_from_uid(user_id):
         for record in values:
             if not isinstance(record, dict):
                 continue
-            uid = record.get("LINEユーザーID", "").strip().upper()
-            if uid == user_id.strip().upper():
+            uid = record.get("LINEユーザーID")
+            if isinstance(uid, str) and uid.strip().upper() == user_id.strip().upper():
                 callname = record.get("呼ばれ方", "").strip()
-                if callname:
-                    return callname
-                return record.get("氏名", "").strip()
+                return callname or record.get("氏名", "").strip()
 
         logging.warning(f"⚠️ 該当するUIDが見つかりません: {user_id}")
         return "不明な方"
