@@ -276,5 +276,5 @@ def daily_report():
     return "日報を送信しました"
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
+    port = int(os.environ.get("PORT", 8080))  # ← 10000 → 8080 に修正
     app.run(host="0.0.0.0", port=port)
