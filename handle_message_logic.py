@@ -9,12 +9,6 @@ from aiko_greeting import (
 from company_info import (
     search_employee_info_by_keywords, classify_conversation_category
 )
-from company_info_load import (
-    get_employee_info, get_partner_info, get_company_info,
-    get_conversation_log, get_experience_log, load_all_user_ids,
-    get_user_callname_from_uid
-)
-from company_info_save import write_conversation_log
 from aiko_mailer import (
     draft_email_for_user, send_email_with_confirmation, get_user_email_from_uid
 )
@@ -23,7 +17,8 @@ from mask_word import (
     unmask_sensitive_data, rephrase_with_masked_text
 )
 from aiko_self_study import generate_contextual_reply
-from openai_client import client  # OpenAIクライアント共通化
+from openai_client import client
+from conversation_logger import log_aiko_reply
 
 MAX_HITS = 10
 DEFAULT_USER_NAME = "不明"
@@ -33,15 +28,13 @@ def handle_message_logic(event, sheet_service, line_bot_api):
     user_message = event.message.text.strip()
     user_name = get_user_callname_from_uid(user_id) or DEFAULT_USER_NAME
 
-    # ユーザー発言を記録
     category = classify_conversation_category(user_message) or "未分類"
-    write_conversation_log(sheet_service, now_jst().isoformat(), user_id, user_name, "ユーザー", user_message, category, "テキスト", "未設定", "OK")
+    log_aiko_reply(user_id, user_name, user_message, speaker="ユーザー", category=category, message_type="テキスト", topic="未設定", status="OK")
 
-    # 登録ユーザー確認
     registered_uids = load_all_user_ids()
     if user_id not in registered_uids:
         reply = "申し訳ありません。このサービスは社内専用です。"
-        write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply, "権限エラー", "テキスト", "認証", "NG")
+        log_aiko_reply(user_id, user_name, reply, category="権限エラー", topic="認証", status="NG")
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
@@ -51,29 +44,26 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         greeting = get_time_based_greeting(user_id)
         record_greeting_time(user_id, now_jst(), greet_key)
         reply = f"{greeting}{callname}"
-        write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply, "挨拶", "テキスト", "挨拶", "OK")
+        log_aiko_reply(user_id, user_name, reply, speaker="愛子", category="挨拶", topic="挨拶", status="OK")
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
-    # メール表示
     if "最新メール" in user_message or "メール見せて" in user_message:
         email_text = fetch_latest_email() or "最新のメールは見つかりませんでした。"
-        write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", email_text, "メール表示", "テキスト", "社内メール", "OK")
+        log_aiko_reply(user_id, user_name, email_text, speaker="愛子", category="メール表示", topic="社内メール", status="OK")
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=email_text[:100]))
         return
 
-    # メール作成指示
     if "にメールを送って" in user_message:
         target = user_message.replace("にメールを送って", "").strip()
         draft_body = draft_email_for_user(user_id, target)
         update_user_status(user_id, 100)
         update_user_status(user_id + "_target", target)
         reply = f"この内容で{target}にメールを送りますか？"
-        write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply, "メール確認", "テキスト", target, "OK")
+        log_aiko_reply(user_id, user_name, reply, speaker="愛子", category="メール確認", topic=target, status="OK")
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
-    # メール送信確認
     status = get_user_status(user_id) or {}
     step = status.get("step", 0)
     if step == 100:
@@ -87,11 +77,10 @@ def handle_message_logic(event, sheet_service, line_bot_api):
             reply = "メールはあなたにだけ送信しました。内容を確認してください。"
         reset_user_status(user_id)
         reset_user_status(user_id + "_target")
-        write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply, "メール送信", "テキスト", target, "OK")
+        log_aiko_reply(user_id, user_name, reply, speaker="愛子", category="メール送信", topic=target, status="OK")
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
-    # 長文応答メール送信
     if step == 200:
         fulltext = get_user_status(user_id + "_fulltext")
         if user_message == "はい":
@@ -102,11 +91,10 @@ def handle_message_logic(event, sheet_service, line_bot_api):
             reply = "了解しました。必要があればまた聞いてください。"
         reset_user_status(user_id)
         reset_user_status(user_id + "_fulltext")
-        write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply, "メール送信確認", "テキスト", "AI応答", "OK")
+        log_aiko_reply(user_id, user_name, reply, speaker="愛子", category="メール送信確認", topic="AI応答", status="OK")
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
-    # キーワード一致（従業員情報）
     employee_info = get_employee_info(sheet_service)
     reply = search_employee_info_by_keywords(user_message, employee_info)
     if not reply:
@@ -130,10 +118,10 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         update_user_status(user_id, 200)
         update_user_status(user_id + "_fulltext", reply)
         short_reply = "もっと情報がありますがLINEでは送れないのでメールで送りますか？"
-        write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", short_reply, "長文応答", "テキスト", "AI応答", "OK")
+        log_aiko_reply(user_id, user_name, short_reply, speaker="愛子", category="長文応答", topic="AI応答", status="OK")
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=short_reply))
         return
 
     short_reply = reply[:100]
-    write_conversation_log(sheet_service, now_jst().isoformat(), user_id, "愛子", "愛子", reply, "通常応答", "テキスト", "AI応答", "OK")
+    log_aiko_reply(user_id, user_name, reply, speaker="愛子", category="通常応答", topic="AI応答", status="OK")
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=short_reply))
