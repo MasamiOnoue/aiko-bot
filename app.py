@@ -17,7 +17,7 @@ from openai import OpenAI
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-from aiko_conversation_log import send_conversation_log
+#from aiko_conversation_log import send_conversation_log
 from sheets_service import get_google_sheets_service
 from information_reader import (
     get_employee_info,
