@@ -52,7 +52,10 @@ def handle_message_logic(event, sheet_service, line_bot_api):
     user_id = event.source.user_id
     user_message = event.message.text.strip()
     user_name = get_user_callname_from_uid(user_id) or DEFAULT_USER_NAME
-
+    
+    category = classify_conversation_category(user_message) or "未分類"
+    log_aiko_reply(user_id, user_name, user_message, speaker="ユーザー", category=category, message_type="テキスト", topic="未設定", status="OK")
+    
     registered_uids = load_all_user_ids()
     if user_id not in registered_uids:
         log_aiko_reply(user_id, user_name, user_message, speaker="ユーザー", category="未分類", message_type="テキスト", topic="未設定", status="NG")
@@ -61,8 +64,6 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
-    category = classify_conversation_category(user_message) or "未分類"
-    log_aiko_reply(user_id, user_name, user_message, speaker="ユーザー", category=category, message_type="テキスト", topic="未設定", status="OK")
 
     callname = user_name
     greet_key = normalize_greeting(user_message)
