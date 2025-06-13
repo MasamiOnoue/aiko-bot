@@ -77,8 +77,8 @@ def get_user_callname_from_uid(user_id):
         values = response.json().get("data", [])
 
         for row in values:
-            if len(row) >= 13 and row[11].strip() == user_id:
-                return row[3]  # 呼ばれ方（D列）
+            if len(row) >= 12 and row[11].strip().upper() == user_id.strip().upper():
+                return row[3].strip() if row[3].strip() else row[2].strip()  # 呼ばれ方 or 名前
         return "不明な方"
     except Exception as e:
         logging.error(f"❌ 呼び名取得エラー: {e}")
