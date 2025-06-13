@@ -44,8 +44,8 @@ def callback():
 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
-    handle_message_logic(event, line_bot_api, sheet_service)  # 👈 差し替え
-
+    handle_message_logic(event, sheet_service, line_bot_api)
+    
 @app.route("/daily_report", methods=["GET"])
 def daily_report():
     from aiko_diary_report import send_daily_report
