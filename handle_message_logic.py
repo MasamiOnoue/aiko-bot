@@ -23,7 +23,7 @@ MAX_HITS = 10
 DEFAULT_USER_NAME = "不明"
 
 def handle_message_logic(event, sheet_service, line_bot_api):
-    user_id = event.source.user_id
+    user_id = event.source.user_id.strip().upper()
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     user_message = event.message.text.strip()
     user_name = get_user_callname_from_uid(user_id) or DEFAULT_USER_NAME
