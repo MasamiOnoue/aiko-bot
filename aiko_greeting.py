@@ -6,6 +6,7 @@ from openai_client import client
 from datetime import datetime, timedelta
 from linebot import LineBotApi
 from linebot.models import TextSendMessage
+from company_info import get_user_callname_from_uid
 
 # ユーザーごとの挨拶履歴を記録する辞書（時刻＋カテゴリ）
 recent_greeting_users = {}
