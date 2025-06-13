@@ -38,7 +38,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
     registered_uids = load_all_user_ids()
     if user_id not in registered_uids:
         reply = "申し訳ありません。このサービスは社内専用です。"
-        log_aiko_reply(user_id, user_name, reply, speaker="愛子", category="権限エラー", topic="認証", status="NG")
+        log_aiko_reply(user_id, user_name, reply, speaker="愛子", category="権限エラー", message_type="テキスト", topic="認証", status="NG")
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
