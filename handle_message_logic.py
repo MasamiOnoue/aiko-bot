@@ -186,7 +186,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
-    employee_info = get_employee_info(sheet_service)
+    employee_info = get_employee_info()
     reply = search_employee_info_by_keywords(user_message, employee_info)
     if not reply:
         try:
