@@ -48,14 +48,15 @@ def load_all_user_ids():
         headers = {
             "x-api-key": api_key
         }
+
         response = requests.get(url, headers=headers, timeout=10)
         response.raise_for_status()
         values = response.json().get("data", [])
 
         return [
-            row[11].strip()
+            row[11].strip().upper()  # ← .strip() + .upper() で安全化
             for row in values
-            if len(row) > 11 and row[11].strip().startswith("U") and len(row[11].strip()) >= 10
+            if len(row) > 11 and row[11] and row[11].strip().startswith("U")
         ]
     except Exception as e:
         logging.error(f"❌ UID読み込みエラー: {e}")
