@@ -168,7 +168,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
             reply=reply,
             category="メール送信確認",
             message_type="テキスト",
-            topics=[],
+            topics="社内メール",
             status="OK",
             topic="社内メール",
             sentiment="冷静"
