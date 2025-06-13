@@ -38,6 +38,7 @@ def search_employee_info_by_keywords(user_message, employee_info_list):
     return "申し訳ありませんが、該当の情報が見つかりませんでした。"
 
 def load_all_user_ids():
+    logging.info(f"📡 現在の GCF_ENDPOINT: {os.getenv('GCF_ENDPOINT')}")
     try:
         base_url = os.getenv("GCF_ENDPOINT")
         if not base_url:
