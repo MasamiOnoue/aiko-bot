@@ -23,18 +23,22 @@ DEFAULT_USER_NAME = "不明"
 
 def handle_message_logic(event, sheet_service, line_bot_api):
     user_id = event.source.user_id
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     user_message = event.message.text.strip()
     user_name = get_user_callname_from_uid(user_id) or DEFAULT_USER_NAME
 
     category = classify_conversation_category(user_message) or "未分類"
-    log_aiko_reply(user_id, user_name, user_message, speaker="ユーザー", category=category, message_type="テキスト", topic="未設定", status="OK")
+    log_aiko_reply(timestamp, user_id, user_name, speaker="ユーザー", user_message, category=category, message_type="テキスト", topics, status="OK")
 
     registered_uids = load_all_user_ids()
     if user_id not in registered_uids:
         reply = "申し訳ありません。このサービスは社内専用です。"
-        log_aiko_reply(user_id, user_name, reply, category="権限エラー", topic="認証", status="NG")
+        log_aiko_reply(timestamp, user_id, user_name, speaker="愛子", reply, category="権限エラー", message_type="テキスト", topics, status="OK", reply, category=, topic="認証", status="NG")
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
+
+
+    タイムスタンプ	ユーザーID	ユーザー名	発言者	メッセージ内容	カテゴリ	メッセージタイプ	関連トピック	処理ステータス	感情ラベル
 
     callname = user_name
     greet_key = normalize_greeting(user_message)
