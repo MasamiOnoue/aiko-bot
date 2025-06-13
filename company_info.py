@@ -53,11 +53,14 @@ def load_all_user_ids():
         response.raise_for_status()
         values = response.json().get("data", [])
 
-        return [
-            row[11].strip().upper()  # ← .strip() + .upper() で安全化
+        result = [
+            row[11].strip().upper()
             for row in values
             if len(row) > 11 and row[11] and row[11].strip().startswith("U")
         ]
+
+        logging.info(f"✅ 読み込んだUID一覧: {result}")
+        return result
     except Exception as e:
         logging.error(f"❌ UID読み込みエラー: {e}")
         return []
