@@ -1,3 +1,5 @@
+# information_writer.py
+
 import os
 import requests
 import logging
