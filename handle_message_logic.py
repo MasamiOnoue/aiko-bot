@@ -28,12 +28,34 @@ def handle_message_logic(event, sheet_service, line_bot_api):
     user_name = get_user_callname_from_uid(user_id) or DEFAULT_USER_NAME
 
     category = classify_conversation_category(user_message) or "未分類"
-    log_aiko_reply(timestamp, user_id, user_name, speaker="ユーザー", user_message, category=category, message_type="テキスト", topics, status="OK", sentiment="不明")
-
+    log_aiko_reply(
+        timestamp=timestamp,
+        user_id=user_id,
+        user_name=user_name,
+        speaker="ユーザー",
+        reply=user_message,
+        category=category,
+        message_type="テキスト",
+        topics=[],
+        status="OK",
+        sentiment="不明"
+    )
     registered_uids = load_all_user_ids()
     if user_id not in registered_uids:
         reply = "申し訳ありません。このサービスは社内専用です。"
-        log_aiko_reply(timestamp, user_id, user_name, speaker="愛子", reply, category="権限エラー", message_type="テキスト", topics, status="OK", reply, category=, topic="認証", status="NG", sentiment="冷静")
+        log_aiko_reply(
+            timestamp=timestamp,
+            user_id=user_id,
+            user_name=user_name,
+            speaker="愛子",
+            reply=reply,
+            category="権限エラー",
+            message_type="テキスト",
+            topics=[],
+            status="NG",
+            topic="認証",
+            sentiment="冷静"
+        )
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
@@ -43,13 +65,37 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         greeting = get_time_based_greeting(user_id)
         record_greeting_time(user_id, now_jst(), greet_key)
         reply = f"{greeting}{callname}"
-        log_aiko_reply(timestamp, user_id, user_name, speaker="愛子", reply, category="挨拶", message_type="テキスト", topics, status="OK", reply, category=, topic="挨拶", status="NG", sentiment="ポジティブ")
+        log_aiko_reply(
+            timestamp=timestamp,
+            user_id=user_id,
+            user_name=user_name,
+            speaker="愛子",
+            reply=reply,
+            category="挨拶",
+            message_type="テキスト",
+            topics=[],
+            status="OK",
+            topic="挨拶",
+            sentiment="ポジティブ"
+        )
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
     if "最新メール" in user_message or "メール見せて" in user_message:
         email_text = fetch_latest_email() or "最新のメールは見つかりませんでした。"
-        log_aiko_reply(timestamp, user_id, user_name, speaker="愛子", reply, category="メール", message_type="テキスト", topics, status="OK", reply, category=, topic="社内メール", status="OK", sentiment="冷静")
+        log_aiko_reply(
+            timestamp=timestamp,
+            user_id=user_id,
+            user_name=user_name,
+            speaker="愛子",
+            reply=email_text,
+            category="メール",
+            message_type="テキスト",
+            topics=[],
+            status="OK",
+            topic="社内メール",
+            sentiment="冷静"
+        )
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=email_text[:100]))
         return
 
@@ -59,6 +105,19 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         update_user_status(user_id, 100)
         update_user_status(user_id + "_target", target)
         reply = f"この内容で{target}にメールを送りますか？"
+        log_aiko_reply(
+            timestamp=timestamp,
+            user_id=user_id,
+            user_name=user_name,
+            speaker="愛子",
+            reply=reply,
+            category="メール確認",
+            message_type="テキスト",
+            topics=[],
+            status="OK",
+            topic="社内メール",
+            sentiment="冷静"
+        )
         log_aiko_reply(timestamp, user_id, user_name, speaker="愛子", reply, category="メール確認", message_type="テキスト", topics, status="OK", reply, category=, topic="社内メール", status="OK", sentiment="冷静")        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
