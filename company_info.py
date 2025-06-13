@@ -68,6 +68,7 @@ def load_all_user_ids():
         return []
 
 def get_user_callname_from_uid(user_id):
+    logging.info(f"📥 従業員情報レスポンス: {response.text}")
     try:
         base_url = os.getenv("GCF_ENDPOINT")
         if not base_url:
