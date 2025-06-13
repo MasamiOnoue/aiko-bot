@@ -118,7 +118,6 @@ def handle_message_logic(event, sheet_service, line_bot_api):
             topic="社内メール",
             sentiment="冷静"
         )
-        log_aiko_reply(timestamp, user_id, user_name, speaker="愛子", reply, category="メール確認", message_type="テキスト", topics, status="OK", reply, category=, topic="社内メール", status="OK", sentiment="冷静")        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
     status = get_user_status(user_id) or {}
@@ -134,7 +133,19 @@ def handle_message_logic(event, sheet_service, line_bot_api):
             reply = "メールはあなたにだけ送信しました。内容を確認してください。"
         reset_user_status(user_id)
         reset_user_status(user_id + "_target")
-        log_aiko_reply(timestamp, user_id, user_name, speaker="愛子", reply, category="メール送信", message_type="テキスト", topics, status="OK", reply, category=, topic="社内メール", status="OK", sentiment="冷静")
+        log_aiko_reply(
+            timestamp=timestamp,
+            user_id=user_id,
+            user_name=user_name,
+            speaker="愛子",
+            reply=reply,
+            category="メール送信",
+            message_type="テキスト",
+            topics=[],
+            status="OK",
+            topic="社内メール",
+            sentiment="冷静"
+        )
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
@@ -148,7 +159,19 @@ def handle_message_logic(event, sheet_service, line_bot_api):
             reply = "了解しました。必要があればまた聞いてください。"
         reset_user_status(user_id)
         reset_user_status(user_id + "_fulltext")
-        log_aiko_reply(timestamp, user_id, user_name, speaker="愛子", reply, category="メール送信確認", message_type="テキスト", topics, status="OK", reply, category=, topic="社内メール", status="OK", sentiment="冷静"))
+        log_aiko_reply(
+            timestamp=timestamp,
+            user_id=user_id,
+            user_name=user_name,
+            speaker="愛子",
+            reply=reply,
+            category="メール送信確認",
+            message_type="テキスト",
+            topics=[],
+            status="OK",
+            topic="社内メール",
+            sentiment="冷静"
+        )
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
@@ -175,10 +198,34 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         update_user_status(user_id, 200)
         update_user_status(user_id + "_fulltext", reply)
         short_reply = "もっと情報がありますがLINEでは送れないのでメールで送りますか？"
-        log_aiko_reply(timestamp, user_id, user_name, speaker="愛子", short_reply, category="メール長文応答", message_type="テキスト", topics, status="OK", reply, category=, topic="社内メール", status="OK", sentiment="冷静")
+        log_aiko_reply(
+            timestamp=timestamp,
+            user_id=user_id,
+            user_name=user_name,
+            speaker="愛子",
+            reply=short_reply,
+            category="メール長文応答",
+            message_type="テキスト",
+            topics=[],
+            status="OK",
+            topic="社内メール",
+            sentiment="冷静"
+        )
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=short_reply))
         return
 
     short_reply = reply[:100]
-    log_aiko_reply(user_id, user_name, reply, speaker="愛子", category="通常応答", topic="AI応答", status="OK")
+    log_aiko_reply(
+        timestamp=timestamp,
+        user_id=user_id,
+        user_name=user_name,
+        speaker="愛子",
+        reply=short_reply,
+        category="通常応答",
+        message_type="テキスト",
+        topics=[],
+        status="OK",
+        topic="AI応答",
+        sentiment="中立"
+    )
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=short_reply))
