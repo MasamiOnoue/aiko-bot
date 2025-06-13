@@ -75,7 +75,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
     if greet_key and not has_recent_greeting(user_id, greet_key):
         greeting = get_time_based_greeting(user_id)
         record_greeting_time(user_id, now_jst(), greet_key)
-        reply = f"{greeting}{callname}"
+        reply = greeting
         log_aiko_reply(
             timestamp=timestamp,
             user_id=user_id,
