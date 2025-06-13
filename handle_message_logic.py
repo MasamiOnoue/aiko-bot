@@ -48,13 +48,13 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         greeting = get_time_based_greeting(user_id)
         record_greeting_time(user_id, now_jst(), greet_key)
         reply = f"{greeting}{callname}"
-        log_aiko_reply(user_id, user_name, reply, speaker="愛子", category="挨拶", topic="挨拶", status="OK")
+        log_aiko_reply(user_id, user_name, reply, speaker="愛子", category="挨拶", message_type="テキスト", topic="挨拶", status="OK")
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
     if "最新メール" in user_message or "メール見せて" in user_message:
         email_text = fetch_latest_email() or "最新のメールは見つかりませんでした。"
-        log_aiko_reply(user_id, user_name, email_text, speaker="愛子", category="メール表示", topic="社内メール", status="OK")
+        log_aiko_reply(user_id, user_name, email_text, speaker="愛子", category="メール表示", message_type="テキスト", topic="社内メール", status="OK")
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=email_text[:100]))
         return
 
@@ -64,7 +64,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         update_user_status(user_id, 100)
         update_user_status(user_id + "_target", target)
         reply = f"この内容で{target}にメールを送りますか？"
-        log_aiko_reply(user_id, user_name, reply, speaker="愛子", category="メール確認", topic=target, status="OK")
+        log_aiko_reply(user_id, user_name, reply, speaker="愛子", category="メール確認", message_type="テキスト", topic=target, status="OK")
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
@@ -81,7 +81,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
             reply = "メールはあなたにだけ送信しました。内容を確認してください。"
         reset_user_status(user_id)
         reset_user_status(user_id + "_target")
-        log_aiko_reply(user_id, user_name, reply, speaker="愛子", category="メール送信", topic=target, status="OK")
+        log_aiko_reply(user_id, user_name, reply, speaker="愛子", category="メール送信", message_type="テキスト", topic=target, status="OK")
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
@@ -95,7 +95,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
             reply = "了解しました。必要があればまた聞いてください。"
         reset_user_status(user_id)
         reset_user_status(user_id + "_fulltext")
-        log_aiko_reply(user_id, user_name, reply, speaker="愛子", category="メール送信確認", topic="AI応答", status="OK")
+        log_aiko_reply(user_id, user_name, reply, speaker="愛子", category="メール送信確認", message_type="テキスト", topic="AI応答", status="OK")
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
@@ -122,10 +122,10 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         update_user_status(user_id, 200)
         update_user_status(user_id + "_fulltext", reply)
         short_reply = "もっと情報がありますがLINEでは送れないのでメールで送りますか？"
-        log_aiko_reply(user_id, user_name, short_reply, speaker="愛子", category="長文応答", topic="AI応答", status="OK")
+        log_aiko_reply(user_id, user_name, short_reply, speaker="愛子", category="長文応答", message_type="テキスト", topic="AI応答", status="OK")
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=short_reply))
         return
 
     short_reply = reply[:100]
-    log_aiko_reply(user_id, user_name, reply, speaker="愛子", category="通常応答", topic="AI応答", status="OK")
+    log_aiko_reply(user_id, user_name, reply, speaker="愛子", category="通常応答", message_type="テキスト", topic="AI応答", status="OK")
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=short_reply))
