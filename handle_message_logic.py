@@ -4,11 +4,9 @@ from linebot.models import TextSendMessage
 from aiko_greeting import (
     now_jst, get_time_based_greeting, is_attendance_related, is_topic_changed,
     get_user_status, update_user_status, reset_user_status, forward_message_to_others,
-    has_recent_greeting, record_greeting_time, normalize_greeting
+    has_recent_greeting, record_greeting_time, normalize_greeting, classify_conversation_category
 )
-from company_info import (
-    search_employee_info_by_keywords, classify_conversation_category
-)
+from company_info import search_employee_info_by_keywords
 from aiko_mailer import (
     draft_email_for_user, send_email_with_confirmation, get_user_email_from_uid, fetch_latest_email
 )
