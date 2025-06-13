@@ -3,8 +3,8 @@
 import os
 import logging
 from functools import lru_cache
-from company_info_load import get_google_sheets_service
 from openai_client import client  # OpenAIクライアントを共通管理
+import requests
 
 # === 従業員情報検索 ===
 def search_employee_info_by_keywords(user_message, employee_info_list):
@@ -37,30 +37,49 @@ def search_employee_info_by_keywords(user_message, employee_info_list):
     logging.warning(f"❗該当する従業員または属性が見つかりませんでした: '{user_message}'")
     return "申し訳ありませんが、該当の情報が見つかりませんでした。"
 
-# === 会話分類 ===
-def classify_conversation_category(message):
-    categories = {"重要", "日常会話", "あいさつ", "業務情報", "その他"}
-    prompt = (
-        "以下の会話内容を、次のいずれかのカテゴリで1単語だけで分類してください："
-        "「重要」「日常会話」「あいさつ」「業務情報」「その他」。\n\n"
-        f"会話内容:\n{message}\n\nカテゴリ名だけを返してください。"
-    )
-
+def load_all_user_ids():
     try:
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": "あなたは優秀な会話分類AIです。"},
-                {"role": "user", "content": prompt}
-            ],
-            max_tokens=10,
-            temperature=0
-        )
-        category = response.choices[0].message.content.strip()
-        if category not in categories:
-            logging.warning(f"⚠️ 不明なカテゴリ: {category}")
-            return "未分類"
-        return category
+        base_url = os.getenv("GCF_ENDPOINT")
+        if not base_url:
+            raise ValueError("GCF_ENDPOINT 環境変数が設定されていません")
+
+        url = base_url.rstrip("/") + "/read-employee-info"
+        api_key = os.getenv("PRIVATE_API_KEY")
+        headers = {
+            "x-api-key": api_key
+        }
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+        values = response.json().get("data", [])
+
+        return [
+            row[11].strip()
+            for row in values
+            if len(row) > 11 and row[11].strip().startswith("U") and len(row[11].strip()) >= 10
+        ]
     except Exception as e:
-        logging.error(f"❌ カテゴリ分類失敗: {e}")
-        return "未分類"
+        logging.error(f"❌ UID読み込みエラー: {e}")
+        return []
+
+def get_user_callname_from_uid(user_id):
+    try:
+        base_url = os.getenv("GCF_ENDPOINT")
+        if not base_url:
+            raise ValueError("GCF_ENDPOINT 環境変数が設定されていません")
+
+        url = base_url.rstrip("/") + "/read-employee-info"
+        api_key = os.getenv("PRIVATE_API_KEY")
+        headers = {
+            "x-api-key": api_key
+        }
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+        values = response.json().get("data", [])
+
+        for row in values:
+            if len(row) >= 13 and row[11].strip() == user_id:
+                return row[3]  # 呼ばれ方（D列）
+        return "不明な方"
+    except Exception as e:
+        logging.error(f"❌ 呼び名取得エラー: {e}")
+        return "エラー"
