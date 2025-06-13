@@ -52,7 +52,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
             reply=reply,
             category="権限エラー",
             message_type="テキスト",
-            topics=[],
+            topics="警告",
             status="NG",
             topic="認証",
             sentiment="冷静"
@@ -74,7 +74,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
             reply=reply,
             category="挨拶",
             message_type="テキスト",
-            topics=[],
+            topics="警告",
             status="OK",
             topic="挨拶",
             sentiment="ポジティブ"
@@ -92,7 +92,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
             reply=email_text,
             category="メール",
             message_type="テキスト",
-            topics=[],
+            topics="社内メール",
             status="OK",
             topic="社内メール",
             sentiment="冷静"
@@ -114,7 +114,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
             reply=reply,
             category="メール確認",
             message_type="テキスト",
-            topics=[],
+            topics="メール",
             status="OK",
             topic="社内メール",
             sentiment="冷静"
@@ -142,7 +142,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
             reply=reply,
             category="メール送信",
             message_type="テキスト",
-            topics=[],
+            topics="メール",
             status="OK",
             topic="社内メール",
             sentiment="冷静"
@@ -207,7 +207,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
             reply=short_reply,
             category="メール長文応答",
             message_type="テキスト",
-            topics=[],
+            topics="メール",
             status="OK",
             topic="社内メール",
             sentiment="冷静"
@@ -224,7 +224,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         reply=short_reply,
         category="通常応答",
         message_type="テキスト",
-        topics=[],
+        topics="通常応答",
         status="OK",
         topic="AI応答",
         sentiment="中立"
