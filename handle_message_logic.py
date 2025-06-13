@@ -46,8 +46,6 @@ def log_aiko_reply(user_id, user_name, message, speaker, category, message_type,
         import logging
         logging.error(f"❌ log_aiko_reply エラー: {e}")
 
-# ※ send_conversation_log は削除済み
-
 def handle_message_logic(event, sheet_service, line_bot_api):
     user_id = event.source.user_id
     user_message = event.message.text.strip()
@@ -121,13 +119,13 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
-    employee_info = get_employee_info(sheet_service)
+    employee_info = get_employee_info()
     reply = search_employee_info_by_keywords(user_message, employee_info)
     if not reply:
         try:
             if contains_sensitive_info(user_message):
                 combined = []
-                for dataset in [get_employee_info(sheet_service), get_partner_info(sheet_service), get_company_info(sheet_service), get_conversation_log(sheet_service), get_experience_log(sheet_service)]:
+                for dataset in [get_employee_info(), get_partner_info(), get_company_info(), get_conversation_log(), get_experience_log()]:
                     combined.extend([str(item) for item in dataset if any(w in str(item) for w in user_message.split())])
                 hits = combined[:MAX_HITS] or ["該当情報が見つかりませんでした。"]
                 masked_input, mask_map = mask_sensitive_data("\n".join(hits))
