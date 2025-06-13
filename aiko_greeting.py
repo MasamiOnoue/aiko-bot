@@ -1,20 +1,21 @@
 # aiko_greeting.py
-
+import pytz
+import logging
+from openai_client import client
 from datetime import datetime, timedelta
 from linebot import LineBotApi
 from linebot.models import TextSendMessage
-import pytz
 
-from company_info_load import (
-    get_employee_info,
-    get_partner_info,
-    get_company_info,
-    get_conversation_log,
-    get_experience_log,
-    load_all_user_ids,
-    get_user_callname_from_uid,
-    get_google_sheets_service
-)
+#from company_info_load import (
+#    get_employee_info,
+#    get_partner_info,
+#    get_company_info,
+#    get_conversation_log,
+#    get_experience_log,
+#    load_all_user_ids,
+#    get_user_callname_from_uid,
+#    get_google_sheets_service
+#)
 
 # ユーザーごとの挨拶履歴を記録する辞書（時刻＋カテゴリ）
 recent_greeting_users = {}
@@ -93,8 +94,30 @@ def forward_message_to_others(api: LineBotApi, from_name: str, message: str, uid
 def get_user_name_for_sheet(user_id):
     return "不明"
 
-def get_aiko_official_email():
-    return "aiko@sun-name.com"
+# === 会話分類 ===
+def classify_conversation_category(message):
+    categories = {"重要", "日常会話", "あいさつ", "業務情報", "その他"}
+    prompt = (
+        "以下の会話内容を、次のいずれかのカテゴリで1単語だけで分類してください："
+        "「重要」「日常会話」「あいさつ」「業務情報」「その他」。\n\n"
+        f"会話内容:\n{message}\n\nカテゴリ名だけを返してください。"
+    )
 
-def fetch_latest_email():
-    return "最新のメール本文です。"
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "あなたは優秀な会話分類AIです。"},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=10,
+            temperature=0
+        )
+        category = response.choices[0].message.content.strip()
+        if category not in categories:
+            logging.warning(f"⚠️ 不明なカテゴリ: {category}")
+            return "未分類"
+        return category
+    except Exception as e:
+        logging.error(f"❌ カテゴリ分類失敗: {e}")
+        return "未分類"
