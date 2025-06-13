@@ -31,24 +31,22 @@ DEFAULT_USER_NAME = "不明"
 def log_aiko_reply(user_id, user_name, message, speaker, category, message_type, topic, status, sentiment=""):
     try:
         timestamp = now_jst().strftime("%Y-%m-%d %H:%M:%S")
-        payload = {
-            "timestamp": timestamp,
-            "user_id": user_id,
-            "user_name": user_name,
-            "speaker": speaker,
-            "message": message,
-            "category": category,
-            "message_type": message_type,
-            "topic": topic,
-            "status": status,
-            "sentiment": sentiment
-        }
-        logging.info(f"📤 log_aiko_reply payload: {payload}")
-        write_conversation_log(**payload)
+        write_conversation_log(
+            timestamp=timestamp,
+            user_id=user_id,
+            user_name=user_name,
+            speaker=speaker,
+            message=message,
+            category=category,
+            message_type=message_type,
+            topic=topic,
+            status=status,
+            sentiment=sentiment
+        )
+        logging.info("✅ 会話ログ送信成功")
     except Exception as e:
-        import traceback
         logging.error("❌ log_aiko_reply エラー:")
-        logging.error(traceback.format_exc())
+        logging.exception(e)
 
 def handle_message_logic(event, sheet_service, line_bot_api):
     user_id = event.source.user_id
