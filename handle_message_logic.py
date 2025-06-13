@@ -19,6 +19,7 @@ from mask_word import (
 from aiko_self_study import generate_contextual_reply
 from openai_client import client
 from aiko_conversation_log import send_conversation_log
+from utils import log_aiko_reply
 
 MAX_HITS = 10
 DEFAULT_USER_NAME = "不明"
@@ -34,7 +35,8 @@ def handle_message_logic(event, sheet_service, line_bot_api):
     registered_uids = load_all_user_ids()
     if user_id not in registered_uids:
         reply = "申し訳ありません。このサービスは社内専用です。"
-        send_conversation_log(now_jst().strftime("%Y-%m-%d %H:%M:%S"), user_id, user_name, "愛子", reply, "権限エラー", "テキスト", "認証", "NG")
+        log_aiko_reply(user_id, user_name, "申し訳ありません。このサービスは社内専用です。", category="権限エラー", topic="認証", status="NG")
+        #send_conversation_log(now_jst().strftime("%Y-%m-%d %H:%M:%S"), user_id, user_name, "愛子", reply, "権限エラー", "テキスト", "認証", "NG")
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
