@@ -18,7 +18,7 @@ from mask_word import (
 )
 from aiko_self_study import generate_contextual_reply
 from openai_client import client
-from conversation_logger import log_aiko_reply
+from information_writer import write_conversation_log
 from company_info_load import (
     get_employee_info, get_partner_info, get_company_info, get_conversation_log, get_experience_log,
     load_all_user_ids, get_user_callname_from_uid
@@ -26,6 +26,25 @@ from company_info_load import (
 
 MAX_HITS = 10
 DEFAULT_USER_NAME = "不明"
+
+def log_aiko_reply(user_id, user_name, message, speaker, category, message_type, topic, status, sentiment=""):
+    try:
+        timestamp = now_jst().strftime("%Y-%m-%d %H:%M:%S")
+        write_conversation_log(
+            timestamp=timestamp,
+            user_id=user_id,
+            user_name=user_name,
+            speaker=speaker,
+            message=message,
+            category=category,
+            message_type=message_type,
+            topic=topic,
+            status=status,
+            sentiment=sentiment
+        )
+    except Exception as e:
+        import logging
+        logging.error(f"❌ log_aiko_reply エラー: {e}")
 
 def handle_message_logic(event, sheet_service, line_bot_api):
     user_id = event.source.user_id
