@@ -37,7 +37,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         reply=user_message,
         category=category,
         message_type="テキスト",
-        topics=[],
+        topics="不明",
         status="OK",
         sentiment="不明"
     )
