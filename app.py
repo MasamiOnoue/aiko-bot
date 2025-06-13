@@ -15,15 +15,19 @@ from linebot.models import MessageEvent, TextMessage, TextSendMessage
 from linebot.exceptions import InvalidSignatureError
 from openai import OpenAI
 
+from linebot import LineBotApi, WebhookHandler
+
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 from sheets_service import get_google_sheets_service
-from handle_message_logic import handle_message_logic  # 👈 新たに追加
+from handle_message_logic import handle_message_logic 
 
-app = Flask(__name__)
 line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
 handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
-sheets_service = get_google_sheets_service()
+
+app = Flask(__name__)
+
+sheet_service = get_google_sheets_service()
 
 @app.route("/callback", methods=["POST"])
 def callback():
@@ -40,7 +44,7 @@ def callback():
 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
-    handle_message_logic(event, line_bot_api, sheets_service)  # 👈 差し替え
+    handle_message_logic(event, line_bot_api, sheet_service)  # 👈 差し替え
 
 @app.route("/daily_report", methods=["GET"])
 def daily_report():
