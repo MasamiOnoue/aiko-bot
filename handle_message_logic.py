@@ -39,6 +39,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         message_type="テキスト",
         topics="不明",
         status="OK",
+        topic="不明",
         sentiment="不明"
     )
     registered_uids = load_all_user_ids()
