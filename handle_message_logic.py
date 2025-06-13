@@ -1,5 +1,6 @@
 # handle_message_logic.py  LINEメッセージを受け取ったときのメイン処理
 
+from datetime import datetime
 from linebot.models import TextSendMessage
 from aiko_greeting import (
     now_jst, get_time_based_greeting, is_attendance_related, is_topic_changed,
