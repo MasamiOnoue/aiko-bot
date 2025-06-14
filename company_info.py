@@ -28,6 +28,16 @@ def search_employee_info_by_keywords(user_message, employee_info_list):
                 possible_names.add(value + "さん")
                 possible_names.add(value + "ちゃん")
                 possible_names.add(value + "君")
+        # 拡張：苗字だけでの一致も検出する
+        full_name = record.get("氏名", "").strip()
+        if full_name:
+            last_name = full_name.split()[0] if " " in full_name else full_name[:2]
+            if len(last_name) >= 2:
+                possible_names.add(last_name)
+                possible_names.add(last_name + "さん")
+                possible_names.add(last_name + "ちゃん")
+                possible_names.add(last_name + "君")
+
         if any(name in user_message for name in possible_names):
             matched_name = record.get("氏名", "").strip()
             for keyword, field in attributes.items():
