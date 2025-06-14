@@ -17,7 +17,7 @@ from aiko_greeting import (
     now_jst, get_time_based_greeting, is_attendance_related, is_topic_changed, ask_openai_general_question,
     get_user_status, update_user_status, reset_user_status, forward_message_to_others,
     has_recent_greeting, record_greeting_time, normalize_greeting, classify_conversation_category,
-    ask_openai_general_question
+    ask_openai_general_question, generate_contextual_reply
 )
 from company_info import (
     search_employee_info_by_keywords,
@@ -45,7 +45,6 @@ from mask_word import (
     contains_sensitive_info, mask_sensitive_data,
     unmask_sensitive_data, rephrase_with_masked_text
 )
-from aiko_self_study import generate_contextual_reply
 from openai_client import client
 from aiko_helpers import log_aiko_reply
 from attendance_logger import log_attendance_from_qr
