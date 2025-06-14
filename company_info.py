@@ -20,23 +20,26 @@ def search_employee_info_by_keywords(user_message, employee_info_list):
     for record in employee_info_list:
         if not isinstance(record, dict):
             continue
+
         possible_names = set()
         for key in ["氏名", "呼ばれ方", "愛子からの呼ばれ方", "愛子からの呼ばれ方２"]:
             value = record.get(key, "").strip()
             if value:
-                possible_names.add(value)
-                possible_names.add(value + "さん")
-                possible_names.add(value + "ちゃん")
-                possible_names.add(value + "君")
-        # 拡張：苗字だけでの一致も検出する
+                possible_names.update({
+                    value, value + "さん", value + "ちゃん", value + "君"
+                })
+
         full_name = record.get("氏名", "").strip()
         if full_name:
-            last_name = full_name.split()[0] if " " in full_name else full_name[:2]
-            if len(last_name) >= 2:
-                possible_names.add(last_name)
-                possible_names.add(last_name + "さん")
-                possible_names.add(last_name + "ちゃん")
-                possible_names.add(last_name + "君")
+            if " " in full_name:
+                last_name = full_name.split()[0]
+            elif len(full_name) >= 2:
+                last_name = full_name[:2]
+            else:
+                last_name = full_name
+            possible_names.update({
+                last_name, last_name + "さん", last_name + "ちゃん", last_name + "君"
+            })
 
         if any(name in user_message for name in possible_names):
             matched_name = record.get("氏名", "").strip()
