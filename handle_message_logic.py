@@ -37,7 +37,7 @@ from information_reader import (
     read_aiko_experience_log,
     read_task_info,
     read_attendance_log,
-    read_recent_conversation_log
+    get_recent_conversation_log
 )
 from aiko_mailer import (
     draft_email_for_user, send_email_with_confirmation, get_user_email_from_uid, fetch_latest_email
@@ -48,12 +48,43 @@ from mask_word import (
 )
 from aiko_self_study import generate_contextual_reply_from_context
 from openai_client import client, ask_openai_general_question
-from aiko_helpers import log_aiko_reply, count_keyword_matches, classify_attendance_type, extract_keywords, remove_honorifics, normalize_person_name
+from aiko_helpers import log_aiko_reply, get_matching_entries
 from attendance_logger import log_attendance_from_qr
 from information_writer import write_attendance_log
 
 MAX_HITS = 10
 DEFAULT_USER_NAME = "不明"
+
+
+def remove_honorifics(text):
+    for suffix in ["さん", "ちゃん", "くん"]:
+        if text.endswith(suffix):
+            text = text[:-len(suffix)]
+    return text
+
+def extract_keywords(text):
+    cleaned = re.sub(r'[。、「」？?！!\n]', ' ', text)
+    return [word for word in cleaned.split() if len(word) > 1]
+
+def classify_attendance_type(qr_text: str) -> str:
+    lowered = qr_text.lower()
+    if "退勤" in lowered or "leave" in lowered:
+        return "退勤"
+    if "出勤" in lowered or "attend" in lowered:
+        return "出勤"
+    current_hour = now_jst().hour
+    return "出勤" if current_hour < 14 else "退勤"
+
+def count_keyword_matches(data_list, keywords):
+    if not data_list:
+        return 0
+    headers = data_list[0].keys() if isinstance(data_list[0], dict) else []
+    return sum(
+        all(
+            any(kw in str(v) for v in item.values()) or any(kw in h for h in headers)
+            for kw in keywords
+        ) for item in data_list
+    )
 
 def handle_message_logic(event, sheet_service, line_bot_api):
     user_id = event.source.user_id.strip().upper()
@@ -72,9 +103,13 @@ def handle_message_logic(event, sheet_service, line_bot_api):
 
     greet_key = normalize_greeting(user_message)
     if greet_key and not has_recent_greeting(user_id, greet_key):
-        greeting = get_time_based_greeting(user_id)
+        try:
+            prompt = f"ユーザーから『{user_message}』という挨拶がありました。愛子らしく挨拶を返してください。"
+            reply = client.chat(prompt)
+        except Exception:
+            reply = get_time_based_greeting(user_id)
         record_greeting_time(user_id, now_jst(), greet_key)
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=greeting))
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
     if user_id not in registered_uids:
@@ -107,12 +142,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
 
     if match_scores[best_source] > 0:
         data = sources[best_source]
-        matching_entries = [
-            d for d in data if all(
-                any(kw in str(v) for v in d.values()) or any(kw in h for h in d.keys())
-                for kw in keywords
-            )
-        ]
+        matching_entries = get_matching_entries(data, keywords)
         logging.info(f"🔎 最も一致したデータ: {matching_entries}")
         if matching_entries:
             result = matching_entries[0]
@@ -141,7 +171,10 @@ def handle_message_logic(event, sheet_service, line_bot_api):
     else:
         if category == "質問":
             try:
-                reply = ask_openai_general_question(user_id, user_message)
+                if not keywords or len("".join(keywords)) < 2:
+                    reply = "なんですか？"
+                else:
+                    reply = ask_openai_general_question(user_id, user_message)
             except Exception as e:
                 reply = f"なんですか？（質問の処理に失敗しました: {e}）"
         else:
