@@ -116,6 +116,17 @@ def contains_work_keywords(message):
     work_keywords = ["役職", "出勤", "退勤", "作業", "工程", "指示", "会議", "勤怠", "報告"]
     return any(kw in message for kw in work_keywords)
 
+# 会話の社交的・軽口カテゴリ判定（拡張版）
+def is_small_talk(message):
+    small_talk_patterns = [
+        r"寝てた", r"起きた", r"元気", r"最近(どう|なに)してる", r"ひま", r"暇だよね",
+        r"(暑い|寒い|涼しい|あったかい|あつい|さむい)(ね|な|よね)?",
+        r"つかれた", r"だるい", r"眠い", r"もう.*(帰りたい|帰る)",
+        r"(雨|雪|晴れ|くもり|天気).*だね", r"(調子|気分)(どう|は)?",
+        r"いい天気", r"空が.*きれい", r"やる気出ない", r"だらだら", r"朝から.*眠い"
+    ]
+    return any(re.search(pattern, message, re.IGNORECASE) for pattern in small_talk_patterns)
+
 # 挨拶以外の処理系（省略）
 def is_attendance_related(message):
     return any(kw in message for kw in ["遅刻", "休み", "休暇", "出社", "在宅", "早退"])
@@ -148,6 +159,9 @@ def classify_conversation_category(message):
     if contains_work_keywords(message):
         logging.info(f"🔍 業務キーワード分類: {message}")
         return "業務情報"
+    if is_small_talk(message):
+        logging.info(f"💬 スモールトーク分類: {message}")
+        return "雑談"
 
     categories = {
         "あいさつ", "業務情報", "質問", "雑談", "読み方", "地理", "人間関係",
@@ -157,13 +171,9 @@ def classify_conversation_category(message):
     }
     prompt = (
         "以下の文章を、次のカテゴリのうち最も適切なもの1つに分類してください："
-        "「あいさつ」「業務情報」「質問」「雑談」「読み方」「地理」「人間関係」"
-        "「人物情報」「趣味・関心」「体調・健康」「スケジュール」「感謝・謝罪」"
-        "「食事・栄養」「天気」「ニュース・時事」「交通・移動」「買い物・物品」"
-        "「金銭・支払い」「意見・提案」「指示・依頼」「感情・気持ち」「その他」\n\n"
-        "■カテゴリの定義：\n...（省略）..."
-        f"文章:\n「{message}」\n\n"
-        "カテゴリ名だけを返してください"
+        + "、".join(sorted(categories)) + "。\n"
+        "カテゴリ名だけを返してください。\n"
+        f"文章:\n「{message}」"
     )
 
     try:
@@ -178,25 +188,10 @@ def classify_conversation_category(message):
         )
         category = response.choices[0].message.content.strip()
         if not category or category not in categories:
-            logging.warning(f"⚠️ 不明なカテゴリ: '{category}' → {message}")
+            logging.warning(f"⚠️ 不明なカテゴリ: '{category}' ← メッセージ: {message}")
             return "その他"
-        logging.info(f"✅ 分類結果: {category} ← {message}")
+        logging.info(f"✅ カテゴリ分類: '{category}' ← メッセージ: {message}")
         return category
     except Exception as e:
         logging.error(f"❌ カテゴリ分類失敗: {e}")
         return "その他"
-
-def generate_contextual_reply(messages, temperature=0.7):
-    """
-    ChatGPT APIを使って、与えられた過去メッセージの文脈に沿って応答を生成する。
-    """
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=messages,
-            temperature=temperature
-        )
-        return response.choices[0].message.content.strip()
-    except Exception as e:
-        print(f"❌ OpenAI 応答エラー: {e}")
-        return "申し訳ありません。少し考えさせてください。"
