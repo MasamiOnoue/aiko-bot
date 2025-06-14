@@ -53,6 +53,7 @@ from information_writer import write_attendance_log
 MAX_HITS = 10
 DEFAULT_USER_NAME = "不明"
 
+
 def remove_honorifics(text):
     for suffix in ["さん", "ちゃん", "くん"]:
         if text.endswith(suffix):
@@ -124,8 +125,12 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         "勤怠管理": read_attendance_log()
     }
 
+    def get_score(k, v):
+        weight = 2 if k in ["従業員情報", "取引先情報"] else 1
+        return count_keyword_matches(v, keywords) * weight
+
+    match_scores = {k: get_score(k, v) if isinstance(v, list) else 0 for k, v in sources.items()}
     priority_order = ["従業員情報", "会社情報", "取引先情報", "経験ログ", "タスク情報", "勤怠管理", "会話ログ"]
-    match_scores = {k: count_keyword_matches(v, keywords) if isinstance(v, list) else 0 for k, v in sources.items()}
     best_source = max(priority_order, key=lambda k: match_scores[k])
 
     if match_scores[best_source] > 0:
@@ -133,11 +138,29 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         matching_entries = [d for d in data if all(kw in str(d.values()) or any(kw in h for h in d.keys()) for kw in keywords)]
         logging.info(f"🔎 最も一致したデータ: {matching_entries}")
         if matching_entries:
-            result_text = str(matching_entries[0])
-            masked_text, mask_map = mask_sensitive_data(result_text)
-            prompt = f"以下のデータを自然な日本語にしてください: {masked_text}"
-            reply_masked = rephrase_with_masked_text(prompt)
-            reply = unmask_sensitive_data(reply_masked, mask_map)
+            result = matching_entries[0]
+
+            # 名前の呼び名変換
+            target_callname = result.get("名前", "対象者")
+            for e in sources["従業員情報"]:
+                if e.get("名前") == result.get("名前"):
+                    target_callname = e.get("愛子からの呼び名", target_callname)
+                    break
+
+            # 役職あれば優先応答
+            if "役職" in result:
+                reply = f"{target_callname}は{result['役職']}です"
+            else:
+                summary_parts = []
+                for key in ["名前", "役職", "部署", "会社名", "メール", "電話番号"]:
+                    if key in result:
+                        summary_parts.append(f"{key}:{result[key]}")
+                summary_text = " / ".join(summary_parts)[:150]
+
+                masked_text, mask_map = mask_sensitive_data(summary_text)
+                prompt = f"以下の情報を自然な日本語にして、80文字以内に要約してください: {masked_text}"
+                reply_masked = rephrase_with_masked_text(prompt)
+                reply = unmask_sensitive_data(reply_masked, mask_map)
         else:
             reply = f"🔎 最も一致したのは「{best_source}」ですが、関連データの表示に失敗しました。"
     else:
