@@ -107,8 +107,8 @@ def search_log_by_similarity(user_message, log_entries):
 def search_company_info_log(user_message, company_info_log):
     return search_log_by_similarity(user_message, company_info_log)
 
-def search_experience_log(user_message, experience_log):
-    return search_log_by_similarity(user_message, experience_log)
+def search_aiko_experience_log(user_message, aiko_experience_log):
+    return search_log_by_similarity(user_message, aiko_experience_log)
 
 def search_conversation_log(user_message, conversation_log):
     return search_log_by_similarity(user_message, conversation_log)
