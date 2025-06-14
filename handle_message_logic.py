@@ -228,8 +228,8 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         "取引先情報": search_partner_info_by_keywords(user_message, read_partner_info()),
         "会社情報": search_company_info_log(user_message, read_company_info()),
         "経験ログ": search_aiko_experience_log(user_message, read_aiko_experience_log()),
-        "勤怠ログ": read_attendance_log(),
-        "タスク情報": read_task_info()
+        "タスク情報": read_task_info(),
+        "勤怠管理": read_attendance_log()
     }
     log_if_all_searches_failed(results)
 
