@@ -5,8 +5,13 @@ import logging
 from datetime import datetime
 from linebot.models import TextSendMessage, ImageMessage
 from PIL import Image
-import pytesseract
 import tempfile
+
+try:
+    import pytesseract
+except ImportError:
+    pytesseract = None
+    print("⚠️ pytesseract is not available in this environment.")
 
 from aiko_greeting import (
     now_jst, get_time_based_greeting, is_attendance_related, is_topic_changed,
@@ -57,7 +62,6 @@ def classify_attendance_type(qr_text: str) -> str:
         return "退勤"
     if "出勤" in lowered or "attend" in lowered:
         return "出勤"
-    # ヒントがない場合は時刻で推定
     current_hour = now_jst().hour
     return "出勤" if current_hour < 14 else "退勤"
 
@@ -91,16 +95,20 @@ def handle_message_logic(event, sheet_service, line_bot_api):
                     tf.write(chunk)
                 temp_image_path = tf.name
 
-            img = Image.open(temp_image_path)
-            qr_text = pytesseract.image_to_string(img, lang='jpn').strip()
-            spreadsheet_id = os.getenv("SPREADSHEET_ID7")
-            if not spreadsheet_id:
-                line_bot_api.reply_message(event.reply_token, TextSendMessage(text="SPREADSHEET_ID7 が設定されていません。"))
-                return
-            attendance_type = classify_attendance_type(qr_text)
-            logging.info(f"🔍 QR内容: {qr_text} => {attendance_type}")
-            result = log_attendance_from_qr(user_id, qr_text, spreadsheet_id, attendance_type)
-            line_bot_api.reply_message(event.reply_token, TextSendMessage(text=result))
+            if pytesseract and Image:
+                img = Image.open(temp_image_path)
+                qr_text = pytesseract.image_to_string(img, lang='jpn').strip()
+                spreadsheet_id = os.getenv("SPREADSHEET_ID7")
+                if not spreadsheet_id:
+                    line_bot_api.reply_message(event.reply_token, TextSendMessage(text="SPREADSHEET_ID7 が設定されていません。"))
+                    return
+                attendance_type = classify_attendance_type(qr_text)
+                logging.info(f"🔍 QR内容: {qr_text} => {attendance_type}")
+                result = log_attendance_from_qr(user_id, qr_text, spreadsheet_id, attendance_type)
+                line_bot_api.reply_message(event.reply_token, TextSendMessage(text=result))
+            else:
+                logging.warning("❌ OCR機能は現在の環境では利用できません。")
+                line_bot_api.reply_message(event.reply_token, TextSendMessage(text="OCR機能が使えない環境です。"))
         except Exception as e:
             logging.error(f"QRコード画像処理エラー: {e}")
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text="QRコードの読み取りに失敗しました。別の画像をお試しください。"))
