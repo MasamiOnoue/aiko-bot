@@ -176,6 +176,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
 
     cleaned_message = remove_honorifics(user_message)
     keywords = extract_keywords(cleaned_message)
+    logging.info(f"🔍 検索キーワード: {keywords}")
 
     sources = {
         "従業員情報": read_employee_info(),
@@ -194,9 +195,9 @@ def handle_message_logic(event, sheet_service, line_bot_api):
     if best_source and match_scores[best_source] > 0:
         top_data = sources[best_source]
         matching_entries = [entry for entry in top_data if all(kw in str(entry.values()) for kw in keywords)]
+        logging.info(f"🔎 最も一致したデータ: {matching_entries}")
         reply = str(matching_entries[0]) if matching_entries else f"🔎 最も一致したのは「{best_source}」でしたが、関連データの表示に失敗しました。"
 
-        # マスキング → 自然な日本語 → アンマスク
         masked_text, mask_map = mask_sensitive_data(reply)
         prompt = f"以下のデータを自然な日本語にしてください: {masked_text}"
         reply_masked = rephrase_with_masked_text(prompt)
