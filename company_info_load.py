@@ -64,7 +64,7 @@ def get_company_info(sheet_values):
         logging.error(f"❌ 会社情報の取得に失敗: {e}")
         return []
 
-def get_experience_log(sheet_values):
+def get_aiko_experience_log(sheet_values):
     try:
         result = sheet_values.get(spreadsheetId=SPREADSHEET_ID5, range="経験ログ!A2:E").execute()
         return result.get("values", [])
