@@ -12,6 +12,8 @@ SPREADSHEET_ID2 = os.getenv('SPREADSHEET_ID2')
 SPREADSHEET_ID3 = os.getenv('SPREADSHEET_ID3')
 SPREADSHEET_ID4 = os.getenv('SPREADSHEET_ID4')
 SPREADSHEET_ID5 = os.getenv('SPREADSHEET_ID5')
+SPREADSHEET_ID6 = os.getenv('SPREADSHEET_ID6')
+SPREADSHEET_ID7 = os.getenv('SPREADSHEET_ID7')
 
 # Google Sheets 接続サービスの取得
 def get_google_sheets_service():
