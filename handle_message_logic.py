@@ -56,13 +56,17 @@ DEFAULT_USER_NAME = "不明"
 # 検索前に敬称を除去するヘルパー関数
 def remove_honorifics(text):
     for suffix in ["さん", "ちゃん", "くん"]:
-        text = text.replace(suffix, "")
+        if text.endswith(suffix):
+            text = text[:-len(suffix)]
     return text
 
+# キーワード分割（単純な空白・助詞・句読点など）
+def extract_keywords(text):
+    import re
+    cleaned = re.sub(r'[。、「」？?！!\n]', ' ', text)
+    return [word for word in cleaned.split() if len(word) > 1]
+
 def classify_attendance_type(qr_text: str) -> str:
-    """
-    QRテキストから出勤/退勤を自動判別する
-    """
     lowered = qr_text.lower()
     if "退勤" in lowered or "leave" in lowered:
         return "退勤"
@@ -70,6 +74,13 @@ def classify_attendance_type(qr_text: str) -> str:
         return "出勤"
     current_hour = now_jst().hour
     return "出勤" if current_hour < 14 else "退勤"
+
+def count_keyword_matches(data_list, keywords):
+    score = 0
+    for item in data_list:
+        if all(any(kw in str(v) for v in item.values()) for kw in keywords):
+            score += 1
+    return score
 
 def handle_message_logic(event, sheet_service, line_bot_api):
     user_id = event.source.user_id.strip().upper()
@@ -80,7 +91,6 @@ def handle_message_logic(event, sheet_service, line_bot_api):
 
     if isinstance(event.message, ImageMessage):
         user_message = f"✅ {user_name}さんが打刻しました"
-
         log_aiko_reply(
             timestamp=timestamp,
             user_id=user_id,
@@ -102,8 +112,14 @@ def handle_message_logic(event, sheet_service, line_bot_api):
                 temp_image_path = tf.name
 
             if pytesseract and Image:
-                img = Image.open(temp_image_path)
-                qr_text = pytesseract.image_to_string(img, lang='jpn').strip()
+                try:
+                    img = Image.open(temp_image_path)
+                    qr_text = pytesseract.image_to_string(img, lang='jpn').strip()
+                except Exception as e:
+                    logging.error(f"画像読み取りエラー: {e}")
+                    line_bot_api.reply_message(event.reply_token, TextSendMessage(text="画像の読み取りに失敗しました。別の画像でお試しください。"))
+                    return
+
                 spreadsheet_id = os.getenv("SPREADSHEET_ID7")
                 if not spreadsheet_id:
                     line_bot_api.reply_message(event.reply_token, TextSendMessage(text="SPREADSHEET_ID7 が設定されていません。"))
@@ -160,20 +176,27 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
-    employee_info = read_employee_info()
     cleaned_message = remove_honorifics(user_message)
-    results = {
-        "会話ログ": search_conversation_log(cleaned_message, read_conversation_log()),
-        "従業員情報": search_employee_info_by_keywords(cleaned_message, employee_info),
-        "取引先情報": search_partner_info_by_keywords(cleaned_message, read_partner_info()),
-        "会社情報": search_company_info_log(cleaned_message, read_company_info()),
-        "経験ログ": search_aiko_experience_log(cleaned_message, read_aiko_experience_log()),
+    keywords = extract_keywords(cleaned_message)
+
+    sources = {
+        "従業員情報": read_employee_info(),
+        "取引先情報": read_partner_info(),
+        "会社情報": read_company_info(),
+        "会話ログ": read_conversation_log(),
+        "経験ログ": read_aiko_experience_log(),
         "タスク情報": read_task_info(),
         "勤怠管理": read_attendance_log()
     }
-    log_if_all_searches_failed(results)
 
-    reply = next((r for r in results.values() if r), None)
+    match_scores = {key: count_keyword_matches(data, keywords) if isinstance(data, list) else 0 for key, data in sources.items()}
+    best_source = max(match_scores.items(), key=lambda x: x[1], default=(None, 0))[0]
+
+    if best_source and match_scores[best_source] > 0:
+        reply = f"🔎 最も一致したのは「{best_source}」でした。関連データを表示します。"
+    else:
+        reply = None
+
     if not reply:
         try:
             system_instruction = "あなたは社内専用のAIアシスタント愛子です。従業員には情報をすべて開示し、LINE返信は100文字以内にまとめてください。"
