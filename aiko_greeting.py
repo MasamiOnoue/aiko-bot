@@ -58,8 +58,8 @@ def get_current_weather():
         response = requests.get(
             "https://api.open-meteo.com/v1/forecast",
             params={
-                "latitude": 35.6812,  # 東京駅の緯度
-                "longitude": 139.7671,  # 東京駅の経度
+                "latitude": 35.6812,
+                "longitude": 139.7671,
                 "current_weather": True
             },
             timeout=5
@@ -73,6 +73,23 @@ def get_current_weather():
     except Exception as e:
         logging.warning(f"天気情報取得失敗: {e}")
         return "天気情報の取得に失敗しました。"
+
+# OpenAIへ直接質問する（業務外の質問対応）
+def ask_openai_general_question(message):
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "あなたは親切で知識豊富なAIアシスタントです。"},
+                {"role": "user", "content": message}
+            ],
+            max_tokens=200,
+            temperature=0.7
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        logging.error(f"OpenAIへの一般質問失敗: {e}")
+        return "すみません、質問の処理中に問題が発生しました。"
 
 # 挨拶と認識される語を正規化（長い語順にソート）
 GREETING_KEYWORDS = sorted([
@@ -127,15 +144,14 @@ def get_user_name_for_sheet(user_id):
 def classify_conversation_category(message):
     if is_gibberish(message):
         return "その他"
-
-    # 対策3: 業務キーワードが含まれる場合は強制的に業務情報として扱う
     if contains_work_keywords(message):
         return "業務情報"
 
     categories = {
         "あいさつ", "業務情報", "質問", "雑談", "読み方", "地理", "人間関係",
         "人物情報", "趣味・関心", "体調・健康", "スケジュール", "感謝・謝罪",
-        "食事・栄養", "天気", "ニュース・時事", "交通・移動", "買い物・物品", "金銭・支払い", "意見・提案", "指示・依頼", "感情・気持ち", "その他"
+        "食事・栄養", "天気", "ニュース・時事", "交通・移動", "買い物・物品",
+        "金銭・支払い", "意見・提案", "指示・依頼", "感情・気持ち", "その他"
     }
     prompt = (
         "以下の文章を、次のカテゴリのうち最も適切なもの1つに分類してください："
@@ -143,29 +159,7 @@ def classify_conversation_category(message):
         "「人物情報」「趣味・関心」「体調・健康」「スケジュール」「感謝・謝罪」"
         "「食事・栄養」「天気」「ニュース・時事」「交通・移動」「買い物・物品」"
         "「金銭・支払い」「意見・提案」「指示・依頼」「感情・気持ち」「その他」\n\n"
-        "■カテゴリの定義：\n"
-        "・あいさつ：おはよう、こんにちは等の礼儀的な言葉\n"
-        "・業務情報：勤怠・作業・報告・会議など業務に関する内容\n"
-        "・質問：定義や数値、事実確認などの問い\n"
-        "・雑談：世間話や日常の軽い会話\n"
-        "・読み方：漢字や名前の読みの確認\n"
-        "・地理：地名や都道府県に関する内容\n"
-        "・人間関係：家族や職場の人間関係に関する話\n"
-        "・人物情報：性格・特徴・雰囲気など人に関する内容\n"
-        "・趣味・関心：好きなことや興味関心に関する話\n"
-        "・体調・健康：病気・疲れ・けがなど身体状態の話\n"
-        "・スケジュール：予定・日程・時間に関する話\n"
-        "・感謝・謝罪：ありがとう・ごめんなさい等の感情表現\n"
-        "・食事・栄養：ご飯・飲み物・栄養などの話題\n"
-        "・天気：天候・気温・天気予報などに関する内容\n"
-        "・ニュース・時事：最近の出来事や世間の話題\n"
-        "・交通・移動：通勤・交通手段・移動に関する話題\n"
-        "・買い物・物品：商品・購入・在庫・注文などに関する話題\n"
-        "・金銭・支払い：料金・給料・支払い・価格に関する内容\n"
-        "・意見・提案：考え・提案・改善案など\n"
-        "・指示・依頼：何かしてほしい・してもらいたい等の依頼\n"
-        "・感情・気持ち：うれしい・悲しい・不安・怒りなど感情の表現\n"
-        "・その他：上記に該当しない特殊な話題\n\n"
+        "■カテゴリの定義：\n...（省略）..."
         f"文章:\n「{message}」\n\n"
         "カテゴリ名だけを返してください"
     )
@@ -181,17 +175,8 @@ def classify_conversation_category(message):
             temperature=0
         )
         category = response.choices[0].message.content.strip()
-        if not category:
-            logging.warning("⚠️ GPTから空の応答を受信しました。")
+        if not category or category not in categories:
             return "その他"
-        if category not in categories:
-            logging.warning(f"⚠️ 不明なカテゴリ: {category}")
-            return "その他"
-
-        # 対策1・2: 業務に関係しそうなカテゴリも業務検索対象とみなせるようログ出力
-        if category in {"業務情報", "質問", "人物情報", "雑談"}:
-            logging.info(f"🔍 検索対象カテゴリとして処理: {category}")
-
         return category
     except Exception as e:
         logging.error(f"❌ カテゴリ分類失敗: {e}")
