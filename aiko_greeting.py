@@ -185,3 +185,18 @@ def classify_conversation_category(message):
     except Exception as e:
         logging.error(f"❌ カテゴリ分類失敗: {e}")
         return "その他"
+
+def generate_contextual_reply(messages, temperature=0.7):
+    """
+    ChatGPT APIを使って、与えられた過去メッセージの文脈に沿って応答を生成する。
+    """
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=messages,
+            temperature=temperature
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        print(f"❌ OpenAI 応答エラー: {e}")
+        return "申し訳ありません。少し考えさせてください。"
