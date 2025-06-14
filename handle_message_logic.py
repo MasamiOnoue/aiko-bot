@@ -28,7 +28,9 @@ from information_reader import (
     get_partner_info, 
     get_company_info,  
     get_conversation_log, 
-    get_experience_log  
+    get_experience_log,
+    read_task_info,
+    read_attendance_log
 )
 from aiko_mailer import (
     draft_email_for_user, send_email_with_confirmation, get_user_email_from_uid, fetch_latest_email
@@ -66,9 +68,45 @@ def handle_message_logic(event, sheet_service, line_bot_api):
     logging.info(f"✅ user_name: {user_name}")
     registered_uids = load_all_user_ids()
 
-    user_message = event.message.text.strip()
+    if isinstance(event.message, ImageMessage):
+        user_message = f"✅ {user_name}さんが打刻しました"
 
-    # ユーザー発言を会話ログに保存
+        log_aiko_reply(
+            timestamp=timestamp,
+            user_id=user_id,
+            user_name=user_name,
+            speaker="ユーザー",
+            reply=user_message,
+            category="画像",
+            message_type="画像",
+            topics="QRコード",
+            status="OK",
+            topic="出退勤",
+            sentiment="中立"
+        )
+        try:
+            message_content = line_bot_api.get_message_content(event.message.id)
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tf:
+                for chunk in message_content.iter_content():
+                    tf.write(chunk)
+                temp_image_path = tf.name
+
+            img = Image.open(temp_image_path)
+            qr_text = pytesseract.image_to_string(img, lang='jpn').strip()
+            spreadsheet_id = os.getenv("SPREADSHEET_ID7")
+            if not spreadsheet_id:
+                line_bot_api.reply_message(event.reply_token, TextSendMessage(text="SPREADSHEET_ID7 が設定されていません。"))
+                return
+            attendance_type = classify_attendance_type(qr_text)
+            logging.info(f"🔍 QR内容: {qr_text} => {attendance_type}")
+            result = log_attendance_from_qr(user_id, qr_text, spreadsheet_id, attendance_type)
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text=result))
+        except Exception as e:
+            logging.error(f"QRコード画像処理エラー: {e}")
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text="QRコードの読み取りに失敗しました。別の画像をお試しください。"))
+        return
+
+    user_message = event.message.text.strip()
     log_aiko_reply(
         timestamp=timestamp,
         user_id=user_id,
@@ -83,48 +121,13 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         sentiment="不明"
     )
 
-    if isinstance(event.message, ImageMessage):
-        user_message = f"✅ user_name: {user_name}さんが打刻しました"
-
-        # ユーザー発言（画像）のダミー記録をログに保存
-        log_aiko_reply(
-            timestamp=timestamp,
-            user_id=user_id,
-            user_name=user_name,
-            speaker="ユーザー",
-            reply=user_message,
-            category="画像",
-            message_type="画像",
-            topics="QRコード",
-            status="OK",
-            topic="出退勤",
-            sentiment="中立"
-        )
-        # QRコード画像の処理
-        message_content = line_bot_api.get_message_content(event.message.id)
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tf:
-            for chunk in message_content.iter_content():
-                tf.write(chunk)
-            temp_image_path = tf.name
-
-        try:
-            img = Image.open(temp_image_path)
-            qr_text = pytesseract.image_to_string(img, lang='eng+jpn').strip()
-            spreadsheet_id = os.getenv("SPREADSHEET_ID7")
-            if not spreadsheet_id:
-                line_bot_api.reply_message(event.reply_token, TextSendMessage(text="SPREADSHEET_ID7 が設定されていません。"))
-                return
-            # 出退勤を自動判別
-            attendance_type = classify_attendance_type(qr_text)
-            logging.info(f"🔍 QR内容: {qr_text} => {attendance_type}")
-            result = log_attendance_from_qr(user_id, qr_text, spreadsheet_id, attendance_type)
-            line_bot_api.reply_message(event.reply_token, TextSendMessage(text=result))
-        except Exception as e:
-            logging.error(f"QRコード画像処理エラー: {e}")
-            line_bot_api.reply_message(event.reply_token, TextSendMessage(text="QRコードの読み取りに失敗しました。別の画像をお試しください。"))
+    greet_key = normalize_greeting(user_message)
+    if greet_key and not has_recent_greeting(user_id, greet_key):
+        greeting = get_time_based_greeting(user_id)
+        record_greeting_time(user_id, now_jst(), greet_key)
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=greeting))
         return
 
-    # 検索処理前に認証チェック
     if user_id not in registered_uids:
         reply = "申し訳ありません。このサービスは社内専用です。"
         log_aiko_reply(
@@ -143,14 +146,15 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
-    # 従業員情報取得に関するフィルター解除
     employee_info = get_employee_info()
     results = {
         "会話ログ": search_conversation_log(user_message, get_conversation_log()),
         "従業員情報": search_employee_info_by_keywords(user_message, employee_info),
         "取引先情報": search_partner_info_by_keywords(user_message, get_partner_info()),
         "会社情報": search_company_info_log(user_message, get_company_info()),
-        "経験ログ": search_experience_log(user_message, get_experience_log())
+        "経験ログ": search_experience_log(user_message, get_experience_log()),
+        "タスク情報": read_task_info(),
+        "勤怠管理": read_attendance_log()
     }
     log_if_all_searches_failed(results)
 
