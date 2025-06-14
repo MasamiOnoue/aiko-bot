@@ -96,6 +96,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         return
 
     user_message = event.message.text.strip()
+    logging.info(f"💬 受信メッセージ: {user_message}")
     category = classify_conversation_category(user_message)
     logging.info(f"🧠 カテゴリ分類: {category}")
     log_aiko_reply(timestamp, user_id, user_name, "ユーザー", user_message, category or "未分類", "テキスト", "未分類", "OK", "入力", "不明")
@@ -118,6 +119,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         return
 
     if category in ["挨拶", "雑談", "その他", "ニュース・時事"]:
+        logging.info(f"🗣️ OpenAIへ送信するユーザーメッセージ: {user_message}")
         recent_logs = read_recent_conversation_log(user_id, limit=20)
         prompt = generate_contextual_reply_from_context(user_id, user_message, recent_logs)
         try:
@@ -131,6 +133,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         return
 
     logging.info("🔎 内部API検索に進みます（業務情報カテゴリ）")
+    logging.info(f"🗣️ 内部API検索用ユーザーメッセージ: {user_message}")
     cleaned_message = remove_honorifics(user_message)
     keywords = extract_keywords(cleaned_message)
     logging.info(f"🔍 検索キーワード: {keywords}")
@@ -145,9 +148,17 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         "勤怠管理": read_attendance_log()
     }
 
-    match_any = any(count_keyword_matches(v, keywords) > 0 for v in sources.values() if isinstance(v, list))
+    match_any = False
+    for name, data in sources.items():
+        if isinstance(data, list):
+            count = count_keyword_matches(data, keywords)
+            logging.info(f"🔢 {name} の一致件数: {count}")
+            if count > 0:
+                match_any = True
+
     if not match_any:
         logging.info("❗検索結果が全データで0件でした。OpenAIに処理を委譲します。")
+        logging.info(f"🗣️ OpenAIへ送信するユーザーメッセージ: {user_message}")
         try:
             reply = ask_openai_general_question(user_id, user_message)
         except Exception as e:
