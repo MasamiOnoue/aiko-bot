@@ -55,6 +55,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     user_message = event.message.text.strip()
     user_name = get_user_callname_from_uid(user_id) or DEFAULT_USER_NAME
+    user_message = normalize_person_name(user_message)# ここで敬称などを削除（前処理）
 
     # QRコードによる出勤処理
     if user_message.startswith("QR出勤:" ):
