@@ -118,8 +118,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
-    # ✅ 「挨拶」「雑談」「その他」は内部検索をスキップしてOpenAIへ
-    if category in ["挨拶", "雑談", "その他"]:
+    if category in ["挨拶", "雑談", "その他", "ニュース・時事"]:
         recent_logs = read_recent_conversation_log(user_id, limit=20)
         prompt = generate_contextual_reply_from_context(user_id, user_message, recent_logs)
         try:
@@ -131,6 +130,9 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         log_aiko_reply(timestamp, user_id, user_name, "愛子", short_reply, "通常応答", "テキスト", category, "OK", "AI応答", "中立")
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=short_reply))
         return
+
+    # 検索0件時のログ出力追加
+    logging.info("🔎 内部API検索に進みます（業務情報カテゴリ）")
 
     cleaned_message = remove_honorifics(user_message)
     keywords = extract_keywords(cleaned_message)
@@ -146,67 +148,6 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         "勤怠管理": read_attendance_log()
     }
 
-    def get_score(k, v):
-        weight = 2 if k in ["従業員情報", "取引先情報"] else 1
-        return count_keyword_matches(v, keywords) * weight
-
-    match_scores = {k: get_score(k, v) if isinstance(v, list) else 0 for k, v in sources.items()}
-    priority_order = ["従業員情報", "会社情報", "取引先情報", "経験ログ", "タスク情報", "勤怠管理", "会話ログ"]
-    best_source = max(priority_order, key=lambda k: match_scores[k])
-
-    if match_scores[best_source] > 0:
-        data = sources[best_source]
-        matching_entries = get_matching_entries(data, keywords)
-        logging.info(f"🔎 最も一致したデータ: {matching_entries}")
-        if matching_entries:
-            result = matching_entries[0]
-
-            target_callname = result.get("名前", "対象者")
-            for e in sources["従業員情報"]:
-                if e.get("名前") == result.get("名前"):
-                    target_callname = e.get("愛子からの呼び名", target_callname)
-                    break
-
-            if "役職" in result:
-                reply = f"{target_callname}は{result['役職']}です"
-            else:
-                summary_parts = []
-                for key in ["名前", "役職", "部署", "会社名", "メール", "電話番号"]:
-                    if key in result:
-                        summary_parts.append(f"{key}:{result[key]}")
-                summary_text = " / ".join(summary_parts)[:150]
-
-                masked_text, mask_map = mask_sensitive_data(summary_text)
-                prompt = f"以下の情報を自然な日本語にして、80文字以内に要約してください: {masked_text}"
-                reply_masked = rephrase_with_masked_text(prompt)
-                reply = unmask_sensitive_data(reply_masked, mask_map)
-        else:
-            reply = f"🔎 最も一致したのは「{best_source}」ですが、関連データの表示に失敗しました。"
-    else:
-        if category == "質問":
-            try:
-                if not keywords or len("".join(keywords)) < 2:
-                    reply = "なんですか？"
-                else:
-                    reply = ask_openai_general_question(user_id, user_message)
-            except Exception as e:
-                reply = f"なんですか？（質問の処理に失敗しました: {e}）"
-        else:
-            recent_logs = read_recent_conversation_log(user_id, limit=20)
-            prompt = generate_contextual_reply_from_context(user_id, user_message, recent_logs)
-            try:
-                reply = client.chat(prompt)
-            except Exception as e:
-                reply = f"申し訳ありません。現在応答できません（{e}）"
-
-    if len(reply) > 80:
-        update_user_status(user_id, 200)
-        update_user_status(user_id + "_fulltext", reply)
-        short_reply = "もっと情報がありますがLINEでは送れないのでメールで送りますか？"
-        log_aiko_reply(timestamp, user_id, user_name, "愛子", short_reply, "メール長文応答", "テキスト", "メール", "OK", "社内メール", "冷静")
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=short_reply))
-        return
-
-    short_reply = reply[:100]
-    log_aiko_reply(timestamp, user_id, user_name, "愛子", short_reply, "通常応答", "テキスト", "通常応答", "OK", "AI応答", "中立")
-    line_bot_api.reply_message(event.reply_token, TextSendMessage(text=short_reply))
+    match_any = any(count_keyword_matches(v, keywords) > 0 for v in sources.values() if isinstance(v, list))
+    if not match_any:
+        logging.info("❗検索結果が全データで0件でした。OpenAIに処理を委譲します。")
