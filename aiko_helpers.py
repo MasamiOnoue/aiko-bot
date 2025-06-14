@@ -1,5 +1,6 @@
 import os
 import requests
+import re
 import logging
 from aiko_greeting import now_jst
 
