@@ -5,6 +5,9 @@ import pytz
 
 def log_attendance_from_qr(user_id, qr_text, spreadsheet_id, attendance_type):
     from sheet_service import get_google_sheets_service  # 適宜調整
+    from company_info import get_user_callname_from_uid
+    from information_writer import write_conversation_log
+
     service = get_google_sheets_service()
     sheet = service.spreadsheets()
     sheet_name = "勤怠管理"
@@ -29,7 +32,6 @@ def log_attendance_from_qr(user_id, qr_text, spreadsheet_id, attendance_type):
     date_col = headers.index("日付")
 
     # UID→氏名の変換（簡易）
-    from company_info import get_user_callname_from_uid
     user_name = get_user_callname_from_uid(user_id)
     if not user_name:
         return "ユーザー名が見つかりませんでした。"
@@ -42,6 +44,8 @@ def log_attendance_from_qr(user_id, qr_text, spreadsheet_id, attendance_type):
             row_index = i
             existing_row = row
             break
+
+    log_message = ""
 
     # なければ新しい行を作成
     if row_index is None:
@@ -59,21 +63,37 @@ def log_attendance_from_qr(user_id, qr_text, spreadsheet_id, attendance_type):
             valueInputOption="USER_ENTERED",
             body={"values": [row_data]}
         ).execute()
-        return f"{attendance_type}時刻を新規記録しました：{time_str}"
 
-    # 既存行を更新（冪等性の考慮）
-    col_index = headers.index("出勤時刻") if attendance_type == "出勤" else headers.index("退勤時刻")
-    current_value = existing_row[col_index] if len(existing_row) > col_index else ""
+        log_message = f"{attendance_type}時刻を新規記録しました：{time_str}"
 
-    if current_value:
-        return f"すでに{attendance_type}時刻が記録されています：{current_value}"
+    else:
+        # 既存行を更新（冪等性の考慮）
+        col_index = headers.index("出勤時刻") if attendance_type == "出勤" else headers.index("退勤時刻")
+        current_value = existing_row[col_index] if len(existing_row) > col_index else ""
 
-    cell_range = f"{sheet_name}!{chr(65 + col_index)}{row_index}"
-    sheet.values().update(
-        spreadsheetId=spreadsheet_id,
-        range=cell_range,
-        valueInputOption="USER_ENTERED",
-        body={"values": [[time_str]]}
-    ).execute()
+        if current_value:
+            log_message = f"すでに{attendance_type}時刻が記録されています：{current_value}"
+        else:
+            cell_range = f"{sheet_name}!{chr(65 + col_index)}{row_index}"
+            sheet.values().update(
+                spreadsheetId=spreadsheet_id,
+                range=cell_range,
+                valueInputOption="USER_ENTERED",
+                body={"values": [[time_str]]}
+            ).execute()
+            log_message = f"{attendance_type}時刻を更新しました：{time_str}"
 
-    return f"{attendance_type}時刻を更新しました：{time_str}"
+    # 会話ログ送信
+    write_conversation_log(
+        timestamp=now.isoformat(),
+        user_id=user_id,
+        user_name=user_name,
+        speaker="ユーザー",
+        message=f"QRコードで{attendance_type}打刻",
+        category="勤怠",
+        message_type="テキスト",
+        topic="QR勤怠",
+        status="完了"
+    )
+
+    return log_message
