@@ -55,3 +55,18 @@ def build_conversational_prompt(conversation_history: List[Dict], latest_user_me
         messages.append({"role": role, "content": entry["message"]})
     messages.append({"role": "user", "content": latest_user_message})
     return messages
+
+def generate_contextual_reply_from_context(system_prompt, context, user_message):
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": context + "\n\n" + user_message}
+    ]
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",  # または gpt-3.5-turbo
+            messages=messages,
+            temperature=0.7
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        return f"⚠️ エラーが発生しました: {str(e)}"
