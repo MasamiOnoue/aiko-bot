@@ -14,7 +14,7 @@ from company_info import (
     search_employee_info_by_keywords,
     search_partner_info_by_keywords, 
     search_company_info_log,   
-    search_experience_log,      
+    search_aiko_experience_log,      
     search_conversation_log,    
     log_if_all_searches_failed, 
     get_user_callname_from_uid,
@@ -25,7 +25,7 @@ from information_reader import (
     get_partner_info, 
     get_company_info,  
     get_conversation_log, 
-    get_experience_log  
+    get_aiko_experience_log  
 )
 
 from aiko_mailer import (
