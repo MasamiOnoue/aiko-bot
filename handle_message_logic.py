@@ -63,10 +63,10 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         sentiment="不明"
     )
     registered_uids = load_all_user_ids()
-    
+
     logging.info(f"✅ 取得済み社内UIDリスト: {registered_uids}")
     logging.info(f"👤 現在のユーザーID: {user_id}")
-    
+
     if user_id not in registered_uids:
         reply = "申し訳ありません。このサービスは社内専用です。"
         log_aiko_reply(
@@ -85,7 +85,6 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
-    callname = user_name
     greet_key = normalize_greeting(user_message)
     if greet_key and not has_recent_greeting(user_id, greet_key):
         greeting = get_time_based_greeting(user_id)
@@ -144,6 +143,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
             topic="社内メール",
             sentiment="冷静"
         )
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
     status = get_user_status(user_id) or {}
@@ -213,8 +213,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
     log_if_all_searches_failed(results)
 
     reply = next((r for r in results.values() if r), None)
-    
-    reply = search_employee_info_by_keywords(user_message, employee_info)
+
     if not reply:
         try:
             if contains_sensitive_info(user_message):
