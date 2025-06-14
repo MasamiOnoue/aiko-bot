@@ -53,14 +53,12 @@ from information_writer import write_attendance_log
 MAX_HITS = 10
 DEFAULT_USER_NAME = "不明"
 
-# 検索前に敬称を除去するヘルパー関数
 def remove_honorifics(text):
     for suffix in ["さん", "ちゃん", "くん"]:
         if text.endswith(suffix):
             text = text[:-len(suffix)]
     return text
 
-# キーワード分割（単純な空白・助詞・句読点など）
 def extract_keywords(text):
     import re
     cleaned = re.sub(r'[。、「」？?！!\n]', ' ', text)
@@ -194,7 +192,15 @@ def handle_message_logic(event, sheet_service, line_bot_api):
     best_source = max(priority_order, key=lambda k: match_scores.get(k, 0))
 
     if best_source and match_scores[best_source] > 0:
-        reply = f"🔎 最も一致したのは「{best_source}」でした。関連データを表示します。"
+        top_data = sources[best_source]
+        matching_entries = [entry for entry in top_data if all(kw in str(entry.values()) for kw in keywords)]
+        reply = str(matching_entries[0]) if matching_entries else f"🔎 最も一致したのは「{best_source}」でしたが、関連データの表示に失敗しました。"
+
+        # マスキング → 自然な日本語 → アンマスク
+        masked_text, mask_map = mask_sensitive_data(reply)
+        prompt = f"以下のデータを自然な日本語にしてください: {masked_text}"
+        reply_masked = rephrase_with_masked_text(prompt)
+        reply = unmask_sensitive_data(reply_masked, mask_map)
     else:
         reply = None
 
