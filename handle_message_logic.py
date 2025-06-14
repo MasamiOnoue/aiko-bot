@@ -181,16 +181,17 @@ def handle_message_logic(event, sheet_service, line_bot_api):
 
     sources = {
         "従業員情報": read_employee_info(),
-        "取引先情報": read_partner_info(),
         "会社情報": read_company_info(),
+        "取引先情報": read_partner_info(),
         "会話ログ": read_conversation_log(),
         "経験ログ": read_aiko_experience_log(),
         "タスク情報": read_task_info(),
         "勤怠管理": read_attendance_log()
     }
 
+    priority_order = ["従業員情報", "会社情報", "取引先情報", "経験ログ", "タスク情報", "勤怠管理", "会話ログ"]
     match_scores = {key: count_keyword_matches(data, keywords) if isinstance(data, list) else 0 for key, data in sources.items()}
-    best_source = max(match_scores.items(), key=lambda x: x[1], default=(None, 0))[0]
+    best_source = max(priority_order, key=lambda k: match_scores.get(k, 0))
 
     if best_source and match_scores[best_source] > 0:
         reply = f"🔎 最も一致したのは「{best_source}」でした。関連データを表示します。"
