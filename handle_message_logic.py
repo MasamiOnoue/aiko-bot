@@ -22,18 +22,18 @@ from company_info import (
     search_employee_info_by_keywords,
     search_partner_info_by_keywords, 
     search_company_info_log,   
-    search_experience_log,      
+    search_aiko_experience_log,      
     search_conversation_log,    
     log_if_all_searches_failed, 
     get_user_callname_from_uid,
     load_all_user_ids
 )
 from information_reader import (
-    get_employee_info,
-    get_partner_info, 
-    get_company_info,  
-    get_conversation_log, 
-    get_experience_log,
+    read_employee_info,
+    read_partner_info, 
+    read_company_info,  
+    read_conversation_log, 
+    read_aiko_experience_log,
     read_task_info,
     read_attendance_log
 )
@@ -160,14 +160,14 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
-    employee_info = get_employee_info()
+    employee_info = read_employee_info()
     cleaned_message = remove_honorifics(user_message)
     results = {
-        "会話ログ": search_conversation_log(cleaned_message, get_conversation_log()),
+        "会話ログ": search_conversation_log(cleaned_message, read_conversation_log()),
         "従業員情報": search_employee_info_by_keywords(cleaned_message, employee_info),
-        "取引先情報": search_partner_info_by_keywords(cleaned_message, get_partner_info()),
-        "会社情報": search_company_info_log(cleaned_message, get_company_info()),
-        "経験ログ": search_experience_log(cleaned_message, get_experience_log()),
+        "取引先情報": search_partner_info_by_keywords(cleaned_message, read_partner_info()),
+        "会社情報": search_company_info_log(cleaned_message, read_company_info()),
+        "経験ログ": search_aiko_experience_log(cleaned_message, read_aiko_experience_log()),
         "タスク情報": read_task_info(),
         "勤怠管理": read_attendance_log()
     }
