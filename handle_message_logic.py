@@ -2,9 +2,12 @@
 
 import os
 import logging
-
 from datetime import datetime
-from linebot.models import TextSendMessage
+from linebot.models import TextSendMessage, ImageMessage
+from PIL import Image
+import pytesseract
+import tempfile
+
 from aiko_greeting import (
     now_jst, get_time_based_greeting, is_attendance_related, is_topic_changed,
     get_user_status, update_user_status, reset_user_status, forward_message_to_others,
@@ -14,25 +17,19 @@ from company_info import (
     search_employee_info_by_keywords,
     search_partner_info_by_keywords, 
     search_company_info_log,   
-    search_aiko_experience_log,      
+    search_experience_log,      
     search_conversation_log,    
     log_if_all_searches_failed, 
     get_user_callname_from_uid,
     load_all_user_ids
 )
 from information_reader import (
-    read_employee_info,
-    read_partner_info, 
-    read_company_info,  
-    read_conversation_log, 
-    read_aiko_experience_log,
-    read_task_info, 
-    read_attendance_log 
+    get_employee_info,
+    get_partner_info, 
+    get_company_info,  
+    get_conversation_log, 
+    get_experience_log  
 )
-
-# 勤怠ログ記録のためのライター関数をインポート
-from information_writer import write_attendance_log
-
 from aiko_mailer import (
     draft_email_for_user, send_email_with_confirmation, get_user_email_from_uid, fetch_latest_email
 )
@@ -42,54 +39,61 @@ from mask_word import (
 )
 from aiko_self_study import generate_contextual_reply
 from openai_client import client
-from aiko_helpers import log_aiko_reply, normalize_person_name
+from aiko_helpers import log_aiko_reply
+from attendance_logger import log_attendance_from_qr
+from information_writer import write_attendance_log
 
 MAX_HITS = 10
 DEFAULT_USER_NAME = "不明"
 
-# 出勤記録用関数
-from attendance_logger import log_attendance_from_qr
+def classify_attendance_type(qr_text: str) -> str:
+    """
+    QRテキストから出勤/退勤を自動判別する
+    """
+    lowered = qr_text.lower()
+    if "退勤" in lowered or "leave" in lowered:
+        return "退勤"
+    if "出勤" in lowered or "attend" in lowered:
+        return "出勤"
+    # ヒントがない場合は時刻で推定
+    current_hour = now_jst().hour
+    return "出勤" if current_hour < 14 else "退勤"
 
 def handle_message_logic(event, sheet_service, line_bot_api):
     user_id = event.source.user_id.strip().upper()
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    user_message = event.message.text.strip()
-
-    log_aiko_reply(    #ユーザーのメッセージを「会話ログに保存」
-        timestamp=timestamp,
-        user_id=user_id,
-        user_name=user_name,
-        speaker="ユーザー",
-        reply=user_message,
-        category=category,
-        message_type="テキスト",
-        topics="不明",
-        status="OK",
-        topic="不明",
-        sentiment="不明"
-    )
-    
     user_name = get_user_callname_from_uid(user_id) or DEFAULT_USER_NAME
-    user_message = normalize_person_name(user_message)# ここで敬称などを削除（前処理）
-
-    # QRコードによる出勤処理
-    if user_message.startswith("QR出勤:" ):
-        qr_code = user_message.replace("QR出勤:", "").strip()
-        spreadsheet_id = os.getenv("SPREADSHEET_ID7")
-        if not spreadsheet_id:
-            line_bot_api.reply_message(event.reply_token, TextSendMessage(text="SPREADSHEET_ID7 が設定されていません。"))
-            return
-        result = log_attendance_from_qr(user_id, qr_code, spreadsheet_id)
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=result))
-        return
-
-    category = classify_conversation_category(user_message) or "未分類"
-   
+    logging.info(f"✅ user_name: {user_name}")
     registered_uids = load_all_user_ids()
 
-    logging.info(f"✅ 取得済み社内UIDリスト: {registered_uids}")
-    logging.info(f"👤 現在のユーザーID: {user_id}")
+    if isinstance(event.message, ImageMessage):
+        # QRコード画像の処理
+        message_content = line_bot_api.get_message_content(event.message.id)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tf:
+            for chunk in message_content.iter_content():
+                tf.write(chunk)
+            temp_image_path = tf.name
 
+        try:
+            img = Image.open(temp_image_path)
+            qr_text = pytesseract.image_to_string(img, lang='eng+jpn').strip()
+            spreadsheet_id = os.getenv("SPREADSHEET_ID7")
+            if not spreadsheet_id:
+                line_bot_api.reply_message(event.reply_token, TextSendMessage(text="SPREADSHEET_ID7 が設定されていません。"))
+                return
+            # 出退勤を自動判別
+            attendance_type = classify_attendance_type(qr_text)
+            logging.info(f"🔍 QR内容: {qr_text} => {attendance_type}")
+            result = log_attendance_from_qr(user_id, qr_text, spreadsheet_id, attendance_type)
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text=result))
+        except Exception as e:
+            logging.error(f"QRコード画像処理エラー: {e}")
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text="QRコードの読み取りに失敗しました。別の画像をお試しください。"))
+        return
+
+    user_message = event.message.text.strip()
+
+    # 検索処理前に認証チェック
     if user_id not in registered_uids:
         reply = "申し訳ありません。このサービスは社内専用です。"
         log_aiko_reply(
@@ -108,148 +112,27 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
-    greet_key = normalize_greeting(user_message)
-    if greet_key and not has_recent_greeting(user_id, greet_key):
-        greeting = get_time_based_greeting(user_id)
-        record_greeting_time(user_id, now_jst(), greet_key)
-        reply = greeting
-        log_aiko_reply(
-            timestamp=timestamp,
-            user_id=user_id,
-            user_name=user_name,
-            speaker="愛子",
-            reply=reply,
-            category="挨拶",
-            message_type="テキスト",
-            topics="挨拶",
-            status="OK",
-            topic="挨拶",
-            sentiment="ポジティブ"
-        )
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
-        return
-
-    if "最新メール" in user_message or "メール見せて" in user_message:
-        email_text = fetch_latest_email() or "最新のメールは見つかりませんでした。"
-        log_aiko_reply(
-            timestamp=timestamp,
-            user_id=user_id,
-            user_name=user_name,
-            speaker="愛子",
-            reply=email_text,
-            category="メール",
-            message_type="テキスト",
-            topics="社内メール",
-            status="OK",
-            topic="社内メール",
-            sentiment="冷静"
-        )
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=email_text[:100]))
-        return
-
-    if "にメールを送って" in user_message:
-        target = user_message.replace("にメールを送って", "").strip()
-        draft_body = draft_email_for_user(user_id, target)
-        update_user_status(user_id, 100)
-        update_user_status(user_id + "_target", target)
-        reply = f"この内容で{target}にメールを送りますか？"
-        log_aiko_reply(
-            timestamp=timestamp,
-            user_id=user_id,
-            user_name=user_name,
-            speaker="愛子",
-            reply=reply,
-            category="メール確認",
-            message_type="テキスト",
-            topics="メール",
-            status="OK",
-            topic="社内メール",
-            sentiment="冷静"
-        )
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
-        return
-
-    status = get_user_status(user_id) or {}
-    step = status.get("step", 0)
-    if step == 100:
-        target = get_user_status(user_id + "_target")
-        user_email = get_user_email_from_uid(user_id)
-        if user_message == "はい":
-            send_email_with_confirmation(sender_uid=user_id, to_name=target, cc=user_email)
-            reply = f"{target}にメールを送信しました。"
-        else:
-            send_email_with_confirmation(sender_uid=user_id, to_name=target, cc=None)
-            reply = "メールはあなたにだけ送信しました。内容を確認してください。"
-        reset_user_status(user_id)
-        reset_user_status(user_id + "_target")
-        log_aiko_reply(
-            timestamp=timestamp,
-            user_id=user_id,
-            user_name=user_name,
-            speaker="愛子",
-            reply=reply,
-            category="メール送信",
-            message_type="テキスト",
-            topics="メール",
-            status="OK",
-            topic="社内メール",
-            sentiment="冷静"
-        )
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
-        return
-
-    if step == 200:
-        fulltext = get_user_status(user_id + "_fulltext")
-        if user_message == "はい":
-            user_email = get_user_email_from_uid(user_id)
-            send_email_with_confirmation(sender_uid=user_id, to_name=user_email, cc=None, body=fulltext)
-            reply = "メールで送信しました。ご確認ください。"
-        else:
-            reply = "了解しました。必要があればまた聞いてください。"
-        reset_user_status(user_id)
-        reset_user_status(user_id + "_fulltext")
-        log_aiko_reply(
-            timestamp=timestamp,
-            user_id=user_id,
-            user_name=user_name,
-            speaker="愛子",
-            reply=reply,
-            category="メール送信確認",
-            message_type="テキスト",
-            topics="社内メール",
-            status="OK",
-            topic="社内メール",
-            sentiment="冷静"
-        )
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
-        return
-
-    employee_info = read_employee_info()
-    
+    # 従業員情報取得に関するフィルター解除
+    employee_info = get_employee_info()
     results = {
-        "会話ログ": search_conversation_log(user_message, read_conversation_log()),
+        "会話ログ": search_conversation_log(user_message, get_conversation_log()),
         "従業員情報": search_employee_info_by_keywords(user_message, employee_info),
-        "取引先情報": search_partner_info_by_keywords(user_message, read_partner_info()),
-        "会社情報": search_company_info_log(user_message, read_company_info()),
-        "経験ログ": search_aiko_experience_log(user_message, read_aiko_experience_log()),
-        "タスク情報": read_task_info(),
-        "勤怠管理": read_attendance_log()
+        "取引先情報": search_partner_info_by_keywords(user_message, get_partner_info()),
+        "会社情報": search_company_info_log(user_message, get_company_info()),
+        "経験ログ": search_experience_log(user_message, get_experience_log())
     }
     log_if_all_searches_failed(results)
 
     reply = next((r for r in results.values() if r), None)
     if not reply:
         try:
+            system_instruction = "あなたは社内専用のAIアシスタント愛子です。従業員には情報をすべて開示し、LINE返信は100文字以内にまとめてください。"
             if contains_sensitive_info(user_message):
-                combined = []
-                for dataset in [employee_info, read_partner_info(), read_company_info(), read_aiko_experience_log()]:
-                    combined.extend([str(item) for item in dataset if any(w in str(item) for w in user_message.split())])
-                hits = combined[:MAX_HITS] or ["該当情報が見つかりませんでした。"]
-                masked_input, mask_map = mask_sensitive_data("\n".join(hits))
-                reply_masked = rephrase_with_masked_text(masked_input)
+                masked_input, mask_map = mask_sensitive_data(user_message)
+                prompt = f"{system_instruction}\n\nユーザーの入力: {masked_input}"
+                reply_masked = rephrase_with_masked_text(prompt)
                 reply = unmask_sensitive_data(reply_masked, mask_map)
             else:
-                system_instruction = "あなたは社内専用のAIアシスタント愛子です。従業員には情報をすべて開示し、LINE返信は100文字以内にまとめてください。"
                 prompt = f"{system_instruction}\n\nユーザーの入力: {user_message}"
                 reply = generate_contextual_reply(user_id, prompt)
         except Exception as e:
