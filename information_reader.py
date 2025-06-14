@@ -4,7 +4,7 @@ import os
 import requests
 import logging
 
-def get_conversation_log(timestamp, user_id, user_name, speaker, message, category, message_type, topic, status, sentiment=""):
+def read_conversation_log(timestamp, user_id, user_name, speaker, message, category, message_type, topic, status, sentiment=""):
     try:
         base_url = os.getenv("GCF_ENDPOINT")
         if not base_url:
@@ -34,7 +34,7 @@ def get_conversation_log(timestamp, user_id, user_name, speaker, message, catego
     except Exception as e:
         logging.error(f"❌ Cloud Function呼び出し失敗: {e}")
 
-def get_employee_info():
+def read_employee_info():
     try:
         base_url = os.getenv("GCF_ENDPOINT")
         if not base_url:
@@ -53,7 +53,7 @@ def get_employee_info():
         logging.error(f"❌ Cloud Function呼び出し失敗: {e}")
         return []
 
-def get_company_info():
+def read_company_info():
     try:
         base_url = os.getenv("GCF_ENDPOINT")
         if not base_url:
@@ -72,7 +72,7 @@ def get_company_info():
         logging.error(f"❌ Cloud Function呼び出し失敗: {e}")
         return []
 
-def get_partner_info():
+def read_partner_info():
     try:
         base_url = os.getenv("GCF_ENDPOINT")
         if not base_url:
@@ -91,7 +91,7 @@ def get_partner_info():
         logging.error(f"❌ Cloud Function呼び出し失敗: {e}")
         return []
 
-def get_aiko_experience_log():
+def read_aiko_experience_log():
     try:
         base_url = os.getenv("GCF_ENDPOINT")
         if not base_url:
@@ -110,7 +110,7 @@ def get_aiko_experience_log():
         logging.error(f"❌ Cloud Function呼び出し失敗: {e}")
         return []
 
-def get_task_info():
+def read_task_info():
     try:
         base_url = os.getenv("GCF_ENDPOINT")
         if not base_url:
@@ -129,7 +129,7 @@ def get_task_info():
         logging.error(f"❌ Cloud Function呼び出し失敗: {e}")
         return []
 
-def get_attendance_log():
+def read_attendance_log():
     try:
         base_url = os.getenv("GCF_ENDPOINT")
         if not base_url:
