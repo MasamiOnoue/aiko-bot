@@ -58,6 +58,9 @@ def handle_message_logic(event, sheet_service, line_bot_api):
     if user_message.startswith("QR出勤:" ):
         qr_code = user_message.replace("QR出勤:", "").strip()
         spreadsheet_id = os.getenv("SPREADSHEET_ID7")
+        if not spreadsheet_id:
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text="SPREADSHEET_ID7 が設定されていません。"))
+            return
         result = log_attendance_from_qr(user_id, qr_code, spreadsheet_id)
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=result))
         return
@@ -112,7 +115,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
             reply=reply,
             category="挨拶",
             message_type="テキスト",
-            topics="警告",
+            topics="挨拶",
             status="OK",
             topic="挨拶",
             sentiment="ポジティブ"
@@ -216,7 +219,6 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         return
 
     employee_info = get_employee_info()
-
     results = {
         "従業員情報": search_employee_info_by_keywords(user_message, employee_info),
         "取引先情報": search_partner_info_by_keywords(user_message, get_partner_info()),
@@ -227,12 +229,11 @@ def handle_message_logic(event, sheet_service, line_bot_api):
     log_if_all_searches_failed(results)
 
     reply = next((r for r in results.values() if r), None)
-
     if not reply:
         try:
             if contains_sensitive_info(user_message):
                 combined = []
-                for dataset in [get_employee_info(), get_partner_info(), get_company_info(), get_conversation_log(), get_experience_log()]:
+                for dataset in [employee_info, get_partner_info(), get_company_info(), get_conversation_log(), get_experience_log()]:
                     combined.extend([str(item) for item in dataset if any(w in str(item) for w in user_message.split())])
                 hits = combined[:MAX_HITS] or ["該当情報が見つかりませんでした。"]
                 masked_input, mask_map = mask_sensitive_data("\n".join(hits))
