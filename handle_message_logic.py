@@ -118,6 +118,20 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
+    # ✅ 「挨拶」「雑談」は内部検索をスキップしてOpenAIへ
+    if category in ["挨拶", "雑談"]:
+        recent_logs = read_recent_conversation_log(user_id, limit=20)
+        prompt = generate_contextual_reply_from_context(user_id, user_message, recent_logs)
+        try:
+            reply = client.chat(prompt)
+        except Exception as e:
+            reply = f"申し訳ありません。現在応答できません（{e}）"
+
+        short_reply = reply[:100]
+        log_aiko_reply(timestamp, user_id, user_name, "愛子", short_reply, "通常応答", "テキスト", category, "OK", "AI応答", "中立")
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=short_reply))
+        return
+
     cleaned_message = remove_honorifics(user_message)
     keywords = extract_keywords(cleaned_message)
     logging.info(f"🔍 検索キーワード: {keywords}")
