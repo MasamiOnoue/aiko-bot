@@ -3,6 +3,7 @@
 import pytz
 import logging
 import re
+import requests
 from openai_client import client
 from datetime import datetime, timedelta
 from linebot import LineBotApi
@@ -51,6 +52,28 @@ def get_time_based_greeting(user_id=None):
                 greeting += f"、{name}さん"
     return greeting
 
+# 現在の天気情報を取得（Open-Meteo API使用・東京都想定）
+def get_current_weather():
+    try:
+        response = requests.get(
+            "https://api.open-meteo.com/v1/forecast",
+            params={
+                "latitude": 35.6812,  # 東京駅の緯度
+                "longitude": 139.7671,  # 東京駅の経度
+                "current_weather": True
+            },
+            timeout=5
+        )
+        data = response.json()
+        weather = data.get("current_weather", {})
+        temp = weather.get("temperature")
+        condition = weather.get("weathercode")
+        description = f"現在の気温は約{temp}℃、天気コードは{condition}です。"
+        return description
+    except Exception as e:
+        logging.warning(f"天気情報取得失敗: {e}")
+        return "天気情報の取得に失敗しました。"
+
 # 挨拶と認識される語を正規化（長い語順にソート）
 GREETING_KEYWORDS = sorted([
     "おはよう", "おっはー", "おは", "おっは", "お早う", "お早うございます",
@@ -70,6 +93,11 @@ def is_gibberish(text):
     valid_chars = re.findall(r'[ぁ-んァ-ン一-龯a-zA-Z0-9ａ-ｚＡ-Ｚ０-９]', text)
     ratio = len(valid_chars) / len(text)
     return ratio < 0.4
+
+# 業務系キーワードによる強制分類フィルター
+def contains_work_keywords(message):
+    work_keywords = ["役職", "出勤", "退勤", "作業", "工程", "指示", "会議", "勤怠", "報告"]
+    return any(kw in message for kw in work_keywords)
 
 # 挨拶以外の処理系（省略）
 def is_attendance_related(message):
@@ -99,6 +127,10 @@ def get_user_name_for_sheet(user_id):
 def classify_conversation_category(message):
     if is_gibberish(message):
         return "その他"
+
+    # 対策3: 業務キーワードが含まれる場合は強制的に業務情報として扱う
+    if contains_work_keywords(message):
+        return "業務情報"
 
     categories = {
         "あいさつ", "業務情報", "質問", "雑談", "読み方", "地理", "人間関係",
@@ -155,6 +187,11 @@ def classify_conversation_category(message):
         if category not in categories:
             logging.warning(f"⚠️ 不明なカテゴリ: {category}")
             return "その他"
+
+        # 対策1・2: 業務に関係しそうなカテゴリも業務検索対象とみなせるようログ出力
+        if category in {"業務情報", "質問", "人物情報", "雑談"}:
+            logging.info(f"🔍 検索対象カテゴリとして処理: {category}")
+
         return category
     except Exception as e:
         logging.error(f"❌ カテゴリ分類失敗: {e}")
