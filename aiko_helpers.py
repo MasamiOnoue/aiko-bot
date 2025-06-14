@@ -82,3 +82,27 @@ def count_keyword_matches(data_list, keywords):
         ) for item in data_list
     )
 
+def get_matching_entries(data_list, keywords, fields=None):
+    """
+    キーワードのいずれかが一致するデータエントリを抽出
+
+    :param data_list: 辞書のリスト（例: 従業員一覧）
+    :param keywords: 抽出に使うキーワードのリスト
+    :param fields: 検索対象とするフィールド名のリスト（Noneなら全フィールド）
+    :return: 条件にマッチする辞書のリスト
+    """
+    matches = []
+
+    for entry in data_list:
+        for keyword in keywords:
+            target_fields = fields if fields else entry.keys()
+            for field in target_fields:
+                value = str(entry.get(field, ""))
+                if keyword.lower() in value.lower():
+                    matches.append(entry)
+                    break  # 1つでも一致すれば追加して次の entry へ
+            else:
+                continue
+            break
+
+    return matches
