@@ -55,6 +55,9 @@ def load_all_user_ids():
         response.raise_for_status()
         values = response.json().get("data", [])
 
+        logging.info(f"🔍 APIから取得したデータ件数: {len(values)} 件")
+        logging.debug(f"📄 APIレスポンスデータ: {values}")
+
         if not isinstance(values, list):
             logging.error("❌ スプレッドシートレスポンスが配列ではありません")
             return []
@@ -95,6 +98,9 @@ def get_user_callname_from_uid(user_id):
         response = requests.get(url, headers=headers, timeout=10)
         response.raise_for_status()
         values = response.json().get("data", [])
+
+        logging.info(f"🔍 呼び名取得対象データ件数: {len(values)} 件")
+        logging.debug(f"📄 呼び名取得対象データ: {values}")
 
         if not isinstance(values, list):
             logging.error("❌ スプレッドシートレスポンスが配列ではありません")
