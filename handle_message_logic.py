@@ -55,7 +55,6 @@ from information_writer import write_attendance_log
 MAX_HITS = 10
 DEFAULT_USER_NAME = "不明"
 
-
 def remove_honorifics(text):
     for suffix in ["さん", "ちゃん", "くん"]:
         if text.endswith(suffix):
@@ -131,9 +130,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=short_reply))
         return
 
-    # 検索0件時のログ出力追加
     logging.info("🔎 内部API検索に進みます（業務情報カテゴリ）")
-
     cleaned_message = remove_honorifics(user_message)
     keywords = extract_keywords(cleaned_message)
     logging.info(f"🔍 検索キーワード: {keywords}")
@@ -151,3 +148,11 @@ def handle_message_logic(event, sheet_service, line_bot_api):
     match_any = any(count_keyword_matches(v, keywords) > 0 for v in sources.values() if isinstance(v, list))
     if not match_any:
         logging.info("❗検索結果が全データで0件でした。OpenAIに処理を委譲します。")
+        try:
+            reply = ask_openai_general_question(user_id, user_message)
+        except Exception as e:
+            reply = f"なんですか？（質問の処理に失敗しました: {e}）"
+        short_reply = reply[:100]
+        log_aiko_reply(timestamp, user_id, user_name, "愛子", short_reply, "OpenAI応答", "テキスト", category, "OK", "AI応答", "中立")
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=short_reply))
+        return
