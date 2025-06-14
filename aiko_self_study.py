@@ -13,6 +13,7 @@ from openai_client import client
 
 SPREADSHEET_ID4 = os.getenv('SPREADSHEET_ID4')
 sheets_service = get_google_sheets_service()
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 user_conversation_cache = {}
 full_conversation_cache = []
