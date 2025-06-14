@@ -155,3 +155,35 @@ def read_attendance_log():
     except Exception as e:
         logging.error(f"❌ Cloud Function呼び出し失敗: {e}")
         return []
+
+def read_recent_conversation_log(user_id, limit=20):
+    try:
+        base_url = os.getenv("GCF_ENDPOINT")
+        if not base_url:
+            raise ValueError("GCF_ENDPOINT が設定されていません。")
+
+        url = base_url.rstrip("/") + "/read-conversation-log"
+        headers = {
+            "Content-Type": "application/json",
+            "x-api-key": os.getenv("PRIVATE_API_KEY", "")
+        }
+
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+        data = response.json().get("records", [])
+
+        # 指定ユーザーの最新メッセージだけ取得
+        user_messages = [
+            {
+                "role": "user" if row["speaker"] == row["user_name"] else "assistant",
+                "content": row["message"]
+            }
+            for row in reversed(data)
+            if row.get("user_id") == user_id
+        ]
+
+        return user_messages[:limit]
+
+    except Exception as e:
+        logging.error(f"❌ 会話履歴取得エラー: {e}")
+        return []
