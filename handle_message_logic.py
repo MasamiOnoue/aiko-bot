@@ -49,6 +49,7 @@ from openai_client import client
 from aiko_helpers import log_aiko_reply
 from attendance_logger import log_attendance_from_qr
 from information_writer import write_attendance_log
+from openai_client import ask_openai_general_question
 
 MAX_HITS = 10
 DEFAULT_USER_NAME = "不明"
@@ -140,14 +141,12 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         if matching_entries:
             result = matching_entries[0]
 
-            # 名前の呼び名変換
             target_callname = result.get("名前", "対象者")
             for e in sources["従業員情報"]:
                 if e.get("名前") == result.get("名前"):
                     target_callname = e.get("愛子からの呼び名", target_callname)
                     break
 
-            # 役職あれば優先応答
             if "役職" in result:
                 reply = f"{target_callname}は{result['役職']}です"
             else:
@@ -164,18 +163,22 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         else:
             reply = f"🔎 最も一致したのは「{best_source}」ですが、関連データの表示に失敗しました。"
     else:
-        system_instruction = "あなたは社内専用のAIアシスタント愛子です。従業員には情報をすべて開示し、LINE返信は100文字以内にまとめてください。"
-        try:
-            if contains_sensitive_info(user_message):
-                masked_input, mask_map = mask_sensitive_data(user_message)
-                prompt = f"{system_instruction}\n\nユーザーの入力: {masked_input}"
-                reply_masked = rephrase_with_masked_text(prompt)
-                reply = unmask_sensitive_data(reply_masked, mask_map)
-            else:
-                prompt = f"{system_instruction}\n\nユーザーの入力: {user_message}"
-                reply = generate_contextual_reply(user_id, prompt)
-        except Exception as e:
-            reply = f"申し訳ありません。現在応答できません（{e}）"
+        category = classify_conversation_category(user_message)
+        if category == "質問":
+            reply = ask_openai_general_question(user_id, user_message)
+        else:
+            system_instruction = "あなたは社内専用のAIアシスタント愛子です。従業員には情報をすべて開示し、LINE返信は100文字以内にまとめてください。"
+            try:
+                if contains_sensitive_info(user_message):
+                    masked_input, mask_map = mask_sensitive_data(user_message)
+                    prompt = f"{system_instruction}\n\nユーザーの入力: {masked_input}"
+                    reply_masked = rephrase_with_masked_text(prompt)
+                    reply = unmask_sensitive_data(reply_masked, mask_map)
+                else:
+                    prompt = f"{system_instruction}\n\nユーザーの入力: {user_message}"
+                    reply = generate_contextual_reply(user_id, prompt)
+            except Exception as e:
+                reply = f"申し訳ありません。現在応答できません（{e}）"
 
     if len(reply) > 80:
         update_user_status(user_id, 200)
