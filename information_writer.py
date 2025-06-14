@@ -128,3 +128,22 @@ def write_task_info(values):
         logging.info("✅ タスク情報送信成功")
     except Exception as e:
         logging.error(f"❌ Cloud Function呼び出し失敗: {e}")
+
+def write_attendance_log(values):
+    try:
+        base_url = os.getenv("GCF_ENDPOINT")
+        if not base_url:
+            raise ValueError("GCF_ENDPOINT 環境変数が設定されていません")
+
+        url = base_url.rstrip("/") + "/write-attendance-log"
+        api_key = os.getenv("PRIVATE_API_KEY")
+        headers = {
+            "Content-Type": "application/json",
+            "x-api-key": api_key
+        }
+        payload = {"values": values}
+        response = requests.post(url, headers=headers, json=payload, timeout=10)
+        response.raise_for_status()
+        logging.info("✅ 勤怠情報送信成功")
+    except Exception as e:
+        logging.error(f"❌ Cloud Function呼び出し失敗: {e}")
