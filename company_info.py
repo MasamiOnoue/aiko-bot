@@ -1,4 +1,5 @@
-# company_info.py（安定版：UID取得の不具合修正＋「-」除去の処理追加＋UID判定強化＋属性不明時の応答追加＋OpenAIループ対応＋「折戸」名認識強化＋呼ばれ方多段一致対応）
+# company_info.py
+#（安定版：UID取得の不具合修正＋「-」除去の処理追加＋UID判定強化＋属性不明時の応答追加＋OpenAIループ対応＋「折戸」名認識強化＋呼ばれ方多段一致対応＋取引先対応＋会社情報参照）
 
 import os
 import logging
@@ -51,6 +52,41 @@ def search_employee_info_by_keywords(user_message, employee_info_list):
 
     logging.warning(f"❗該当する従業員または属性が見つかりませんでした: '{user_message}'")
     return None  # ← OpenAIへループさせるためNoneに変更
+
+# === 取引先情報検索 ===
+def search_partner_info_by_keywords(user_message, partner_info_list):
+    attributes = ["会社名", "電話番号", "住所", "メールアドレス", "担当者"]
+
+    for record in partner_info_list:
+        if not isinstance(record, dict):
+            continue
+
+        company_name = record.get("会社名", "").strip()
+        if not company_name:
+            continue
+
+        if company_name in user_message:
+            for attr in attributes:
+                if attr in user_message:
+                    value = record.get(attr, "").strip() or "不明"
+                    return f"{company_name}の{attr}は {value} です。"
+            return f"{company_name}に関する情報ですね。もう少し具体的に聞いてみてください。"
+
+    logging.warning(f"❗該当する取引先または属性が見つかりませんでした: '{user_message}'")
+    return None
+
+# === 会社情報ログから参照（梅原さん対応） ===
+def search_company_info_log(user_message, company_info_log):
+    for entry in company_info_log:
+        if not isinstance(entry, dict):
+            continue
+
+        text = entry.get("メッセージ内容", "")
+        if any(name in user_message for name in ["梅原", "梅原さん", "うめはらさん"]):
+            if "梅原" in text:
+                return f"以前の記録より：{text}"
+
+    return None
 
 def load_all_user_ids():
     logging.info(f"📡 現在の GCF_ENDPOINT: {os.getenv('GCF_ENDPOINT')}")
