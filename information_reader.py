@@ -91,13 +91,13 @@ def get_partner_info():
         logging.error(f"❌ Cloud Function呼び出し失敗: {e}")
         return []
 
-def get_experience_log():
+def get_aiko_experience_log():
     try:
         base_url = os.getenv("GCF_ENDPOINT")
         if not base_url:
             raise ValueError("GCF_ENDPOINT 環境変数が設定されていません")
 
-        url = base_url.rstrip("/") + "/read-experience-log"
+        url = base_url.rstrip("/") + "/read-aiko-experience-log"
         api_key = os.getenv("PRIVATE_API_KEY")
         headers = {
             "x-api-key": api_key
