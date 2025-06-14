@@ -1,4 +1,4 @@
-# company_info.py（安定版：UID取得の不具合修正＋「-」除去の処理追加）
+# company_info.py（安定版：UID取得の不具合修正＋「-」除去の処理追加＋UID判定強化）
 
 import os
 import logging
@@ -66,7 +66,7 @@ def load_all_user_ids():
             uid = record.get("LINEユーザーID")
             if isinstance(uid, str):
                 uid = uid.strip().upper()
-                if uid.startswith("U") and uid != "-":
+                if uid and uid.startswith("U") and len(uid) >= 10:
                     result.append(uid)
 
         logging.info(f"✅ 読み込んだUID一覧: {result}")
