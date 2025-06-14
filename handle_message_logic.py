@@ -21,15 +21,17 @@ from company_info import (
     load_all_user_ids
 )
 from information_reader import (
-    get_employee_info,
-    get_partner_info, 
-    get_company_info,  
-    get_conversation_log, 
-    get_aiko_experience_log,
-    get_task_info, 
-    get_attendance_log 
-
+    read_employee_info,
+    read_partner_info, 
+    read_company_info,  
+    read_conversation_log, 
+    read_aiko_experience_log,
+    read_task_info, 
+    read_attendance_log 
 )
+
+# 勤怠ログ記録のためのライター関数をインポート
+from information_writer import write_attendance_log
 
 from aiko_mailer import (
     draft_email_for_user, send_email_with_confirmation, get_user_email_from_uid, fetch_latest_email
@@ -47,9 +49,6 @@ DEFAULT_USER_NAME = "不明"
 
 # 出勤記録用関数
 from attendance_logger import log_attendance_from_qr
-
-# 勤怠ログ記録のためのライター関数をインポート
-from information_writer import write_attendance_log
 
 def handle_message_logic(event, sheet_service, line_bot_api):
     user_id = event.source.user_id.strip().upper()
