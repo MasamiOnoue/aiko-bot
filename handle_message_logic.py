@@ -37,7 +37,7 @@ from information_reader import (
     read_aiko_experience_log,
     read_task_info,
     read_attendance_log,
-    get_recent_conversation_log
+    read_recent_conversation_log
 )
 from aiko_mailer import (
     draft_email_for_user, send_email_with_confirmation, get_user_email_from_uid, fetch_latest_email
