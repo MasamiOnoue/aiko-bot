@@ -1,196 +1,197 @@
-# handle_message_logic.py  LINEメッセージを受け取ったときのメイン処理
+# aiko_greeting.py
 
-import os
+import pytz
 import logging
 import re
-from datetime import datetime
-from linebot.models import TextSendMessage, ImageMessage
-from PIL import Image
-import tempfile
+import requests
+from openai_client import client
+from datetime import datetime, timedelta
+from linebot import LineBotApi
+from linebot.models import TextSendMessage
+from company_info import get_user_callname_from_uid
 
-try:
-    import pytesseract
-except ImportError:
-    pytesseract = None
-    print("⚠️ pytesseract is not available in this environment.")
+# ユーザーごとの挨拶履歴を記録する辞書（時刻＋カテゴリ）
+recent_greeting_users = {}
 
-from aiko_greeting import (
-    now_jst, get_time_based_greeting, is_attendance_related, is_topic_changed,
-    get_user_status, update_user_status, reset_user_status, forward_message_to_others,
-    has_recent_greeting, record_greeting_time, normalize_greeting, classify_conversation_category
-)
-from company_info import (
-    search_employee_info_by_keywords,
-    search_partner_info_by_keywords, 
-    search_company_info_log,   
-    search_aiko_experience_log,      
-    search_conversation_log,    
-    log_if_all_searches_failed, 
-    get_user_callname_from_uid,
-    load_all_user_ids
-)
-from information_reader import (
-    read_employee_info,
-    read_partner_info, 
-    read_company_info,  
-    read_conversation_log, 
-    read_aiko_experience_log,
-    read_task_info,
-    read_attendance_log,
-    get_recent_conversation_log
-)
-from aiko_mailer import (
-    draft_email_for_user, send_email_with_confirmation, get_user_email_from_uid, fetch_latest_email
-)
-from mask_word import (
-    contains_sensitive_info, mask_sensitive_data,
-    unmask_sensitive_data, rephrase_with_masked_text
-)
-from aiko_self_study import generate_contextual_reply_from_context
-from openai_client import client, ask_openai_general_question
-from aiko_helpers import log_aiko_reply
-from attendance_logger import log_attendance_from_qr
-from information_writer import write_attendance_log
+# JST取得関数
+def now_jst():
+    return datetime.now(pytz.timezone("Asia/Tokyo"))
 
-MAX_HITS = 10
-DEFAULT_USER_NAME = "不明"
+# 最近3時間以内に同じカテゴリの挨拶があったかどうか
+def has_recent_greeting(user_id, category):
+    now = now_jst()
+    record = recent_greeting_users.get(user_id)
+    if record:
+        last_time, last_category = record
+        if (now - last_time).total_seconds() < 3 * 3600 and last_category == category:
+            return True
+    return False
 
+# 挨拶の時刻とカテゴリを記録
+def record_greeting_time(user_id, timestamp, category):
+    recent_greeting_users[user_id] = (timestamp, category)
 
-def remove_honorifics(text):
-    for suffix in ["さん", "ちゃん", "くん"]:
-        if text.endswith(suffix):
-            text = text[:-len(suffix)]
-    return text
+# 時間帯に応じた挨拶
+def get_time_based_greeting(user_id=None):
+    hour = now_jst().hour
+    if 5 <= hour < 11:
+        greeting = "おっはー"
+    elif 11 <= hour < 18:
+        greeting = "やっはろー"
+    elif 18 <= hour < 23:
+        greeting = "ばんわ～"
+    else:
+        greeting = "ねむ～"
 
-def extract_keywords(text):
-    cleaned = re.sub(r'[。、「」？?！!\n]', ' ', text)
-    return [word for word in cleaned.split() if len(word) > 1]
+    if user_id:
+        name = get_user_callname_from_uid(user_id)
+        if name and name != "不明":
+            if any(name.endswith(suffix) for suffix in ["さん", "様", "くん", "ちゃん"]):
+                greeting += f"、{name}"
+            else:
+                greeting += f"、{name}さん"
+    return greeting
 
-def classify_attendance_type(qr_text: str) -> str:
-    lowered = qr_text.lower()
-    if "退勤" in lowered or "leave" in lowered:
-        return "退勤"
-    if "出勤" in lowered or "attend" in lowered:
-        return "出勤"
-    current_hour = now_jst().hour
-    return "出勤" if current_hour < 14 else "退勤"
+# 現在の天気情報を取得（Open-Meteo API使用・東京都想定）
+def get_current_weather():
+    try:
+        response = requests.get(
+            "https://api.open-meteo.com/v1/forecast",
+            params={
+                "latitude": 35.6812,
+                "longitude": 139.7671,
+                "current_weather": True
+            },
+            timeout=5
+        )
+        data = response.json()
+        weather = data.get("current_weather", {})
+        temp = weather.get("temperature")
+        condition = weather.get("weathercode")
+        description = f"現在の気温は約{temp}℃、天気コードは{condition}です。"
+        return description
+    except Exception as e:
+        logging.warning(f"天気情報取得失敗: {e}")
+        return "天気情報の取得に失敗しました。"
 
-def count_keyword_matches(data_list, keywords):
-    if not data_list:
-        return 0
-    headers = data_list[0].keys() if isinstance(data_list[0], dict) else []
-    return sum(
-        all(
-            any(kw in str(v) for v in item.values()) or any(kw in h for h in headers)
-            for kw in keywords
-        ) for item in data_list
+# OpenAIへ直接質問する（業務外の質問対応）
+def ask_openai_general_question(message):
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "あなたは親切で知識豊富なAIアシスタントです。"},
+                {"role": "user", "content": message}
+            ],
+            max_tokens=200,
+            temperature=0.7
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        logging.error(f"OpenAIへの一般質問失敗: {e}")
+        return "すみません、質問の処理中に問題が発生しました。"
+
+# 挨拶と認識される語を正規化（長い語順にソート）
+GREETING_KEYWORDS = sorted([
+    "おはよう", "おっはー", "おは", "おっは", "お早う", "お早うございます",
+    "こんにちは", "こんばんは", "お疲れさま", "おつかれ"
+], key=lambda x: -len(x))
+
+def normalize_greeting(text):
+    for word in GREETING_KEYWORDS:
+        if word in text:
+            return word[:3]
+    return None
+
+# ノイズ検知関数（意味不明な文字列を検出）
+def is_gibberish(text):
+    if len(text) < 3:
+        return True
+    valid_chars = re.findall(r'[ぁ-んァ-ン一-龯a-zA-Z0-9ａ-ｚＡ-Ｚ０-９]', text)
+    ratio = len(valid_chars) / len(text)
+    return ratio < 0.4
+
+# 業務系キーワードによる強制分類フィルター
+def contains_work_keywords(message):
+    work_keywords = ["役職", "出勤", "退勤", "作業", "工程", "指示", "会議", "勤怠", "報告"]
+    return any(kw in message for kw in work_keywords)
+
+# 会話の社交的・軽口カテゴリ判定（拡張版）
+def is_small_talk(message):
+    small_talk_patterns = [
+        r"寝てた", r"起きた", r"元気", r"最近(どう|なに)してる", r"ひま", r"暇だよね",
+        r"(暑い|寒い|涼しい|あったかい|あつい|さむい)(ね|な|よね)?",
+        r"つかれた", r"だるい", r"眠い", r"もう.*(帰りたい|帰る)",
+        r"(雨|雪|晴れ|くもり|天気).*だね", r"(調子|気分)(どう|は)?",
+        r"いい天気", r"空が.*きれい", r"やる気出ない", r"だらだら", r"朝から.*眠い"
+    ]
+    return any(re.search(pattern, message, re.IGNORECASE) for pattern in small_talk_patterns)
+
+# 挨拶以外の処理系（省略）
+def is_attendance_related(message):
+    return any(kw in message for kw in ["遅刻", "休み", "休暇", "出社", "在宅", "早退"])
+
+def is_topic_changed(message):
+    return any(kw in message for kw in ["やっぱり", "ちなみに", "ところで", "別件", "変更", "違う話"])
+
+# ユーザー状態のダミー関数群
+def get_user_status(user_id):
+    return {}
+
+def update_user_status(user_id, step):
+    pass
+
+def reset_user_status(user_id):
+    pass
+
+def forward_message_to_others(api: LineBotApi, from_name: str, message: str, uids: list):
+    for uid in uids:
+        api.push_message(uid, TextSendMessage(text=f"{from_name}さんより: {message}"))
+
+def get_user_name_for_sheet(user_id):
+    return "不明"
+
+# === 会話分類 ===
+def classify_conversation_category(message):
+    if is_gibberish(message):
+        logging.info(f"🌀 ノイズ判定: {message}")
+        return "その他"
+    if contains_work_keywords(message):
+        logging.info(f"🔍 業務キーワード分類: {message}")
+        return "業務情報"
+    if is_small_talk(message):
+        logging.info(f"💬 スモールトーク分類: {message}")
+        return "雑談"
+
+    categories = {
+        "あいさつ", "業務情報", "質問", "雑談", "読み方", "地理", "人間関係",
+        "人物情報", "趣味・関心", "体調・健康", "スケジュール", "感謝・謝罪",
+        "食事・栄養", "天気", "ニュース・時事", "交通・移動", "買い物・物品",
+        "金銭・支払い", "意見・提案", "指示・依頼", "感情・気持ち", "その他"
+    }
+    prompt = (
+        "以下の文章を、次のカテゴリのうち最も適切なもの1つに分類してください："
+        + "、".join(sorted(categories)) + "。\n"
+        "カテゴリ名だけを返してください。\n"
+        f"文章:\n「{message}」"
     )
 
-def handle_message_logic(event, sheet_service, line_bot_api):
-    user_id = event.source.user_id.strip().upper()
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    user_name = get_user_callname_from_uid(user_id) or DEFAULT_USER_NAME
-    logging.info(f"✅ user_name: {user_name}")
-    registered_uids = load_all_user_ids()
-
-    if isinstance(event.message, ImageMessage):
-        return
-
-    user_message = event.message.text.strip()
-    category = classify_conversation_category(user_message)
-    logging.info(f"🧠 カテゴリ分類: {category}")
-    log_aiko_reply(timestamp, user_id, user_name, "ユーザー", user_message, category or "未分類", "テキスト", "未分類", "OK", "入力", "不明")
-
-    greet_key = normalize_greeting(user_message)
-    if greet_key and not has_recent_greeting(user_id, greet_key):
-        greeting = get_time_based_greeting(user_id)
-        record_greeting_time(user_id, now_jst(), greet_key)
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=greeting))
-        return
-
-    if user_id not in registered_uids:
-        reply = "申し訳ありません。このサービスは社内専用です。"
-        log_aiko_reply(timestamp, user_id, user_name, "愛子", reply, "権限エラー", "テキスト", "警告", "NG", "認証", "冷静")
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
-        return
-
-    cleaned_message = remove_honorifics(user_message)
-    keywords = extract_keywords(cleaned_message)
-    logging.info(f"🔍 検索キーワード: {keywords}")
-
-    sources = {
-        "従業員情報": read_employee_info(),
-        "会社情報": read_company_info(),
-        "取引先情報": read_partner_info(),
-        "会話ログ": read_conversation_log(),
-        "経験ログ": read_aiko_experience_log(),
-        "タスク情報": read_task_info(),
-        "勤怠管理": read_attendance_log()
-    }
-
-    def get_score(k, v):
-        weight = 2 if k in ["従業員情報", "取引先情報"] else 1
-        return count_keyword_matches(v, keywords) * weight
-
-    match_scores = {k: get_score(k, v) if isinstance(v, list) else 0 for k, v in sources.items()}
-    priority_order = ["従業員情報", "会社情報", "取引先情報", "経験ログ", "タスク情報", "勤怠管理", "会話ログ"]
-    best_source = max(priority_order, key=lambda k: match_scores[k])
-
-    if match_scores[best_source] > 0:
-        data = sources[best_source]
-        matching_entries = [
-            d for d in data if all(
-                any(kw in str(v) for v in d.values()) or any(kw in h for h in d.keys())
-                for kw in keywords
-            )
-        ]
-        logging.info(f"🔎 最も一致したデータ: {matching_entries}")
-        if matching_entries:
-            result = matching_entries[0]
-
-            target_callname = result.get("名前", "対象者")
-            for e in sources["従業員情報"]:
-                if e.get("名前") == result.get("名前"):
-                    target_callname = e.get("愛子からの呼び名", target_callname)
-                    break
-
-            if "役職" in result:
-                reply = f"{target_callname}は{result['役職']}です"
-            else:
-                summary_parts = []
-                for key in ["名前", "役職", "部署", "会社名", "メール", "電話番号"]:
-                    if key in result:
-                        summary_parts.append(f"{key}:{result[key]}")
-                summary_text = " / ".join(summary_parts)[:150]
-
-                masked_text, mask_map = mask_sensitive_data(summary_text)
-                prompt = f"以下の情報を自然な日本語にして、80文字以内に要約してください: {masked_text}"
-                reply_masked = rephrase_with_masked_text(prompt)
-                reply = unmask_sensitive_data(reply_masked, mask_map)
-        else:
-            reply = f"🔎 最も一致したのは「{best_source}」ですが、関連データの表示に失敗しました。"
-    else:
-        if category == "質問":
-            try:
-                reply = ask_openai_general_question(user_id, user_message)
-            except Exception as e:
-                reply = f"申し訳ありません。質問の処理に失敗しました（{e}）"
-        else:
-            recent_logs = get_recent_conversation_log(user_id, limit=20)
-            prompt = generate_contextual_reply_from_context(user_id, user_message, recent_logs)
-            try:
-                reply = client.chat(prompt)
-            except Exception as e:
-                reply = f"申し訳ありません。現在応答できません（{e}）"
-
-    if len(reply) > 80:
-        update_user_status(user_id, 200)
-        update_user_status(user_id + "_fulltext", reply)
-        short_reply = "もっと情報がありますがLINEでは送れないのでメールで送りますか？"
-        log_aiko_reply(timestamp, user_id, user_name, "愛子", short_reply, "メール長文応答", "テキスト", "メール", "OK", "社内メール", "冷静")
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=short_reply))
-        return
-
-    short_reply = reply[:100]
-    log_aiko_reply(timestamp, user_id, user_name, "愛子", short_reply, "通常応答", "テキスト", "通常応答", "OK", "AI応答", "中立")
-    line_bot_api.reply_message(event.reply_token, TextSendMessage(text=short_reply))
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "あなたは優秀な会話分類AIです。"},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=10,
+            temperature=0
+        )
+        category = response.choices[0].message.content.strip()
+        if not category or category not in categories:
+            logging.warning(f"⚠️ 不明なカテゴリ: '{category}' ← メッセージ: {message}")
+            return "その他"
+        logging.info(f"✅ カテゴリ分類: '{category}' ← メッセージ: {message}")
+        return category
+    except Exception as e:
+        logging.error(f"❌ カテゴリ分類失敗: {e}")
+        return "その他"
