@@ -91,13 +91,13 @@ def write_partner_info(values):
     except Exception as e:
         logging.error(f"❌ Cloud Function呼び出し失敗: {e}")
 
-def write_experience_log(values):
+def write_aiko_experience_log(values):
     try:
         base_url = os.getenv("GCF_ENDPOINT")
         if not base_url:
             raise ValueError("GCF_ENDPOINT 環境変数が設定されていません")
 
-        url = base_url.rstrip("/") + "/write-experience-log"
+        url = base_url.rstrip("/") + "/write-aiko-experience-log"
         api_key = os.getenv("PRIVATE_API_KEY")
         headers = {
             "Content-Type": "application/json",
