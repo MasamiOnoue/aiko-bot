@@ -66,7 +66,40 @@ def handle_message_logic(event, sheet_service, line_bot_api):
     logging.info(f"✅ user_name: {user_name}")
     registered_uids = load_all_user_ids()
 
+    user_message = event.message.text.strip()
+
+    # ユーザー発言を会話ログに保存
+    log_aiko_reply(
+        timestamp=timestamp,
+        user_id=user_id,
+        user_name=user_name,
+        speaker="ユーザー",
+        reply=user_message,
+        category="入力",
+        message_type="テキスト",
+        topics="未分類",
+        status="OK",
+        topic="入力",
+        sentiment="不明"
+    )
+
     if isinstance(event.message, ImageMessage):
+        user_message = f"✅ user_name: {user_name}さんが打刻しました"
+
+        # ユーザー発言（画像）のダミー記録をログに保存
+        log_aiko_reply(
+            timestamp=timestamp,
+            user_id=user_id,
+            user_name=user_name,
+            speaker="ユーザー",
+            reply=user_message,
+            category="画像",
+            message_type="画像",
+            topics="QRコード",
+            status="OK",
+            topic="出退勤",
+            sentiment="中立"
+        )
         # QRコード画像の処理
         message_content = line_bot_api.get_message_content(event.message.id)
         with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tf:
@@ -90,8 +123,6 @@ def handle_message_logic(event, sheet_service, line_bot_api):
             logging.error(f"QRコード画像処理エラー: {e}")
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text="QRコードの読み取りに失敗しました。別の画像をお試しください。"))
         return
-
-    user_message = event.message.text.strip()
 
     # 検索処理前に認証チェック
     if user_id not in registered_uids:
