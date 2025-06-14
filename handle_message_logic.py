@@ -202,6 +202,18 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         return
 
     employee_info = get_employee_info()
+
+    results = {
+        "従業員情報": search_employee_info_by_keywords(user_message, employee_info),
+        "取引先情報": search_partner_info_by_keywords(user_message, get_partner_info()),
+        "会社情報": search_company_info_log(user_message, get_company_info()),
+        "経験ログ": search_experience_log(user_message, get_experience_log()),
+        "会話ログ": search_conversation_log(user_message, get_conversation_log())
+    }
+    log_if_all_searches_failed(results)
+
+    reply = next((r for r in results.values() if r), None)
+    
     reply = search_employee_info_by_keywords(user_message, employee_info)
     if not reply:
         try:
