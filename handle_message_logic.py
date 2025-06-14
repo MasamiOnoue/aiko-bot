@@ -37,7 +37,7 @@ from information_reader import (
     read_aiko_experience_log,
     read_task_info,
     read_attendance_log,
-    get_recent_conversation_log
+    read_recent_conversation_log
 )
 from aiko_mailer import (
     draft_email_for_user, send_email_with_confirmation, get_user_email_from_uid, fetch_latest_email
@@ -178,7 +178,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
             except Exception as e:
                 reply = f"なんですか？（質問の処理に失敗しました: {e}）"
         else:
-            recent_logs = get_recent_conversation_log(user_id, limit=20)
+            recent_logs = read_recent_conversation_log(user_id, limit=20)
             prompt = generate_contextual_reply_from_context(user_id, user_message, recent_logs)
             try:
                 reply = client.chat(prompt)
