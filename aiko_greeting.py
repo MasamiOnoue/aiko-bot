@@ -143,8 +143,10 @@ def get_user_name_for_sheet(user_id):
 # === 会話分類 ===
 def classify_conversation_category(message):
     if is_gibberish(message):
+        logging.info(f"🌀 ノイズ判定: {message}")
         return "その他"
     if contains_work_keywords(message):
+        logging.info(f"🔍 業務キーワード分類: {message}")
         return "業務情報"
 
     categories = {
@@ -176,27 +178,10 @@ def classify_conversation_category(message):
         )
         category = response.choices[0].message.content.strip()
         if not category or category not in categories:
+            logging.warning(f"⚠️ 不明なカテゴリ: '{category}' → {message}")
             return "その他"
-            
+        logging.info(f"✅ 分類結果: {category} ← {message}")
         return category
     except Exception as e:
         logging.error(f"❌ カテゴリ分類失敗: {e}")
         return "その他"
-
-def generate_contextual_reply(messages, temperature=0.7):
-    """
-    過去の会話ログを含む messages をもとに、OpenAI で自然な応答を生成する。
-    messages: [{"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}] の形式
-    """
-    from openai_client import client
-
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4o",  # または "gpt-4"
-            messages=messages,
-            temperature=temperature
-        )
-        return response.choices[0].message.content.strip()
-    except Exception as e:
-        print(f"❌ OpenAI応答生成エラー: {e}")
-        return "すみません、ちょっと考えがまとまりませんでした。"
