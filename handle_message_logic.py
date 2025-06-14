@@ -105,6 +105,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
     if greet_key and not has_recent_greeting(user_id, greet_key):
         try:
             prompt = f"ユーザーから『{user_message}』という挨拶がありました。愛子らしく挨拶を返してください。"
+            logging.info(f"🗣️ OpenAI送信プロンプト（挨拶）: {prompt}")
             reply = client.chat(prompt)
         except Exception:
             reply = get_time_based_greeting(user_id)
@@ -122,6 +123,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         logging.info(f"🗣️ OpenAIへ送信するユーザーメッセージ: {user_message}")
         recent_logs = read_recent_conversation_log(user_id, limit=20)
         prompt = generate_contextual_reply_from_context(user_id, user_message, recent_logs)
+        logging.info(f"📤 OpenAI送信プロンプト: {prompt}")
         try:
             reply = client.chat(prompt)
         except Exception as e:
@@ -159,6 +161,9 @@ def handle_message_logic(event, sheet_service, line_bot_api):
     if not match_any:
         logging.info("❗検索結果が全データで0件でした。OpenAIに処理を委譲します。")
         logging.info(f"🗣️ OpenAIへ送信するユーザーメッセージ: {user_message}")
+        recent_logs = read_recent_conversation_log(user_id, limit=20)
+        prompt = generate_contextual_reply_from_context(user_id, user_message, recent_logs)
+        logging.info(f"📤 OpenAI送信プロンプト: {prompt}")
         try:
             reply = ask_openai_general_question(user_id, user_message)
         except Exception as e:
