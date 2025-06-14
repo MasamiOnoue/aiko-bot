@@ -16,7 +16,8 @@ except ImportError:
 from aiko_greeting import (
     now_jst, get_time_based_greeting, is_attendance_related, is_topic_changed, ask_openai_general_question,
     get_user_status, update_user_status, reset_user_status, forward_message_to_others,
-    has_recent_greeting, record_greeting_time, normalize_greeting, classify_conversation_category
+    has_recent_greeting, record_greeting_time, normalize_greeting, classify_conversation_category,
+    ask_openai_general_question
 )
 from company_info import (
     search_employee_info_by_keywords,
