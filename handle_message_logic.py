@@ -223,8 +223,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
     employee_info = read_employee_info()
     
     results = {
-        "会話ログ": search_conversation_log(user_message),
-        #"会話ログ": search_conversation_log(user_message, read_conversation_log()),
+        "会話ログ": search_conversation_log(user_message, read_conversation_log()),
         "従業員情報": search_employee_info_by_keywords(user_message, employee_info),
         "取引先情報": search_partner_info_by_keywords(user_message, read_partner_info()),
         "会社情報": search_company_info_log(user_message, read_company_info()),
