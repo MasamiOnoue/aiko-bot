@@ -10,7 +10,16 @@ from aiko_greeting import (
     get_user_status, update_user_status, reset_user_status, forward_message_to_others,
     has_recent_greeting, record_greeting_time, normalize_greeting, classify_conversation_category
 )
-from company_info import search_employee_info_by_keywords, get_user_callname_from_uid, load_all_user_ids
+from company_info import (
+    search_employee_info_by_keywords,
+    search_partner_info_by_keywords, 
+    search_company_info_log,   
+    search_experience_log,      
+    search_conversation_log,    
+    log_if_all_searches_failed, 
+    get_user_callname_from_uid,
+    load_all_user_ids
+)
 from information_reader import (
     get_employee_info,
     get_partner_info, 
