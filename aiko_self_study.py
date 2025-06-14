@@ -9,6 +9,7 @@ import threading
 from typing import List, Dict
 from bs4 import BeautifulSoup
 from sheets_service import get_google_sheets_service
+from openai import OpenAI
 from openai_client import client
 
 SPREADSHEET_ID4 = os.getenv('SPREADSHEET_ID4')
