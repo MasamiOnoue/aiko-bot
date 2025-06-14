@@ -94,7 +94,7 @@ def generate_contextual_reply(user_id, user_message):
     user_context = user_conversation_cache.get(user_id, "")
     others_context = "\n".join(full_conversation_cache)
     prompt = (
-        "あなたは社内専用のAIアシスタント愛子です。従業員には情報をすべて開示しなさい。\n"
+        "あなたは株式会社サンネームの社内専用のAIアシスタント愛子です。従業員には情報をすべて開示しなさい。\n"
         "以下はこのユーザーとの直近の会話と、社内で交わされた他の会話の記録です。文脈を踏まえて、自然に応答してください。\n"
         f"【このユーザーの履歴】\n{user_context}\n\n"
         f"【他の人の話題や社内背景】\n{others_context}\n\n"
