@@ -5,7 +5,7 @@ from aiko_greeting import now_jst
 
 def log_aiko_reply(timestamp, user_id, user_name, speaker, reply, category, message_type, topics, status, topic, sentiment):
     try:
-        timestamp = now_jst().strftime("%Y-%m-%d %H:%M:%S")  # 再上書きしても問題なし
+        timestamp = now_jst().strftime("%Y-%m-%d %H:%M:%S") 
         GCF_ENDPOINT = os.getenv("GCF_ENDPOINT")
         API_KEY = os.getenv("PRIVATE_API_KEY")
 
@@ -24,7 +24,7 @@ def log_aiko_reply(timestamp, user_id, user_name, speaker, reply, category, mess
             "user_id": user_id,
             "user_name": user_name,
             "speaker": speaker,
-            "message": reply,  # ← ここを修正！
+            "message": reply,
             "category": category,
             "message_type": message_type,
             "topic": topic,
@@ -50,3 +50,34 @@ def normalize_person_name(message):
         if suffix in message:
             message = message.replace(suffix, "")
     return message
+
+def remove_honorifics(text):
+    for suffix in ["さん", "ちゃん", "くん"]:
+        if text.endswith(suffix):
+            text = text[:-len(suffix)]
+    return text
+
+def extract_keywords(text):
+    cleaned = re.sub(r'[。、「」？?！!\n]', ' ', text)
+    return [word for word in cleaned.split() if len(word) > 1]
+
+def classify_attendance_type(qr_text: str) -> str:
+    lowered = qr_text.lower()
+    if "退勤" in lowered or "leave" in lowered:
+        return "退勤"
+    if "出勤" in lowered or "attend" in lowered:
+        return "出勤"
+    current_hour = now_jst().hour
+    return "出勤" if current_hour < 14 else "退勤"
+
+def count_keyword_matches(data_list, keywords):
+    if not data_list:
+        return 0
+    headers = data_list[0].keys() if isinstance(data_list[0], dict) else []
+    return sum(
+        all(
+            any(kw in str(v) for v in item.values()) or any(kw in h for h in headers)
+            for kw in keywords
+        ) for item in data_list
+    )
+
