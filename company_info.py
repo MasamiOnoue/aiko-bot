@@ -26,6 +26,8 @@ def search_employee_info_by_keywords(user_message, employee_info_list):
             if value:
                 possible_names.add(value)
                 possible_names.add(value + "さん")
+                possible_names.add(value + "ちゃん")
+                possible_names.add(value + "君")
         if any(name in user_message for name in possible_names):
             matched_name = record.get("氏名", "").strip()
             for keyword, field in attributes.items():
