@@ -111,8 +111,8 @@ def get_user_callname_from_uid(user_id):
                 continue
             uid = record.get("LINE UID")
             if isinstance(uid, str) and uid.strip().upper() == user_id.strip().upper():
-                callname = record.get("呼ばれ方", "").strip()
-                return callname or record.get("氏名", "").strip()
+                callname = record.get("愛子からの呼ばれ方", "").strip()
+                return callname if callname else record.get("氏名", "").strip()
 
         logging.warning(f"⚠️ 該当するUIDが見つかりません: {user_id}")
         return "不明な方"
