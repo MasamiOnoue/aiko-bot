@@ -41,3 +41,12 @@ def log_aiko_reply(timestamp, user_id, user_name, speaker, reply, category, mess
 
     except Exception as e:
         logging.exception(f"❌ log_aiko_reply 例外: {e}")
+
+def normalize_person_name(message):
+    """
+    メッセージから「さん」や「様」などの敬称を取り除く
+    """
+    for suffix in ["さん", "様", "くん", "ちゃん"]:
+        if suffix in message:
+            message = message.replace(suffix, "")
+    return message
