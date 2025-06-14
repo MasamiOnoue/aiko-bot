@@ -36,9 +36,11 @@ def log_attendance_from_qr(user_id, qr_text, spreadsheet_id, attendance_type):
 
     # 今日の自分の行を探す
     row_index = None
+    existing_row = None
     for i, row in enumerate(values[1:], start=2):
         if len(row) > max(name_col, date_col) and row[date_col] == today_str and row[name_col] == user_name:
             row_index = i
+            existing_row = row
             break
 
     # なければ新しい行を作成
@@ -59,8 +61,13 @@ def log_attendance_from_qr(user_id, qr_text, spreadsheet_id, attendance_type):
         ).execute()
         return f"{attendance_type}時刻を新規記録しました：{time_str}"
 
-    # 既存行を更新
+    # 既存行を更新（冪等性の考慮）
     col_index = headers.index("出勤時刻") if attendance_type == "出勤" else headers.index("退勤時刻")
+    current_value = existing_row[col_index] if len(existing_row) > col_index else ""
+
+    if current_value:
+        return f"すでに{attendance_type}時刻が記録されています：{current_value}"
+
     cell_range = f"{sheet_name}!{chr(65 + col_index)}{row_index}"
     sheet.values().update(
         spreadsheetId=spreadsheet_id,
