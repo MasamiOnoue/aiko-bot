@@ -1,4 +1,4 @@
-# company_info.py（安定版：UID取得の不具合修正＋「-」除去の処理追加＋UID判定強化）
+# company_info.py（安定版：UID取得の不具合修正＋「-」除去の処理追加＋UID判定強化＋属性不明時の応答追加＋OpenAIループ対応）
 
 import os
 import logging
@@ -33,9 +33,10 @@ def search_employee_info_by_keywords(user_message, employee_info_list):
                 if keyword in user_message:
                     value = record.get(field, "").strip() or "不明"
                     return f"{name}さんの{keyword}は {value} です。"
+            return f"{name}さんに関する情報ですね。もう少し具体的に聞いてみてください。"
 
     logging.warning(f"❗該当する従業員または属性が見つかりませんでした: '{user_message}'")
-    return "申し訳ありませんが、該当の情報が見つかりませんでした。"
+    return None  # ← OpenAIへループさせるためNoneに変更
 
 def load_all_user_ids():
     logging.info(f"📡 現在の GCF_ENDPOINT: {os.getenv('GCF_ENDPOINT')}")
