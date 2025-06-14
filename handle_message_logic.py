@@ -76,7 +76,7 @@ def classify_attendance_type(qr_text: str) -> str:
     return "出勤" if current_hour < 14 else "退勤"
 
 def count_keyword_matches(data_list, keywords):
-    if not data_list:
+    if not data_list or not keywords:
         return 0
     headers = data_list[0].keys() if isinstance(data_list[0], dict) else []
     return sum(
@@ -131,7 +131,6 @@ def handle_message_logic(event, sheet_service, line_bot_api):
             logging.info(f"📥 OpenAI応答: {reply}")
         except Exception as e:
             reply = f"申し訳ありません。現在応答できません（{e}）"
-
         short_reply = reply[:100]
         log_aiko_reply(timestamp, user_id, user_name, "愛子", short_reply, "通常応答", "テキスト", category, "OK", "AI応答", "中立")
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=short_reply))
@@ -147,7 +146,6 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         "従業員情報": read_employee_info(),
         "会社情報": read_company_info(),
         "取引先情報": read_partner_info(),
-        "会話ログ": read_conversation_log(),
         "経験ログ": read_aiko_experience_log(),
         "タスク情報": read_task_info(),
         "勤怠管理": read_attendance_log()
