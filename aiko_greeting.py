@@ -2,6 +2,7 @@
 
 import pytz
 import logging
+import re
 from openai_client import client
 from datetime import datetime, timedelta
 from linebot import LineBotApi
@@ -44,26 +45,31 @@ def get_time_based_greeting(user_id=None):
     if user_id:
         name = get_user_callname_from_uid(user_id)
         if name and name != "不明":
-            # 末尾に敬称があるかチェック
             if any(name.endswith(suffix) for suffix in ["さん", "様", "くん", "ちゃん"]):
                 greeting += f"、{name}"
             else:
                 greeting += f"、{name}さん"
     return greeting
 
-# 挨拶と認識される語を正規化
-GREETING_KEYWORDS = [
+# 挨拶と認識される語を正規化（長い語順にソート）
+GREETING_KEYWORDS = sorted([
     "おはよう", "おっはー", "おは", "おっは", "お早う", "お早うございます",
     "こんにちは", "こんばんは", "お疲れさま", "おつかれ"
-]
+], key=lambda x: -len(x))
 
 def normalize_greeting(text):
     for word in GREETING_KEYWORDS:
         if word in text:
-            return word[:3]  # カテゴリ例: "おは", "こん", "おつ"
-    if "お疲" in text or "おつかれ" in text:
-        return "おつ"
+            return word[:3]
     return None
+
+# ノイズ検知関数（意味不明な文字列を検出）
+def is_gibberish(text):
+    if len(text) < 3:
+        return True
+    valid_chars = re.findall(r'[ぁ-んァ-ン一-龯a-zA-Z0-9ａ-ｚＡ-Ｚ０-９]', text)
+    ratio = len(valid_chars) / len(text)
+    return ratio < 0.4
 
 # 挨拶以外の処理系（省略）
 def is_attendance_related(message):
@@ -72,9 +78,9 @@ def is_attendance_related(message):
 def is_topic_changed(message):
     return any(kw in message for kw in ["やっぱり", "ちなみに", "ところで", "別件", "変更", "違う話"])
 
-# ユーザー状態のダミー関数群（本番では他モジュールと連携）
+# ユーザー状態のダミー関数群
 def get_user_status(user_id):
-    return {}  # 本番運用時には外部ステータス管理モジュールで上書きされます
+    return {}
 
 def update_user_status(user_id, step):
     pass
@@ -91,11 +97,45 @@ def get_user_name_for_sheet(user_id):
 
 # === 会話分類 ===
 def classify_conversation_category(message):
-    categories = {"重要", "日常会話", "あいさつ", "業務情報", "その他"}
+    if is_gibberish(message):
+        return "その他"
+
+    categories = {
+        "あいさつ", "業務情報", "質問", "雑談", "読み方", "地理", "人間関係",
+        "人物情報", "趣味・関心", "体調・健康", "スケジュール", "感謝・謝罪",
+        "食事・栄養", "天気", "ニュース・時事", "交通・移動", "買い物・物品", "金銭・支払い", "意見・提案", "指示・依頼", "感情・気持ち", "その他"
+    }
     prompt = (
-        "以下の会話内容を、次のいずれかのカテゴリで1単語だけで分類してください："
-        "「重要」「日常会話」「あいさつ」「業務情報」「その他」。\n\n"
-        f"会話内容:\n{message}\n\nカテゴリ名だけを返してください。"
+        "以下の文章を、次のカテゴリのうち最も適切なもの1つに分類してください："
+        "「あいさつ」「業務情報」「質問」「雑談」「読み方」「地理」「人間関係」"
+        "「人物情報」「趣味・関心」「体調・健康」「スケジュール」「感謝・謝罪」"
+        "「食事・栄養」「天気」「ニュース・時事」「交通・移動」「買い物・物品」"
+        "「金銭・支払い」「意見・提案」「指示・依頼」「感情・気持ち」「その他」\n\n"
+        "■カテゴリの定義：\n"
+        "・あいさつ：おはよう、こんにちは等の礼儀的な言葉\n"
+        "・業務情報：勤怠・作業・報告・会議など業務に関する内容\n"
+        "・質問：定義や数値、事実確認などの問い\n"
+        "・雑談：世間話や日常の軽い会話\n"
+        "・読み方：漢字や名前の読みの確認\n"
+        "・地理：地名や都道府県に関する内容\n"
+        "・人間関係：家族や職場の人間関係に関する話\n"
+        "・人物情報：性格・特徴・雰囲気など人に関する内容\n"
+        "・趣味・関心：好きなことや興味関心に関する話\n"
+        "・体調・健康：病気・疲れ・けがなど身体状態の話\n"
+        "・スケジュール：予定・日程・時間に関する話\n"
+        "・感謝・謝罪：ありがとう・ごめんなさい等の感情表現\n"
+        "・食事・栄養：ご飯・飲み物・栄養などの話題\n"
+        "・天気：天候・気温・天気予報などに関する内容\n"
+        "・ニュース・時事：最近の出来事や世間の話題\n"
+        "・交通・移動：通勤・交通手段・移動に関する話題\n"
+        "・買い物・物品：商品・購入・在庫・注文などに関する話題\n"
+        "・金銭・支払い：料金・給料・支払い・価格に関する内容\n"
+        "・意見・提案：考え・提案・改善案など\n"
+        "・指示・依頼：何かしてほしい・してもらいたい等の依頼\n"
+        "・感情・気持ち：うれしい・悲しい・不安・怒りなど感情の表現\n"
+        "・その他：上記に該当しない特殊な話題\n\n"
+        f"文章:\n「{message}」\n\n"
+        "カテゴリ名だけを返してください"
     )
 
     try:
@@ -109,10 +149,13 @@ def classify_conversation_category(message):
             temperature=0
         )
         category = response.choices[0].message.content.strip()
+        if not category:
+            logging.warning("⚠️ GPTから空の応答を受信しました。")
+            return "その他"
         if category not in categories:
             logging.warning(f"⚠️ 不明なカテゴリ: {category}")
-            return "未分類"
+            return "その他"
         return category
     except Exception as e:
         logging.error(f"❌ カテゴリ分類失敗: {e}")
-        return "未分類"
+        return "その他"
