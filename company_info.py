@@ -1,4 +1,4 @@
-# company_info.py（安定版：UID取得の不具合修正＋「-」除去の処理追加＋UID判定強化＋属性不明時の応答追加＋OpenAIループ対応）
+# company_info.py（安定版：UID取得の不具合修正＋「-」除去の処理追加＋UID判定強化＋属性不明時の応答追加＋OpenAIループ対応＋「折戸」名認識強化＋呼ばれ方多段一致対応）
 
 import os
 import logging
@@ -7,10 +7,6 @@ import requests
 
 # === 従業員情報検索 ===
 def search_employee_info_by_keywords(user_message, employee_info_list):
-    alias_dict = {
-        "おきく": "菊田京子", "まさみ": "政美", "かおり": "香織",
-        "こうちゃん": "孝一", "考ちゃん": "孝一", "工場長": "折戸",
-    }
     attributes = {
         "役職": "役職", "入社年": "入社年", "生年月日": "生年月日", "性別": "性別",
         "メールアドレス": "メールアドレス", "個人メールアドレス": "個人メールアドレス",
@@ -20,20 +16,23 @@ def search_employee_info_by_keywords(user_message, employee_info_list):
     }
 
     user_message = user_message.replace("ちゃん", "さん").replace("君", "さん").replace("くん", "さん")
-    for alias, real_name in alias_dict.items():
-        if alias in user_message:
-            user_message = user_message.replace(alias, real_name)
 
     for record in employee_info_list:
         if not isinstance(record, dict):
             continue
-        name = record.get("氏名", "")
-        if name and (name in user_message or f"{name}さん" in user_message):
+        possible_names = set()
+        for key in ["氏名", "呼ばれ方", "愛子からの呼ばれ方", "愛子からの呼ばれ方２"]:
+            value = record.get(key, "").strip()
+            if value:
+                possible_names.add(value)
+                possible_names.add(value + "さん")
+        if any(name in user_message for name in possible_names):
+            matched_name = record.get("氏名", "").strip()
             for keyword, field in attributes.items():
                 if keyword in user_message:
                     value = record.get(field, "").strip() or "不明"
-                    return f"{name}さんの{keyword}は {value} です。"
-            return f"{name}さんに関する情報ですね。もう少し具体的に聞いてみてください。"
+                    return f"{matched_name}さんの{keyword}は {value} です。"
+            return f"{matched_name}さんに関する情報ですね。もう少し具体的に聞いてみてください。"
 
     logging.warning(f"❗該当する従業員または属性が見つかりませんでした: '{user_message}'")
     return None  # ← OpenAIへループさせるためNoneに変更
