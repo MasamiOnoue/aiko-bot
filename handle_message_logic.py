@@ -74,11 +74,15 @@ def classify_attendance_type(qr_text: str) -> str:
     return "出勤" if current_hour < 14 else "退勤"
 
 def count_keyword_matches(data_list, keywords):
-    score = 0
-    for item in data_list:
-        if all(any(kw in str(v) for v in item.values()) for kw in keywords):
-            score += 1
-    return score
+    if not data_list:
+        return 0
+    headers = data_list[0].keys() if isinstance(data_list[0], dict) else []
+    return sum(
+        all(
+            any(kw in str(v) for v in item.values()) or any(kw in h for h in headers)
+            for kw in keywords
+        ) for item in data_list
+    )
 
 def handle_message_logic(event, sheet_service, line_bot_api):
     user_id = event.source.user_id.strip().upper()
@@ -88,66 +92,10 @@ def handle_message_logic(event, sheet_service, line_bot_api):
     registered_uids = load_all_user_ids()
 
     if isinstance(event.message, ImageMessage):
-        user_message = f"✅ {user_name}さんが打刻しました"
-        log_aiko_reply(
-            timestamp=timestamp,
-            user_id=user_id,
-            user_name=user_name,
-            speaker="ユーザー",
-            reply=user_message,
-            category="画像",
-            message_type="画像",
-            topics="QRコード",
-            status="OK",
-            topic="出退勤",
-            sentiment="中立"
-        )
-        try:
-            message_content = line_bot_api.get_message_content(event.message.id)
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tf:
-                for chunk in message_content.iter_content():
-                    tf.write(chunk)
-                temp_image_path = tf.name
-
-            if pytesseract and Image:
-                try:
-                    img = Image.open(temp_image_path)
-                    qr_text = pytesseract.image_to_string(img, lang='jpn').strip()
-                except Exception as e:
-                    logging.error(f"画像読み取りエラー: {e}")
-                    line_bot_api.reply_message(event.reply_token, TextSendMessage(text="画像の読み取りに失敗しました。別の画像でお試しください。"))
-                    return
-
-                spreadsheet_id = os.getenv("SPREADSHEET_ID7")
-                if not spreadsheet_id:
-                    line_bot_api.reply_message(event.reply_token, TextSendMessage(text="SPREADSHEET_ID7 が設定されていません。"))
-                    return
-                attendance_type = classify_attendance_type(qr_text)
-                logging.info(f"🔍 QR内容: {qr_text} => {attendance_type}")
-                result = log_attendance_from_qr(user_id, qr_text, spreadsheet_id, attendance_type)
-                line_bot_api.reply_message(event.reply_token, TextSendMessage(text=result))
-            else:
-                logging.warning("❌ OCR機能は現在の環境では利用できません。")
-                line_bot_api.reply_message(event.reply_token, TextSendMessage(text="OCR機能が使えない環境です。"))
-        except Exception as e:
-            logging.error(f"QRコード画像処理エラー: {e}")
-            line_bot_api.reply_message(event.reply_token, TextSendMessage(text="QRコードの読み取りに失敗しました。別の画像をお試しください。"))
         return
 
     user_message = event.message.text.strip()
-    log_aiko_reply(
-        timestamp=timestamp,
-        user_id=user_id,
-        user_name=user_name,
-        speaker="ユーザー",
-        reply=user_message,
-        category="入力",
-        message_type="テキスト",
-        topics="未分類",
-        status="OK",
-        topic="入力",
-        sentiment="不明"
-    )
+    log_aiko_reply(timestamp, user_id, user_name, "ユーザー", user_message, "入力", "テキスト", "未分類", "OK", "入力", "不明")
 
     greet_key = normalize_greeting(user_message)
     if greet_key and not has_recent_greeting(user_id, greet_key):
@@ -158,19 +106,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
 
     if user_id not in registered_uids:
         reply = "申し訳ありません。このサービスは社内専用です。"
-        log_aiko_reply(
-            timestamp=timestamp,
-            user_id=user_id,
-            user_name=user_name,
-            speaker="愛子",
-            reply=reply,
-            category="権限エラー",
-            message_type="テキスト",
-            topics="警告",
-            status="NG",
-            topic="認証",
-            sentiment="冷静"
-        )
+        log_aiko_reply(timestamp, user_id, user_name, "愛子", reply, "権限エラー", "テキスト", "警告", "NG", "認証", "冷静")
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
@@ -189,25 +125,24 @@ def handle_message_logic(event, sheet_service, line_bot_api):
     }
 
     priority_order = ["従業員情報", "会社情報", "取引先情報", "経験ログ", "タスク情報", "勤怠管理", "会話ログ"]
-    match_scores = {key: count_keyword_matches(data, keywords) if isinstance(data, list) else 0 for key, data in sources.items()}
-    best_source = max(priority_order, key=lambda k: match_scores.get(k, 0))
+    match_scores = {k: count_keyword_matches(v, keywords) if isinstance(v, list) else 0 for k, v in sources.items()}
+    best_source = max(priority_order, key=lambda k: match_scores[k])
 
-    if best_source and match_scores[best_source] > 0:
-        top_data = sources[best_source]
-        matching_entries = [entry for entry in top_data if all(kw in str(entry.values()) for kw in keywords)]
+    if match_scores[best_source] > 0:
+        data = sources[best_source]
+        matching_entries = [d for d in data if all(kw in str(d.values()) or any(kw in h for h in d.keys()) for kw in keywords)]
         logging.info(f"🔎 最も一致したデータ: {matching_entries}")
-        reply = str(matching_entries[0]) if matching_entries else f"🔎 最も一致したのは「{best_source}」でしたが、関連データの表示に失敗しました。"
-
-        masked_text, mask_map = mask_sensitive_data(reply)
-        prompt = f"以下のデータを自然な日本語にしてください: {masked_text}"
-        reply_masked = rephrase_with_masked_text(prompt)
-        reply = unmask_sensitive_data(reply_masked, mask_map)
+        if matching_entries:
+            result_text = str(matching_entries[0])
+            masked_text, mask_map = mask_sensitive_data(result_text)
+            prompt = f"以下のデータを自然な日本語にしてください: {masked_text}"
+            reply_masked = rephrase_with_masked_text(prompt)
+            reply = unmask_sensitive_data(reply_masked, mask_map)
+        else:
+            reply = f"🔎 最も一致したのは「{best_source}」ですが、関連データの表示に失敗しました。"
     else:
-        reply = None
-
-    if not reply:
+        system_instruction = "あなたは社内専用のAIアシスタント愛子です。従業員には情報をすべて開示し、LINE返信は100文字以内にまとめてください。"
         try:
-            system_instruction = "あなたは社内専用のAIアシスタント愛子です。従業員には情報をすべて開示し、LINE返信は100文字以内にまとめてください。"
             if contains_sensitive_info(user_message):
                 masked_input, mask_map = mask_sensitive_data(user_message)
                 prompt = f"{system_instruction}\n\nユーザーの入力: {masked_input}"
@@ -223,34 +158,10 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         update_user_status(user_id, 200)
         update_user_status(user_id + "_fulltext", reply)
         short_reply = "もっと情報がありますがLINEでは送れないのでメールで送りますか？"
-        log_aiko_reply(
-            timestamp=timestamp,
-            user_id=user_id,
-            user_name=user_name,
-            speaker="愛子",
-            reply=short_reply,
-            category="メール長文応答",
-            message_type="テキスト",
-            topics="メール",
-            status="OK",
-            topic="社内メール",
-            sentiment="冷静"
-        )
+        log_aiko_reply(timestamp, user_id, user_name, "愛子", short_reply, "メール長文応答", "テキスト", "メール", "OK", "社内メール", "冷静")
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=short_reply))
         return
 
     short_reply = reply[:100]
-    log_aiko_reply(
-        timestamp=timestamp,
-        user_id=user_id,
-        user_name=user_name,
-        speaker="愛子",
-        reply=short_reply,
-        category="通常応答",
-        message_type="テキスト",
-        topics="通常応答",
-        status="OK",
-        topic="AI応答",
-        sentiment="中立"
-    )
+    log_aiko_reply(timestamp, user_id, user_name, "愛子", short_reply, "通常応答", "テキスト", "通常応答", "OK", "AI応答", "中立")
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=short_reply))
