@@ -55,6 +55,7 @@ from information_writer import write_attendance_log
 MAX_HITS = 10
 DEFAULT_USER_NAME = "不明"
 
+
 def remove_honorifics(text):
     for suffix in ["さん", "ちゃん", "くん"]:
         if text.endswith(suffix):
@@ -107,6 +108,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
             prompt = f"ユーザーから『{user_message}』という挨拶がありました。愛子らしく挨拶を返してください。"
             logging.info(f"🗣️ OpenAI送信プロンプト（挨拶）: {prompt}")
             reply = client.chat(prompt)
+            logging.info(f"📥 OpenAI応答: {reply}")
         except Exception:
             reply = get_time_based_greeting(user_id)
         record_greeting_time(user_id, now_jst(), greet_key)
@@ -126,6 +128,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         logging.info(f"📤 OpenAI送信プロンプト: {prompt}")
         try:
             reply = client.chat(prompt)
+            logging.info(f"📥 OpenAI応答: {reply}")
         except Exception as e:
             reply = f"申し訳ありません。現在応答できません（{e}）"
 
@@ -166,6 +169,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         logging.info(f"📤 OpenAI送信プロンプト: {prompt}")
         try:
             reply = ask_openai_general_question(user_id, user_message)
+            logging.info(f"📥 OpenAI応答: {reply}")
         except Exception as e:
             reply = f"なんですか？（質問の処理に失敗しました: {e}）"
         short_reply = reply[:100]
