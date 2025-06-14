@@ -2,6 +2,7 @@
 
 import os
 import logging
+import re
 from datetime import datetime
 from linebot.models import TextSendMessage, ImageMessage
 from PIL import Image
@@ -14,10 +15,9 @@ except ImportError:
     print("⚠️ pytesseract is not available in this environment.")
 
 from aiko_greeting import (
-    now_jst, get_time_based_greeting, is_attendance_related, is_topic_changed, ask_openai_general_question,
+    now_jst, get_time_based_greeting, is_attendance_related, is_topic_changed,
     get_user_status, update_user_status, reset_user_status, forward_message_to_others,
-    has_recent_greeting, record_greeting_time, normalize_greeting, classify_conversation_category,
-    ask_openai_general_question, generate_contextual_reply
+    has_recent_greeting, record_greeting_time, normalize_greeting, classify_conversation_category
 )
 from company_info import (
     search_employee_info_by_keywords,
@@ -36,7 +36,8 @@ from information_reader import (
     read_conversation_log, 
     read_aiko_experience_log,
     read_task_info,
-    read_attendance_log
+    read_attendance_log,
+    get_recent_conversation_log
 )
 from aiko_mailer import (
     draft_email_for_user, send_email_with_confirmation, get_user_email_from_uid, fetch_latest_email
@@ -45,7 +46,8 @@ from mask_word import (
     contains_sensitive_info, mask_sensitive_data,
     unmask_sensitive_data, rephrase_with_masked_text
 )
-from openai_client import client
+from aiko_self_study import generate_contextual_reply_from_context
+from openai_client import client, ask_openai_general_question
 from aiko_helpers import log_aiko_reply
 from attendance_logger import log_attendance_from_qr
 from information_writer import write_attendance_log
@@ -61,7 +63,6 @@ def remove_honorifics(text):
     return text
 
 def extract_keywords(text):
-    import re
     cleaned = re.sub(r'[。、「」？?！!\n]', ' ', text)
     return [word for word in cleaned.split() if len(word) > 1]
 
@@ -96,7 +97,9 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         return
 
     user_message = event.message.text.strip()
-    log_aiko_reply(timestamp, user_id, user_name, "ユーザー", user_message, "入力", "テキスト", "未分類", "OK", "入力", "不明")
+    category = classify_conversation_category(user_message)
+    logging.info(f"🧠 カテゴリ分類: {category}")
+    log_aiko_reply(timestamp, user_id, user_name, "ユーザー", user_message, category or "未分類", "テキスト", "未分類", "OK", "入力", "不明")
 
     greet_key = normalize_greeting(user_message)
     if greet_key and not has_recent_greeting(user_id, greet_key):
@@ -135,7 +138,12 @@ def handle_message_logic(event, sheet_service, line_bot_api):
 
     if match_scores[best_source] > 0:
         data = sources[best_source]
-        matching_entries = [d for d in data if all(kw in str(d.values()) or any(kw in h for h in d.keys()) for kw in keywords)]
+        matching_entries = [
+            d for d in data if all(
+                any(kw in str(v) for v in d.values()) or any(kw in h for h in d.keys())
+                for kw in keywords
+            )
+        ]
         logging.info(f"🔎 最も一致したデータ: {matching_entries}")
         if matching_entries:
             result = matching_entries[0]
@@ -162,20 +170,13 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         else:
             reply = f"🔎 最も一致したのは「{best_source}」ですが、関連データの表示に失敗しました。"
     else:
-        category = classify_conversation_category(user_message)
         if category == "質問":
             reply = ask_openai_general_question(user_id, user_message)
         else:
-            system_instruction = "あなたは社内専用のAIアシスタント愛子です。従業員には情報をすべて開示し、LINE返信は100文字以内にまとめてください。"
+            recent_logs = get_recent_conversation_log(user_id, limit=20)
+            prompt = generate_contextual_reply_from_context(user_id, user_message, recent_logs)
             try:
-                if contains_sensitive_info(user_message):
-                    masked_input, mask_map = mask_sensitive_data(user_message)
-                    prompt = f"{system_instruction}\n\nユーザーの入力: {masked_input}"
-                    reply_masked = rephrase_with_masked_text(prompt)
-                    reply = unmask_sensitive_data(reply_masked, mask_map)
-                else:
-                    prompt = f"{system_instruction}\n\nユーザーの入力: {user_message}"
-                    reply = generate_contextual_reply(user_id, prompt)
+                reply = client.chat(prompt)
             except Exception as e:
                 reply = f"申し訳ありません。現在応答できません（{e}）"
 
