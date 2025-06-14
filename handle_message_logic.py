@@ -48,7 +48,7 @@ from mask_word import (
 )
 from aiko_self_study import generate_contextual_reply_from_context
 from openai_client import client, ask_openai_general_question
-from aiko_helpers import log_aiko_reply
+from aiko_helpers import log_aiko_reply, count_keyword_matches, classify_attendance_type, extract_keywords, remove_honorifics, normalize_person_name
 from attendance_logger import log_attendance_from_qr
 from information_writer import write_attendance_log
 
