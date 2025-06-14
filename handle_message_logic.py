@@ -42,7 +42,7 @@ from mask_word import (
 )
 from aiko_self_study import generate_contextual_reply
 from openai_client import client
-from aiko_helpers import log_aiko_reply
+from aiko_helpers import log_aiko_reply, normalize_person_name
 
 MAX_HITS = 10
 DEFAULT_USER_NAME = "不明"
