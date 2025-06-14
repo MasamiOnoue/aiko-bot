@@ -54,6 +54,21 @@ def handle_message_logic(event, sheet_service, line_bot_api):
     user_id = event.source.user_id.strip().upper()
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     user_message = event.message.text.strip()
+
+    log_aiko_reply(    #ユーザーのメッセージを「会話ログに保存」
+        timestamp=timestamp,
+        user_id=user_id,
+        user_name=user_name,
+        speaker="ユーザー",
+        reply=user_message,
+        category=category,
+        message_type="テキスト",
+        topics="不明",
+        status="OK",
+        topic="不明",
+        sentiment="不明"
+    )
+    
     user_name = get_user_callname_from_uid(user_id) or DEFAULT_USER_NAME
     user_message = normalize_person_name(user_message)# ここで敬称などを削除（前処理）
 
@@ -69,19 +84,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         return
 
     category = classify_conversation_category(user_message) or "未分類"
-    log_aiko_reply(
-        timestamp=timestamp,
-        user_id=user_id,
-        user_name=user_name,
-        speaker="ユーザー",
-        reply=user_message,
-        category=category,
-        message_type="テキスト",
-        topics="不明",
-        status="OK",
-        topic="不明",
-        sentiment="不明"
-    )
+   
     registered_uids = load_all_user_ids()
 
     logging.info(f"✅ 取得済み社内UIDリスト: {registered_uids}")
