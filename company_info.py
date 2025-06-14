@@ -66,7 +66,7 @@ def load_all_user_ids():
         for record in values:
             if not isinstance(record, dict):
                 continue
-            uid = record.get("LINEユーザーID")
+            uid = record.get("LINE UID")
             if isinstance(uid, str):
                 uid = uid.strip().upper()
                 if uid and uid.startswith("U") and len(uid) >= 10:
@@ -109,7 +109,7 @@ def get_user_callname_from_uid(user_id):
         for record in values:
             if not isinstance(record, dict):
                 continue
-            uid = record.get("LINEユーザーID")
+            uid = record.get("LINE UID")
             if isinstance(uid, str) and uid.strip().upper() == user_id.strip().upper():
                 callname = record.get("呼ばれ方", "").strip()
                 return callname or record.get("氏名", "").strip()
