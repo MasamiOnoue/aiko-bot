@@ -76,6 +76,8 @@ def get_current_weather():
 
 # OpenAIへ直接質問する（業務外の質問対応）
 def ask_openai_general_question(message):
+    if is_gibberish(message):
+        return "なんでしょうか？"
     try:
         response = client.chat.completions.create(
             model="gpt-4o",
