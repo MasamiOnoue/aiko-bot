@@ -240,7 +240,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         try:
             if contains_sensitive_info(user_message):
                 combined = []
-                for dataset in [employee_info, get_partner_info(), get_company_info(), get_conversation_log(), get_aiko_experience_log()]:
+                for dataset in [employee_info, get_partner_info(), get_company_info(), get_aiko_experience_log()]:
                     combined.extend([str(item) for item in dataset if any(w in str(item) for w in user_message.split())])
                 hits = combined[:MAX_HITS] or ["該当情報が見つかりませんでした。"]
                 masked_input, mask_map = mask_sensitive_data("\n".join(hits))
