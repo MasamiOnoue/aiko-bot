@@ -111,6 +111,24 @@ def search_aiko_experience_log(user_message, aiko_experience_log):
     return search_log_by_similarity(user_message, aiko_experience_log)
 
 def search_conversation_log(user_message, conversation_log):
+    normalized = user_message.strip().lower()
+    greeting_keywords = ["こんにちは", "おはよう", "こんばんは", "こんにちわ", "こんちわ", "ハロー", "やあ", "hello", "hi"]
+
+    if any(word in normalized for word in greeting_keywords):
+        greeting_logs = [
+            log for log in conversation_log
+            if "カテゴリ" in log and log["カテゴリ"] == "挨拶"
+        ]
+        logging.info(f"🎯 挨拶としてログヒット（{len(greeting_logs)}件）")
+        return greeting_logs
+
+    # 通常のキーワード検索（例：message または topic に含まれる）
+    matched_logs = [
+        log for log in conversation_log
+        if any(user_message in log.get(field, "") for field in ["発言", "トピック", "ステータス"])
+    ]
+    logging.info(f"🔍 通常検索ログヒット（{len(matched_logs)}件）")
+    return matched_logs
     return search_log_by_similarity(user_message, conversation_log)
 
 # === 全検索失敗ログ ===
