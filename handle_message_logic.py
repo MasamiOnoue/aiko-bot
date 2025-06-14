@@ -25,7 +25,10 @@ from information_reader import (
     get_partner_info, 
     get_company_info,  
     get_conversation_log, 
-    get_aiko_experience_log  
+    get_aiko_experience_log,
+    get_task_info, 
+    get_attendance_log 
+
 )
 
 from aiko_mailer import (
@@ -221,12 +224,14 @@ def handle_message_logic(event, sheet_service, line_bot_api):
     employee_info = get_employee_info()
     
     results = {
-        "会話ログ": search_conversation_log(user_message)
-        #"会話ログ": search_conversation_log(user_message, get_conversation_log())
+        "会話ログ": search_conversation_log(user_message),
+        #"会話ログ": search_conversation_log(user_message, get_conversation_log()),
         "従業員情報": search_employee_info_by_keywords(user_message, employee_info),
         "取引先情報": search_partner_info_by_keywords(user_message, get_partner_info()),
         "会社情報": search_company_info_log(user_message, get_company_info()),
         "経験ログ": search_aiko_experience_log(user_message, get_aiko_experience_log()),
+        "勤怠ログ": get_attendance_log(),
+        "タスク情報": get_task_info()
     }
     log_if_all_searches_failed(results)
 
