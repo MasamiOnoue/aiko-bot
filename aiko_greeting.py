@@ -177,7 +177,26 @@ def classify_conversation_category(message):
         category = response.choices[0].message.content.strip()
         if not category or category not in categories:
             return "その他"
+            
         return category
     except Exception as e:
         logging.error(f"❌ カテゴリ分類失敗: {e}")
         return "その他"
+
+def generate_contextual_reply(messages, temperature=0.7):
+    """
+    過去の会話ログを含む messages をもとに、OpenAI で自然な応答を生成する。
+    messages: [{"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}] の形式
+    """
+    from openai_client import client
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",  # または "gpt-4"
+            messages=messages,
+            temperature=temperature
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        print(f"❌ OpenAI応答生成エラー: {e}")
+        return "すみません、ちょっと考えがまとまりませんでした。"
