@@ -40,6 +40,7 @@ def get_time_based_greeting(user_id=None):
         greeting = "やっはろー"
     elif 18 <= hour < 23:
         greeting = "ばんわ～"
+        greeting += "🌙 早く帰らなきゃだめですよ🕘"
     else:
         greeting = "ねむ～"
 
@@ -50,6 +51,7 @@ def get_time_based_greeting(user_id=None):
                 greeting += f"、{name}"
             else:
                 greeting += f"、{name}さん"
+            greeting += "。何をお手伝いしますか？"
     return greeting
 
 # 現在の天気情報を取得（Open-Meteo API使用・東京都想定）
