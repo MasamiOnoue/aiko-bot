@@ -42,11 +42,25 @@ from aiko_helpers import log_aiko_reply
 MAX_HITS = 10
 DEFAULT_USER_NAME = "不明"
 
+# 出勤記録用関数
+from attendance_logger import log_attendance_from_qr
+
+# 勤怠ログ記録のためのライター関数をインポート
+from information_writer import write_attendance_log
+
 def handle_message_logic(event, sheet_service, line_bot_api):
     user_id = event.source.user_id.strip().upper()
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     user_message = event.message.text.strip()
     user_name = get_user_callname_from_uid(user_id) or DEFAULT_USER_NAME
+
+    # QRコードによる出勤処理
+    if user_message.startswith("QR出勤:" ):
+        qr_code = user_message.replace("QR出勤:", "").strip()
+        spreadsheet_id = os.getenv("SPREADSHEET_ID7")
+        result = log_attendance_from_qr(user_id, qr_code, spreadsheet_id)
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=result))
+        return
 
     category = classify_conversation_category(user_message) or "未分類"
     log_aiko_reply(
