@@ -48,43 +48,15 @@ from mask_word import (
 )
 from aiko_self_study import generate_contextual_reply_from_context
 from openai_client import client, ask_openai_general_question
-from aiko_helpers import log_aiko_reply, get_matching_entries
+from aiko_helpers import (
+    log_aiko_reply, get_matching_entries, normalize_person_name,
+    remove_honorifics, extract_keywords, classify_attendance_type, count_keyword_matches
+)
 from attendance_logger import log_attendance_from_qr
 from information_writer import write_attendance_log
 
 MAX_HITS = 10
 DEFAULT_USER_NAME = "不明"
-
-
-def remove_honorifics(text):
-    for suffix in ["さん", "ちゃん", "くん"]:
-        if text.endswith(suffix):
-            text = text[:-len(suffix)]
-    return text
-
-def extract_keywords(text):
-    cleaned = re.sub(r'[。、「」？?！!\n]', ' ', text)
-    return [word for word in cleaned.split() if len(word) > 1]
-
-def classify_attendance_type(qr_text: str) -> str:
-    lowered = qr_text.lower()
-    if "退勤" in lowered or "leave" in lowered:
-        return "退勤"
-    if "出勤" in lowered or "attend" in lowered:
-        return "出勤"
-    current_hour = now_jst().hour
-    return "出勤" if current_hour < 14 else "退勤"
-
-def count_keyword_matches(data_list, keywords):
-    if not data_list or not keywords:
-        return 0
-    headers = data_list[0].keys() if isinstance(data_list[0], dict) else []
-    return sum(
-        all(
-            any(kw in str(v) for v in item.values()) or any(kw in h for h in headers)
-            for kw in keywords
-        ) for item in data_list
-    )
 
 def handle_message_logic(event, sheet_service, line_bot_api):
     user_id = event.source.user_id.strip().upper()
@@ -138,12 +110,21 @@ def handle_message_logic(event, sheet_service, line_bot_api):
 
     logging.info("🔎 内部API検索に進みます（業務情報カテゴリ）")
     logging.info(f"🗣️ 内部API検索用ユーザーメッセージ: {user_message}")
-    cleaned_message = remove_honorifics(user_message)
+    cleaned_message = normalize_person_name(user_message)
     keywords = extract_keywords(cleaned_message)
     logging.info(f"🔍 検索キーワード: {keywords}")
 
+    employee_info_list = read_employee_info()
+    employee_matches = get_matching_entries(keywords, employee_info_list, ["氏名", "呼ばれ方", "読み"])
+    if employee_matches:
+        matched = employee_matches[0]
+        name = matched.get("氏名", "不明")
+        role = matched.get("役職", "不明")
+        reply = f"{name}さんは{role}です。"
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
+        return
+
     sources = {
-        "従業員情報": read_employee_info(),
         "会社情報": read_company_info(),
         "取引先情報": read_partner_info(),
         "経験ログ": read_aiko_experience_log(),
