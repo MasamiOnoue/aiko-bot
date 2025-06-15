@@ -118,15 +118,18 @@ def handle_message_logic(event, sheet_service, line_bot_api):
     employee_info_raw = read_employee_info()
     employee_info_list = ensure_list_of_dicts(employee_info_raw, label="従業員")
 
-    employee_matches = get_matching_entries(keywords, employee_info_list, ["名前", "呼ばれ方", "名前の読み"])
-    if employee_matches:
-        matched = employee_matches[0]
-        name = matched.get("名前", "不明")
-        field = detect_requested_field(user_message)
-        value = matched.get(field, "不明")
-        reply = f"{name}さんの{field}は{value}です。"
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
-        return
+    if employee_info_list and isinstance(employee_info_list, list) and isinstance(employee_info_list[0], dict):
+        employee_matches = get_matching_entries(keywords, employee_info_list, ["名前", "呼ばれ方", "名前の読み"])
+        if employee_matches:
+            matched = employee_matches[0]
+            name = matched.get("名前", "不明")
+            field = detect_requested_field(user_message)
+            value = matched.get(field, "不明")
+            reply = f"{name}さんの{field}は{value}です。"
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
+            return
+    else:
+        logging.warning("⚠️ 従業員データが空または形式不正のため、人物情報の検索をスキップします。")
 
     sources = {
         "会社情報": read_company_info(),
