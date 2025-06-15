@@ -116,7 +116,9 @@ def handle_message_logic(event, sheet_service, line_bot_api):
     logging.info(f"🔍 検索キーワード: {keywords}")
 
     employee_info_raw = read_employee_info()
+    logging.info(f"🐞 デバッグ: employee_info_raw = {employee_info_raw}")
     employee_info_list = ensure_list_of_dicts(employee_info_raw, label="従業員")
+    logging.info(f"🐞 デバッグ: employee_info_list = {employee_info_list}")
 
     if employee_info_list and isinstance(employee_info_list, list) and isinstance(employee_info_list[0], dict):
         employee_matches = get_matching_entries(keywords, employee_info_list, ["名前", "呼ばれ方", "名前の読み"])
