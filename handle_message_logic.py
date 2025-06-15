@@ -51,7 +51,7 @@ from openai_client import client, ask_openai_general_question
 from aiko_helpers import (
     log_aiko_reply, get_matching_entries, normalize_person_name,
     remove_honorifics, extract_keywords, classify_attendance_type, count_keyword_matches,
-    FIELD_MAPPING, detect_requested_field, ensure_list_of_dicts
+    FIELD_MAPPING, detect_requested_field, ensure_list_of_dicts, build_uid_dict
 )
 from attendance_logger import log_attendance_from_qr
 from information_writer import write_attendance_log
