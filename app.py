@@ -4,6 +4,7 @@ import os
 import sys
 import logging
 from dotenv import load_dotenv
+
 load_dotenv()
 print("\U0001F4E1 GCF_ENDPOINT =", os.getenv("GCF_ENDPOINT"))
 
@@ -13,7 +14,8 @@ logging.basicConfig(
 )
 
 # 相対パスで write_read_commands を追加
-sys.path.append(os.path.join(os.path.dirname(__file__), 'write_read_commands'))
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+#sys.path.append(os.path.join(os.path.dirname(__file__), 'write_read_commands'))
 
 from flask import Flask, request, abort
 from linebot import LineBotApi, WebhookHandler
