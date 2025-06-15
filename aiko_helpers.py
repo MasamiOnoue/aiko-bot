@@ -1,15 +1,15 @@
 # aiko_helpers.py
 
 import os
-import requests
 import re
+import requests
 import logging
 from aiko_greeting import now_jst
 from information_reader import read_employee_info
 
-def log_aiko_reply(timestamp, user_id, user_name, speaker, reply, category, message_type, topics, status, topic, sentiment):
+def log_aiko_reply(user_id, user_name, speaker, reply, category, message_type, topics, status, topic, sentiment):  # timestamp 引数削除済み
     try:
-        timestamp = now_jst().strftime("%Y-%m-%d %H:%M:%S") 
+        timestamp = now_jst().strftime("%Y-%m-%d %H:%M:%S")  # 現在時刻を使用（引数では受け取らない）
         GCF_ENDPOINT = os.getenv("GCF_ENDPOINT")
         API_KEY = os.getenv("PRIVATE_API_KEY")
 
@@ -50,13 +50,10 @@ def normalize_person_name(message):
     """
     メッセージから「さん」や「様」などの敬称を取り除く
     """
-    for suffix in ["さん", "様", "くん", "ちゃん"]:
-        if suffix in message:
-            message = message.replace(suffix, "")
-    return message
+    return remove_honorifics(message)
 
 def remove_honorifics(text):
-    for suffix in ["さん", "ちゃん", "くん"]:
+    for suffix in ["さん", "様", "くん", "ちゃん"]:
         if text.endswith(suffix):
             text = text[:-len(suffix)]
     return text
@@ -79,7 +76,7 @@ def count_keyword_matches(data_list, keywords):
         return 0
     headers = data_list[0].keys() if isinstance(data_list[0], dict) else []
     return sum(
-        all(
+        any(
             any(kw in str(v) for v in item.values()) or any(kw in h for h in headers)
             for kw in keywords
         ) for item in data_list
@@ -103,7 +100,7 @@ def get_matching_entries(data_list, keywords, fields=None):
                 value = str(entry.get(field, ""))
                 if keyword.lower() in value.lower():
                     matches.append(entry)
-                    break  # 1つでも一致すれば追加して次の entry へ
+                    break
             else:
                 continue
             break
@@ -113,14 +110,12 @@ def get_matching_entries(data_list, keywords, fields=None):
 def build_field_mapping():
     field_mapping = {}
 
-    # スプレッドシートからヘッダーを取得
     employee_info_list = read_employee_info()
     if employee_info_list:
         headers = employee_info_list[0].keys()
         for header in headers:
             field_mapping[header] = [header]
 
-    # よく使われるキーワードを追加
     field_mapping.update({
         "役職": field_mapping.get("役職", []) + ["ポジション"],
         "入社年": field_mapping.get("入社年", []) + ["入社"],
@@ -135,8 +130,6 @@ def build_field_mapping():
 
     return field_mapping
 
-
-# グローバルに初期化（アプリ起動時に生成）
 FIELD_MAPPING = build_field_mapping()
 
 def detect_requested_field(text: str) -> str:
@@ -145,4 +138,3 @@ def detect_requested_field(text: str) -> str:
             if kw in text:
                 return field
     return "役職"
-
