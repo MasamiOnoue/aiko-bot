@@ -31,6 +31,8 @@ handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
 
 app = Flask(__name__)
 
+preload_all_data()
+
 @app.route("/", methods=["GET"])     # 追加: ヘルスチェック用ルート
 def health_check():
     return "✅ 愛子Botは起動中です。", 200
