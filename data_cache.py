@@ -1,5 +1,12 @@
 import time
 import threading
+from write_read_commands.read_employee_info import read_employee_info
+from write_read_commands.read_partner_info import read_partner_info
+from write_read_commands.read_company_info import read_company_info
+from write_read_commands.read_conversation_log import read_conversation_log
+from write_read_commands.read_experience_log import read_experience_log
+from write_read_commands.read_task_info import read_task_info
+from write_read_commands.read_attendance_log import read_attendance_log
 
 # キャッシュデータ格納用
 cache = {
