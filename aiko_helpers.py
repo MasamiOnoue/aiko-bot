@@ -5,6 +5,7 @@ import requests
 import re
 import logging
 from aiko_greeting import now_jst
+from information_reader import read_employee_info
 
 def log_aiko_reply(timestamp, user_id, user_name, speaker, reply, category, message_type, topics, status, topic, sentiment):
     try:
@@ -108,3 +109,40 @@ def get_matching_entries(data_list, keywords, fields=None):
             break
 
     return matches
+
+def build_field_mapping():
+    field_mapping = {}
+
+    # スプレッドシートからヘッダーを取得
+    employee_info_list = read_employee_info()
+    if employee_info_list:
+        headers = employee_info_list[0].keys()
+        for header in headers:
+            field_mapping[header] = [header]
+
+    # よく使われるキーワードを追加
+    field_mapping.update({
+        "役職": field_mapping.get("役職", []) + ["ポジション"],
+        "入社年": field_mapping.get("入社年", []) + ["入社"],
+        "住所": field_mapping.get("住所", []) + ["住まい", "どこ住み"],
+        "電話番号": field_mapping.get("電話番号", []) + ["電話", "携帯", "連絡先"],
+        "メールアドレス": field_mapping.get("メールアドレス", []) + ["メール", "アドレス", "e-mail"],
+        "性別": field_mapping.get("性別", []) + ["男女"],
+        "緊急連絡先": field_mapping.get("緊急連絡先", []) + ["緊急", "家族"],
+        "性格": field_mapping.get("性格", []) + ["タイプ"],
+        "ペット情報": field_mapping.get("ペット情報", []) + ["動物"]
+    })
+
+    return field_mapping
+
+
+# グローバルに初期化（アプリ起動時に生成）
+FIELD_MAPPING = build_field_mapping()
+
+def detect_requested_field(text: str) -> str:
+    for field, keywords in FIELD_MAPPING.items():
+        for kw in keywords:
+            if kw in text:
+                return field
+    return "役職"
+
