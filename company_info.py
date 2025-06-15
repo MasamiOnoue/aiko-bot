@@ -122,7 +122,6 @@ def search_conversation_log(user_message, conversation_log):
         logging.info(f"🎯 挨拶としてログヒット（{len(greeting_logs)}件）")
         return greeting_logs
 
-    # 通常のキーワード検索（例：message または topic に含まれる）
     matched_logs = [
         log for log in conversation_log
         if any(user_message in log.get(field, "") for field in ["発言", "トピック", "ステータス"])
@@ -139,34 +138,12 @@ def log_if_all_searches_failed(results_dict):
 # === UID関連ユーティリティ ===
 @lru_cache(maxsize=128)
 def get_user_callname_from_uid(user_id):
-    uid = uid.lower()  # ★ 小文字化
+    user_id = user_id.lower()  # 小文字に変換
     for employee in employee_info_list:
-        if employee.get("登録元UID", "").lower() == uid:  # ★ 小文字で比較
+        if employee.get("登録元UID", "").lower() == user_id:
             return employee.get("呼ばれ方", employee.get("氏名", "不明な方"))
-    logging.warning(f"⚠️ UID未登録: {uid}")
+    logging.warning(f"⚠️ UID未登録: {user_id}")
     return "不明な方"
-    try:
-        url = os.getenv("GCF_ENDPOINT", "").rstrip("/") + "/read-employee-info"
-        api_key = os.getenv("PRIVATE_API_KEY")
-        if not url or not api_key:
-            logging.error("❌ API情報未設定")
-            return "エラー"
-
-        headers = {"x-api-key": api_key}
-        response = requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status()
-        values = response.json().get("data", [])
-
-        for record in values:
-            uid = record.get("LINE UID", "").strip().upper()
-            if uid == user_id.strip().upper():
-                return record.get("愛子からの呼ばれ方", "").strip() or record.get("氏名", "").strip()
-
-        logging.warning(f"⚠️ UID未登録: {user_id}")
-        return "不明な方"
-    except Exception as e:
-        logging.error(f"❌ 呼び名取得エラー: {e}")
-        return "エラー"
 
 def load_all_user_ids():
     try:
