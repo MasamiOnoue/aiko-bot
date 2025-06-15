@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: aiko-bot
+    env: python
+    region: asia
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GCF_ENDPOINT
+        sync: false
+    autoDeploy: true
