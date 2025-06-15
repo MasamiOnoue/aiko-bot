@@ -128,7 +128,6 @@ def search_conversation_log(user_message, conversation_log):
     ]
     logging.info(f"🔍 通常検索ログヒット（{len(matched_logs)}件）")
     return matched_logs
-    return search_log_by_similarity(user_message, conversation_log)
 
 # === 全検索失敗ログ ===
 def log_if_all_searches_failed(results_dict):
@@ -137,8 +136,8 @@ def log_if_all_searches_failed(results_dict):
 
 # === UID関連ユーティリティ ===
 @lru_cache(maxsize=128)
-def get_user_callname_from_uid(user_id):
-    user_id = user_id.lower()  # 小文字に変換
+def get_user_callname_from_uid(user_id, employee_info_list):
+    user_id = user_id.lower()
     for employee in employee_info_list:
         if employee.get("登録元UID", "").lower() == user_id:
             return employee.get("呼ばれ方", employee.get("氏名", "不明な方"))
