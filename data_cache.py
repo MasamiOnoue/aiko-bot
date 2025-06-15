@@ -13,6 +13,8 @@ from write_read_commands.read_experience_log import read_experience_log
 from write_read_commands.read_task_info import read_task_info
 from write_read_commands.read_attendance_log import read_attendance_log
 
+sys.path.append(os.path.abspath(os.path.dirname(__file__)))
+
 # キャッシュデータ格納用
 cache = {
     "employee_info": [],
