@@ -79,7 +79,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
     logging.info(f"💬 受信メッセージ: {user_message}")
     category = classify_conversation_category(user_message)
     logging.info(f"🧠 カテゴリ分類: {category}")
-    log_aiko_reply(user_id, user_name, "ユーザー", user_message, category or "未分類", "テキスト", "未分類", "OK", "入力", "不明", "-")
+    log_aiko_reply(user_id, user_name, "ユーザー", user_message, category or "未分類", "テキスト", "未分類", "OK", "入力", "不明", "-", "-", "-")
 
     greet_key = normalize_greeting(user_message)
     if greet_key and not has_recent_greeting(user_id, greet_key):
@@ -96,7 +96,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
 
     if user_id not in registered_uids:
         reply = "申し訳ありません。このサービスは社内専用です。"
-        log_aiko_reply(timestamp, user_id, user_name, "愛子", reply, "権限エラー", "テキスト", "警告", "NG", "認証", "冷静")
+        log_aiko_reply(timestamp, user_id, user_name, "愛子", reply, "権限エラー", "テキスト", "警告", "NG", "認証", "冷静", "-", "-", "-")
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         return
 
@@ -111,7 +111,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         except Exception as e:
             reply = f"申し訳ありません。現在応答できません（{e}）"
         short_reply = reply[:100]
-        log_aiko_reply(timestamp, user_id, user_name, "愛子", short_reply, "通常応答", "テキスト", category, "OK", "AI応答", "中立")
+        log_aiko_reply(timestamp, user_id, user_name, "愛子", short_reply, "通常応答", "テキスト", category, "OK", "AI応答", "中立", "-", "-", "-")
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=short_reply))
         return
 
@@ -162,6 +162,6 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         except Exception as e:
             reply = f"なんですか？（質問の処理に失敗しました: {e}）"
         short_reply = reply[:100]
-        log_aiko_reply(timestamp, user_id, user_name, "愛子", short_reply, "OpenAI応答", "テキスト", category, "OK", "AI応答", "中立")
+        log_aiko_reply(timestamp, user_id, user_name, "愛子", short_reply, "OpenAI応答", "テキスト", category, "OK", "AI応答", "中立", "-", "-", "-")
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=short_reply))
         return
