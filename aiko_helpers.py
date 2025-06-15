@@ -35,7 +35,9 @@ def log_aiko_reply(user_id, user_name, speaker, reply, category, message_type, t
             "topic": topic,
             "status": status,
             "sentiment": sentiment,
-            "source": source
+            "reserve1": reserve1,
+            "reserve2": reserve2,
+            "reserve3": reserve3,
         }
 
         response = requests.post(url, headers=headers, json=payload, timeout=10)
