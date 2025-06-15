@@ -5,7 +5,6 @@ import requests
 import logging
 from datetime import datetime
 
-
 def read_conversation_log():
     base_url = os.getenv("GCF_ENDPOINT")
     url = f"{base_url}/read-conversation-log"
@@ -21,7 +20,6 @@ def read_conversation_log():
     result = response.json()
     return result.get("records", [])
 
-
 def get_recent_conversation_cache(user_id, limit=20):
     """
     指定ユーザーの最新の会話履歴（最大limit件）を取得してキャッシュとして返す
@@ -35,7 +33,6 @@ def get_recent_conversation_cache(user_id, limit=20):
     except Exception as e:
         logging.error(f"❌ 会話キャッシュ取得失敗: {e}")
         return []
-
 
 def read_employee_info():
     try:
@@ -55,7 +52,6 @@ def read_employee_info():
     except Exception as e:
         logging.error(f"❌ Cloud Function呼び出し失敗: {e}")
         return []
-
 
 def read_company_info():
     try:
