@@ -3,11 +3,10 @@
 import os
 import logging
 import re
-import tempfile
 from datetime import datetime
 from linebot.models import TextSendMessage, ImageMessage
 from PIL import Image
-from data_cache import cache, refresh_conversation_log_if_needed
+import tempfile
 
 try:
     import pytesseract
@@ -30,15 +29,15 @@ from company_info import (
     get_user_callname_from_uid,
     load_all_user_ids
 )
-from information_reader import (
-    read_employee_info,
-    read_partner_info, 
-    read_company_info,  
-    read_conversation_log, 
-    read_aiko_experience_log,
-    read_task_info,
-    read_attendance_log,
-    read_recent_conversation_log
+from information_reader_from_cache import (
+    get_employee_info,
+    get_partner_info, 
+    get_company_info,  
+    get_conversation_log, 
+    get_aiko_experience_log,
+    get_task_info,
+    get_attendance_log,
+    get_recent_conversation_log
 )
 from aiko_mailer import (
     draft_email_for_user, send_email_with_confirmation, get_user_email_from_uid, fetch_latest_email
@@ -64,7 +63,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
     user_id = event.source.user_id.strip().upper()
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    employee_info_raw = read_employee_info()
+    employee_info_raw = get_employee_info()
     logging.info(f"🐞 デバッグ: employee_info_raw = {employee_info_raw}")
     employee_info_list = ensure_list_of_dicts(employee_info_raw, label="従業員")
     logging.info(f"🐞 デバッグ: employee_info_list = {employee_info_list}")
@@ -115,7 +114,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
 
     if category in ["挨拶", "雑談", "その他", "ニュース・時事"]:
         logging.info(f"🗣️ OpenAIへ送信するユーザーメッセージ: {user_message}")
-        recent_logs = read_recent_conversation_log(user_id, limit=20)
+        recent_logs = get_recent_conversation_log(user_id, limit=20)
         prompt = generate_contextual_reply_from_context(user_id, user_message, recent_logs)
         logging.info(f"📤 OpenAI送信プロンプト: {prompt}")
         try:
@@ -148,11 +147,11 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         logging.warning("⚠️ 従業員データが空または形式不正のため、人物情報の検索をスキップします。")
 
     sources = {
-        "会社情報": read_company_info(),
-        "取引先情報": read_partner_info(),
-        "経験ログ": read_aiko_experience_log(),
-        "タスク情報": read_task_info(),
-        "勤怠管理": read_attendance_log()
+        "会社情報": get_company_info(),
+        "取引先情報": get_partner_info(),
+        "経験ログ": get_aiko_experience_log(),
+        "タスク情報": get_task_info(),
+        "勤怠管理": get_attendance_log()
     }
 
     match_any = False
@@ -166,7 +165,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
     if not match_any:
         logging.info("❗検索結果が全データで0件でした。OpenAIに処理を委譲します。")
         logging.info(f"🗣️ OpenAIへ送信するユーザーメッセージ: {user_message}")
-        recent_logs = read_recent_conversation_log(user_id, limit=20)
+        recent_logs = get_recent_conversation_log(user_id, limit=20)
         prompt = generate_contextual_reply_from_context(user_id, user_message, recent_logs)
         logging.info(f"📤 OpenAI送信プロンプト: {prompt}")
         try:
