@@ -137,8 +137,8 @@ def log_if_all_searches_failed(results_dict):
 def get_user_callname_from_uid(user_id, employee_info_list):
     user_id = user_id.lower()
     for employee in employee_info_list:
-        if employee.get("登録元UID", "").lower() == user_id:
-            return employee.get("呼ばれ方", employee.get("氏名", "不明な方"))
+        if employee.get("UID", "").lower() == user_id:
+            return employee.get("呼ばれ方", employee.get("名前", "不明な方"))
     logging.warning(f"⚠️ UID未登録: {user_id}")
     return "不明な方"
 
