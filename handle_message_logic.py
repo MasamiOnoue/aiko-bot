@@ -51,7 +51,7 @@ from openai_client import client, ask_openai_general_question
 from aiko_helpers import (
     log_aiko_reply, get_matching_entries, normalize_person_name,
     remove_honorifics, extract_keywords, classify_attendance_type, count_keyword_matches,
-    FIELD_MAPPING, detect_requested_field
+    FIELD_MAPPING, detect_requested_field, ensure_list_of_dicts
 )
 from attendance_logger import log_attendance_from_qr
 from information_writer import write_attendance_log
@@ -115,19 +115,18 @@ def handle_message_logic(event, sheet_service, line_bot_api):
     keywords = extract_keywords(cleaned_message)
     logging.info(f"🔍 検索キーワード: {keywords}")
 
-    employee_info_list = read_employee_info()
-    if isinstance(employee_info_list, list):
-        employee_matches = get_matching_entries(keywords, employee_info_list, ["氏名", "呼ばれ方", "読み"])
-        if employee_matches:
-            matched = employee_matches[0]
-            name = matched.get("氏名", "不明")
-            field = detect_requested_field(user_message)
-            value = matched.get(field, "不明")
-            reply = f"{name}さんの{field}は{value}です。"
-            line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
-            return
-    else:
-        logging.error("❌ get_matching_entries に不正な data_list が渡されました（辞書のリストである必要があります）")
+    employee_info_raw = read_employee_info()
+    employee_info_list = ensure_list_of_dicts(employee_info_raw, label="従業員")
+
+    employee_matches = get_matching_entries(keywords, employee_info_list, ["名前", "呼ばれ方", "名前の読み"])
+    if employee_matches:
+        matched = employee_matches[0]
+        name = matched.get("名前", "不明")
+        field = detect_requested_field(user_message)
+        value = matched.get(field, "不明")
+        reply = f"{name}さんの{field}は{value}です。"
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
+        return
 
     sources = {
         "会社情報": read_company_info(),
