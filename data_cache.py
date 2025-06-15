@@ -4,6 +4,7 @@ import os
 import sys
 import time
 import threading
+print("🔍 sys.path:", sys.path)
 
 from write_read_commands.read_employee_info import read_employee_info
 from write_read_commands.read_partner_info import read_partner_info
