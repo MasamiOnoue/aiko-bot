@@ -78,6 +78,16 @@ def handle_message_logic(event, sheet_service, line_bot_api):
         return
 
     user_message = event.message.text.strip()
+
+    # 仮応答を即座に送信（LINEのタイムアウト回避）
+    try:
+        line_bot_api.reply_message(
+            event.reply_token,
+            TextSendMessage(text="確認中です、少々お待ちください。")
+        )
+    except Exception as e:
+        logging.warning(f"⚠️ 仮応答送信失敗: {e}")
+
     logging.info(f"💬 受信メッセージ: {user_message}")
     category = classify_conversation_category(user_message)
     logging.info(f"🧠 カテゴリ分類: {category}")
