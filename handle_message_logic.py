@@ -3,10 +3,11 @@
 import os
 import logging
 import re
+import tempfile
 from datetime import datetime
 from linebot.models import TextSendMessage, ImageMessage
 from PIL import Image
-import tempfile
+from data_cache import cache, refresh_conversation_log_if_needed
 
 try:
     import pytesseract
