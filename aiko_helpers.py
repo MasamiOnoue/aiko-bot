@@ -7,7 +7,7 @@ import logging
 from aiko_greeting import now_jst
 from information_reader import read_employee_info
 
-def log_aiko_reply(user_id, user_name, speaker, reply, category, message_type, topics, status, topic, sentiment, source):  # timestamp 引数削除済み
+def log_aiko_reply(user_id, user_name, speaker, reply, category, message_type, topics, status, topic, sentiment):  # timestamp 引数削除済み
     try:
         timestamp = now_jst().strftime("%Y-%m-%d %H:%M:%S")  # 現在時刻を使用（引数では受け取らない）
         GCF_ENDPOINT = os.getenv("GCF_ENDPOINT")
@@ -84,6 +84,9 @@ def count_keyword_matches(data_list, keywords):
     )
 
 def get_matching_entries(data_list, keywords, fields=None):
+    if not data_list or not isinstance(data_list[0], dict):
+        logging.error("❌ get_matching_entries に不正な data_list が渡されました（辞書のリストである必要があります）")
+        return []
     """
     キーワードのいずれかが一致するデータエントリを抽出
 
