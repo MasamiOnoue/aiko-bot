@@ -4,6 +4,7 @@ import os
 import re
 import requests
 import logging
+import json
 from aiko_greeting import now_jst
 from information_reader import read_employee_info
 
@@ -142,3 +143,17 @@ def detect_requested_field(text: str) -> str:
             if kw in text:
                 return field
     return "役職"
+
+def ensure_list_of_dicts(data, label=""):
+    if isinstance(data, str):
+        try:
+            return json.loads(data)
+        except json.JSONDecodeError:
+            logging.error(f"❌ {label} 情報のJSONデコードに失敗しました")
+            return []
+    elif isinstance(data, list):
+        return data
+    else:
+        logging.error(f"❌ {label} 情報が想定外の形式です: {type(data)}")
+        return []
+
