@@ -116,11 +116,12 @@ def read_employee_info():
         json_data = response.json()
         logging.info(f"📡 API Response: {json_data}")
 
+        # Cloud Runの戻り値の形式に合わせる
         if json_data.get("status") == "success":
             logging.info("✅ 従業員情報取得成功")
             return json_data.get("records", [])
         else:
-            logging.warning(f"⚠️ ステータスが success ではありません: {json_data}")
+            logging.warning("⚠️ 従業員情報の取得に失敗しました（status != success）")
             return []
 
     except Exception as e:
