@@ -121,7 +121,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
     keywords = extract_keywords(cleaned_message)
     logging.info(f"🔍 検索キーワード: {keywords}")
 
-    if employee_info_list and isinstance(employee_info_list, list) and isinstance(employee_info_list[0], dict):
+    if employee_info_list and isinstance(employee_info_list, list) and len(employee_info_list) > 0 and isinstance(employee_info_list[0], dict):
         employee_matches = get_matching_entries(keywords, employee_info_list, ["名前", "呼ばれ方", "名前の読み"])
         if employee_matches:
             matched = employee_matches[0]
