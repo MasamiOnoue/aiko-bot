@@ -109,10 +109,20 @@ def read_employee_info():
         url = base_url.rstrip("/") + "/read-employee-info"
         api_key = os.getenv("PRIVATE_API_KEY")
         headers = {"x-api-key": api_key}
+
         response = requests.get(url, headers=headers, timeout=10)
         response.raise_for_status()
-        logging.info("✅ 従業員情報取得成功")
-        return response.json().get("data", [])
+
+        json_data = response.json()
+        logging.info(f"📡 API Response: {json_data}")
+
+        if json_data.get("status") == "success":
+            logging.info("✅ 従業員情報取得成功")
+            return json_data.get("records", [])
+        else:
+            logging.warning(f"⚠️ ステータスが success ではありません: {json_data}")
+            return []
+
     except Exception as e:
         logging.error(f"❌ Cloud Function呼び出し失敗: {e}")
         return []
