@@ -14,8 +14,8 @@ logging.basicConfig(
 )
 
 # 相対パスで write_read_commands を追加
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-#sys.path.append(os.path.join(os.path.dirname(__file__), 'write_read_commands'))
+# sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.join(os.path.dirname(__file__), 'write_read_commands'))
 
 from flask import Flask, request, abort
 from linebot import LineBotApi, WebhookHandler
