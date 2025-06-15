@@ -4,8 +4,8 @@ import os
 import sys
 import logging
 from dotenv import load_dotenv
-print("📡 GCF_ENDPOINT =", os.getenv("GCF_ENDPOINT"))
 load_dotenv()
+print("\U0001F4E1 GCF_ENDPOINT =", os.getenv("GCF_ENDPOINT"))
 
 logging.basicConfig(
     level=logging.INFO,  # ← INFO レベルを出力する設定
@@ -19,10 +19,8 @@ from flask import Flask, request, abort
 from linebot import LineBotApi, WebhookHandler
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
 from linebot.exceptions import InvalidSignatureError
+
 from openai import OpenAI
-
-from linebot import LineBotApi, WebhookHandler
-
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 from sheets_service import get_google_sheets_service
