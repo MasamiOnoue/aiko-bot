@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from linebot import LineBotApi
 from linebot.models import TextSendMessage
 from company_info import get_user_callname_from_uid
+from information_reader import read_employee_info
 
 # ユーザーごとの挨拶履歴を記録する辞書（時刻＋カテゴリ）
 recent_greeting_users = {}
@@ -45,7 +46,8 @@ def get_time_based_greeting(user_id=None):
         greeting = "ねむ～"
 
     if user_id:
-        name = get_user_callname_from_uid(user_id)
+        employee_info_list = read_employee_info()
+        name = get_user_callname_from_uid(user_id, employee_info_list)
         if name and name != "不明":
             if any(name.endswith(suffix) for suffix in ["さん", "様", "くん", "ちゃん"]):
                 greeting += f"、{name}"
