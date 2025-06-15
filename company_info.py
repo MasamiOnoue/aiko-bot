@@ -134,11 +134,11 @@ def log_if_all_searches_failed(results_dict):
         logging.warning("❌ 全検索失敗：どの情報ソースからも該当データが見つかりませんでした")
 
 # === UID関連ユーティリティ ===
-def get_user_callname_from_uid(user_id, uid_dict):
+def get_user_callname_from_uid(user_id, employee_info_list):
     user_id = user_id.lower()
-    employee = uid_dict.get(user_id)
-    if employee:
-        return employee.get("呼ばれ方", employee.get("氏名", "不明な方"))
+    for employee in employee_info_list:
+        if employee.get("UID", "").lower() == user_id:
+            return employee.get("呼ばれ方", employee.get("氏名", "不明な方"))
     logging.warning(f"⚠️ UID未登録: {user_id}")
     return "不明な方"
     
