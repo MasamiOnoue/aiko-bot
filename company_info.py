@@ -2,7 +2,6 @@
 
 import os
 import logging
-from functools import lru_cache
 import requests
 import difflib
 import unicodedata
@@ -135,7 +134,6 @@ def log_if_all_searches_failed(results_dict):
         logging.warning("❌ 全検索失敗：どの情報ソースからも該当データが見つかりませんでした")
 
 # === UID関連ユーティリティ ===
-@lru_cache(maxsize=128)
 def get_user_callname_from_uid(user_id, employee_info_list):
     user_id = user_id.lower()
     for employee in employee_info_list:
