@@ -47,6 +47,18 @@ def get_conversation_log_from_cache():
 
     return cache["conversation_log"]
 
+
+def get_recent_conversation_cache(user_id, limit=20):
+    warnings.warn("⚠️ この関数はリアルタイム読み込み用です。通常は information_reader_from_cache.py を使ってください", stacklevel=2)
+    try:
+        all_logs = read_conversation_log()
+        user_logs = [log for log in all_logs if log.get("user_id") == user_id]
+        sorted_logs = sorted(user_logs, key=lambda x: x.get("timestamp", ""), reverse=True)
+        return sorted_logs[:limit]
+    except Exception as e:
+        logging.error(f"❌ 会話ログの取得に失敗しました: {e}")
+        return []
+
 def get_aiko_experience_log():
     return cache["aiko_experience_log"]
 
