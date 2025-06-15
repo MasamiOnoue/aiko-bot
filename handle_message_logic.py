@@ -79,7 +79,7 @@ def handle_message_logic(event, sheet_service, line_bot_api):
     logging.info(f"💬 受信メッセージ: {user_message}")
     category = classify_conversation_category(user_message)
     logging.info(f"🧠 カテゴリ分類: {category}")
-    log_aiko_reply(timestamp, user_id, user_name, "ユーザー", user_message, category or "未分類", "テキスト", "未分類", "OK", "入力", "不明")
+    log_aiko_reply(user_id, user_name, "ユーザー", user_message, category or "未分類", "テキスト", "未分類", "OK", "入力", "不明", "-")
 
     greet_key = normalize_greeting(user_message)
     if greet_key and not has_recent_greeting(user_id, greet_key):
