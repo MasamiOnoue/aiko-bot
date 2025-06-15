@@ -68,6 +68,8 @@ def handle_message_logic(event, sheet_service, line_bot_api):
     employee_info_list = ensure_list_of_dicts(employee_info_raw, label="従業員")
     logging.info(f"🐞 デバッグ: employee_info_list = {employee_info_list}")
 
+    uid_dict = build_uid_dict(employee_info_list) 
+
     user_name = get_user_callname_from_uid(user_id, employee_info_list) or DEFAULT_USER_NAME
     logging.info(f"✅ user_name: {user_name}")
     registered_uids = load_all_user_ids()
