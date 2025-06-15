@@ -4,7 +4,7 @@ import os
 import requests
 import logging
 
-def write_conversation_log(timestamp, user_id, user_name, speaker, message, category, message_type, topic, status, sentiment=""):
+def write_conversation_log(timestamp, user_id, user_name, speaker, message, category, message_type, topic, status, sentiment="", reserve1="", reserve2="", reserve3=""):
     try:
         base_url = os.getenv("GCF_ENDPOINT")
         if not base_url:
@@ -16,6 +16,19 @@ def write_conversation_log(timestamp, user_id, user_name, speaker, message, cate
             "Content-Type": "application/json",
             "x-api-key": api_key
         }
+        # JSTで送信されているか確認、UTCとの二重登録を防ぐ
+        if "+" not in timestamp:
+            from datetime import datetime
+            import pytz
+            jst = pytz.timezone('Asia/Tokyo')
+            try:
+                # UTCで誤っていたらJSTに変換
+                dt = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
+                dt = pytz.utc.localize(dt).astimezone(jst)
+                timestamp = dt.strftime("%Y-%m-%d %H:%M:%S")
+            except Exception as e:
+                logging.warning(f"⚠️ タイムスタンプ変換失敗: {e}")
+
         payload = {
             "timestamp": timestamp,
             "user_id": user_id,
@@ -26,14 +39,17 @@ def write_conversation_log(timestamp, user_id, user_name, speaker, message, cate
             "message_type": message_type,
             "topic": topic,
             "status": status,
-            "sentiment": sentiment
+            "sentiment": sentiment,
+            "reserve1": reserve1,
+            "reserve2": reserve2,
+            "reserve3": reserve3
         }
         response = requests.post(url, headers=headers, json=payload, timeout=10)
         response.raise_for_status()
         logging.info("✅ 会話ログ送信成功")
     except Exception as e:
         logging.error(f"❌ Cloud Function呼び出し失敗: {e}")
-
+        
 def write_employee_info(values):
     try:
         base_url = os.getenv("GCF_ENDPOINT")
