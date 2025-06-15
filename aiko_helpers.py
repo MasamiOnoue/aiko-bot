@@ -159,3 +159,11 @@ def ensure_list_of_dicts(data, label=""):
         logging.error(f"❌ {label} 情報が想定外の形式です: {type(data)}")
         return []
 
+def build_uid_dict(employee_info_list):
+    uid_dict = {}
+    for employee in employee_info_list:
+        uid = employee.get("UID", "").lower()
+        if uid:
+            uid_dict[uid] = employee
+    return uid_dict
+
