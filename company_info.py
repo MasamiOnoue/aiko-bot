@@ -139,6 +139,12 @@ def log_if_all_searches_failed(results_dict):
 # === UID関連ユーティリティ ===
 @lru_cache(maxsize=128)
 def get_user_callname_from_uid(user_id):
+    uid = uid.lower()  # ★ 小文字化
+    for employee in employee_info_list:
+        if employee.get("登録元UID", "").lower() == uid:  # ★ 小文字で比較
+            return employee.get("呼ばれ方", employee.get("氏名", "不明な方"))
+    logging.warning(f"⚠️ UID未登録: {uid}")
+    return "不明な方"
     try:
         url = os.getenv("GCF_ENDPOINT", "").rstrip("/") + "/read-employee-info"
         api_key = os.getenv("PRIVATE_API_KEY")
