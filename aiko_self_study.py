@@ -9,12 +9,10 @@ import threading
 from typing import List, Dict
 from bs4 import BeautifulSoup
 from sheets_service import get_google_sheets_service
-from openai import OpenAI
 from openai_client import client
 
 SPREADSHEET_ID4 = os.getenv('SPREADSHEET_ID4')
 sheets_service = get_google_sheets_service()
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 user_conversation_cache = {}
 full_conversation_cache = []
@@ -58,17 +56,18 @@ def build_conversational_prompt(conversation_history: List[Dict], latest_user_me
     messages.append({"role": "user", "content": latest_user_message})
     return messages
 
-def generate_contextual_reply_from_context(system_prompt, context, user_message):
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": context + "\n\n" + user_message}
-    ]
+def generate_contextual_reply_from_context(user_id: str, user_message: str, recent_logs: List[Dict]) -> str:
     try:
+        # recent_logsはList[Dict]形式であることを想定
+        conversation_history = [
+            {"speaker": log.get("speaker", "user"), "message": log.get("message", "")}
+            for log in recent_logs if isinstance(log, dict)
+        ]
+        messages = build_conversational_prompt(conversation_history, user_message)
         response = client.chat.completions.create(
-            model="gpt-4o",  # または gpt-3.5-turbo
-            messages=messages,
-            temperature=0.7
+            model="gpt-4o",
+            messages=messages
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
-        return f"⚠️ エラーが発生しました: {str(e)}"
+        return f"[応答失敗]: {e}"
