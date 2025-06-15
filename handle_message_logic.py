@@ -62,7 +62,13 @@ DEFAULT_USER_NAME = "不明"
 def handle_message_logic(event, sheet_service, line_bot_api):
     user_id = event.source.user_id.strip().upper()
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    user_name = get_user_callname_from_uid(user_id) or DEFAULT_USER_NAME
+
+    employee_info_raw = read_employee_info()
+    logging.info(f"🐞 デバッグ: employee_info_raw = {employee_info_raw}")
+    employee_info_list = ensure_list_of_dicts(employee_info_raw, label="従業員")
+    logging.info(f"🐞 デバッグ: employee_info_list = {employee_info_list}")
+
+    user_name = get_user_callname_from_uid(user_id, employee_info_list) or DEFAULT_USER_NAME
     logging.info(f"✅ user_name: {user_name}")
     registered_uids = load_all_user_ids()
 
@@ -114,11 +120,6 @@ def handle_message_logic(event, sheet_service, line_bot_api):
     cleaned_message = normalize_person_name(user_message)
     keywords = extract_keywords(cleaned_message)
     logging.info(f"🔍 検索キーワード: {keywords}")
-
-    employee_info_raw = read_employee_info()
-    logging.info(f"🐞 デバッグ: employee_info_raw = {employee_info_raw}")
-    employee_info_list = ensure_list_of_dicts(employee_info_raw, label="従業員")
-    logging.info(f"🐞 デバッグ: employee_info_list = {employee_info_list}")
 
     if employee_info_list and isinstance(employee_info_list, list) and isinstance(employee_info_list[0], dict):
         employee_matches = get_matching_entries(keywords, employee_info_list, ["名前", "呼ばれ方", "名前の読み"])
