@@ -116,14 +116,18 @@ def handle_message_logic(event, sheet_service, line_bot_api):
     logging.info(f"🔍 検索キーワード: {keywords}")
 
     employee_info_list = read_employee_info()
-    employee_matches = get_matching_entries(keywords, employee_info_list, ["氏名", "呼ばれ方", "読み"])
-    if employee_matches:
-        matched = employee_matches[0]
-        name = matched.get("氏名", "不明")
-        role = matched.get("役職", "不明")
-        reply = f"{name}さんは{role}です。"
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
-        return
+    if isinstance(employee_info_list, list):
+        employee_matches = get_matching_entries(keywords, employee_info_list, ["氏名", "呼ばれ方", "読み"])
+        if employee_matches:
+            matched = employee_matches[0]
+            name = matched.get("氏名", "不明")
+            field = detect_requested_field(user_message)
+            value = matched.get(field, "不明")
+            reply = f"{name}さんの{field}は{value}です。"
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
+            return
+    else:
+        logging.error("❌ get_matching_entries に不正な data_list が渡されました（辞書のリストである必要があります）")
 
     sources = {
         "会社情報": read_company_info(),
